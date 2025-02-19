@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    {% include "header.html" %}
+    <body>
+        {% include "menubar.html" %}
+
+        <div class="container text-center">
+
+            <div class="row mt-5">
+                <div class="col-lg-3"></div>
+                <div class="col-lg-6 col-sm-12">
+                    <p class="h1">About</p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    This is not a go server. There are no accounts, no ranks, no timers, no challenges, no scoring.  This is an online board which allows <b>shared control across all participants</b>.  Create a board, share the link with your friends. Experiment with variations. In theory, you could even play informal games.
+                    </p>
+
+                    <p class="h5">Review Control</p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    Most servers handle reviews in the following way: one user has "control" of the review and can pass that control to the other users. Now, given the network considerations involved, this implementation makes sense, but if you have ever found that asking "Hey can I get control real quick?" over and over gets tedious compared to reviewing with a real board, then you probably understand why this tool was created.
+                    </p>
+
+                    <p class="h5">How to Use</p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    Enter a name for your new board (or leave it blank and the server will generate an id for you), and click "New Board." This will generate a new URL that you can then share with other participants. If you have used the review function on other go servers, then most of the board operations should be self-explanatory, but here a few notes.
+                    
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    The <button class="btn btn-light"><i class="bi-upload"></i></button> button allows the user to upload SGFs in three ways: (1) upload from the user's device, (2) paste in a URL, or (3) paste an SGF directly.
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+
+                    The <button class="btn btn-light"><i class="bi-download"></i></button> button allows the user to download SGFs in two ways: (1) directly download to the user's device, or (2) get a link to the raw SGF.
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+
+                    The <button class="btn btn-light"><i class="bi-scissors"></i></button> button will delete the current selected branch.
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+
+                    The <button class="btn btn-light"><i class="bi-trash"></i></button> button resets the entire board.
+                    </p>
+                    <p class="h6 lh-lg" id="updown" style="text-align:justify;">
+                    The left and right arrow keys move left and right in the game tree. The up and down arrow keys move up and down branches (a la OGS), while shift+up and shift+down modify which branch to follow (a la KGS). This functionality can be switched in the settings by clicking on the <button class="btn btn-light"><i class="bi-gear"></i></button> button.
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    As with other servers, shift+click on an intersection will go to the node where that intersection was played.
+                    </p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+
+
+                    After 24 hours of no activity, boards will be automatically cleared.
+
+                    </p>
+ 
+                    <p class="h5" id="input-buffer">Input Buffer</p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    With no other controls in place, users will quickly start "interrupting" each other when putting stones on the board at the same time. So, each room has a slider for what we call "Input Buffer" indicated by the <button class="btn btn-light"><i class="bi-broadcast"></i></button> button. After a user changes the board in some way, the server will ignore everyone else for a given period of time (default: 250ms). This can be adjusted on a per room basis.
+                    <!--
+                        i've read that the average human reaction time is no faster than 250ms anyway
+                        test your reaction time here: https://humanbenchmark.com/tests/reactiontime
+                    -->
+                    </p>
+ 
+                    <p class="h5" id="input-buffer">Donate</p>
+                    <p class="h6 lh-lg" style="text-align:justify;">
+                    If you like this tool and want to support my work, send me a tip:<a href="https://tiptopjar.com/tripleko" target="_blank"><btn class="btn btn-light"><i class="bi-cash"></i></button></a>
+
+
+                    </p>
+
+                </div>
+                <div class="col-lg-3"></div>
+            </div>
+        </div>
+
+
+        {% include "footer.html" %}
+
+
+    </body>
+</html>

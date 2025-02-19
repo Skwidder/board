@@ -1,0 +1,6 @@
+env/
+frontend/templates/config.js
+run.sh
+notes.txt
+scratch/
+__pycache__/
