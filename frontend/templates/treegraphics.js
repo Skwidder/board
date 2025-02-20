@@ -54,6 +54,13 @@ class TreeGraphics {
         this.resize();
         this.height = container.offsetHeight;
         this.draw_background();
+        this.ratio = window.devicePixelRatio;
+    }
+
+    new_buffer_canvas() {
+        let canvas = new OffscreenCanvas(this.width*this.ratio, this.height*this.ratio);
+        canvas.getContext("2d").scale(this.ratio, this.ratio);
+        return canvas;
     }
 
     new_canvas(id, z_index) {
@@ -352,6 +359,11 @@ class TreeGraphics {
     }
 
     draw_lines(grid, loc) {
+        let buffer_canvas = this.new_buffer_canvas();
+        let buffer_ctx = buffer_canvas.getContext("2d");
+        let canvas = this.canvases.get("lines");
+        let ctx = canvas.getContext("2d");
+
         for (let row of grid) {
             for (let cur of row) {
                 if (cur == 0 || cur == 1) {
@@ -360,13 +372,18 @@ class TreeGraphics {
                 if (cur.up == null) {
                     continue;
                 }
-                this.draw_connecting_line(cur, loc, "#BBBBBB", "lines");
+                this.draw_connecting_line(cur, loc, "#BBBBBB", buffer_ctx);
             }
         }
-
+        ctx.drawImage(buffer_canvas, 0, 0);
     }
 
     draw_preferred_line(tree, loc) {
+        let buffer_canvas = this.new_buffer_canvas();
+        let buffer_ctx = buffer_canvas.getContext("2d");
+        let canvas = this.canvases.get("preferred-lines");
+        let ctx = canvas.getContext("2d");
+
         let start = tree.root;
         while (true) {
             if (start.down.length == 0) {
@@ -374,24 +391,29 @@ class TreeGraphics {
             }
 
             start = start.down[start.preferred_child];
-            this.draw_connecting_line(start, loc, "#8d42eb", "preferred-lines");
+            this.draw_connecting_line(start, loc, "#8d42eb", buffer_ctx);
         }
-
+        ctx.drawImage(buffer_canvas, 0, 0);
     }
 
     draw_preferred_stones(tree, loc) {
+        let buffer_canvas = this.new_buffer_canvas();
+        let buffer_ctx = buffer_canvas.getContext("2d");
+        let canvas = this.canvases.get("preferred-stones");
+        let ctx = canvas.getContext("2d");
+
         let start = tree.root;
         while (true) {
             if (start.down.length == 0) {
                 break;
             }
             start = start.down[start.preferred_child];
-            this.draw_stone(start, loc, true, "preferred-stones");
+            this.draw_stone(start, loc, true, ctx);
         }
-
+        ctx.drawImage(buffer_canvas, 0, 0);
     }
 
-    draw_stone(cur, loc, preferred, id) {
+    draw_stone(cur, loc, preferred, ctx) {
         let [x,y] = loc.get(cur.index);
         let colors = cur.colors();
         let is_x = true;
@@ -412,32 +434,32 @@ class TreeGraphics {
         let [pos_x, pos_y] = this.get_xypos(x, y);
 
         if (is_x) {
-            this.draw_x(pos_x, pos_y, this.r, hexColor, id);
+            this.draw_x(pos_x, pos_y, this.r, hexColor, ctx);
         } else {
-            this.draw_circle(pos_x, pos_y, this.r, hexColor, id, true);
+            this.draw_circle(pos_x, pos_y, this.r, hexColor, ctx, true);
             let text_color = "#FFFFFF";
             if (colors.has(2) && !colors.has(1)) {
                 text_color = "#000000";
                 // shadow
-                /*
-                if (change_stones) {
-                    this.draw_shadow(pos_x, pos_y, this.r, "preferred-" + id);
-                }
-                this.draw_shadow(pos_x, pos_y, this.r, id);
-                */
+                //this.draw_shadow(pos_x, pos_y, this.r, ctx);
 
                 // outline
-                this.draw_circle(pos_x, pos_y, this.r, "#00000044", id, false, 0.5);
+                this.draw_circle(pos_x, pos_y, this.r, "#00000044", ctx, false, 0.5);
             }
             if (!preferred) {
                 text_color += "44";
             }
-            this.draw_text(cur.depth.toString(), pos_x, pos_y, text_color, id);
+            this.draw_text(cur.depth.toString(), pos_x, pos_y, text_color, ctx);
         }
 
     }
 
     draw_stones(tree, grid, loc) {
+        let buffer_canvas = this.new_buffer_canvas();
+        let buffer_ctx = buffer_canvas.getContext("2d");
+        let canvas = this.canvases.get("stones");
+        let ctx = canvas.getContext("2d");
+
         // get indexes of tree's preferred nodes
         let preferred = tree.preferred();
 
@@ -451,9 +473,10 @@ class TreeGraphics {
                 }
 
                 // draw stone
-                this.draw_stone(cur, loc, false, "stones");
+                this.draw_stone(cur, loc, false, buffer_ctx);
             }
         }
+        ctx.drawImage(buffer_canvas, 0, 0);
     }
 
     draw_tree(tree, grid, loc, change_preferred, change_stones) {
@@ -470,7 +493,9 @@ class TreeGraphics {
         let [x,y] = loc.get(tree.current.index);
         let [pos_x, pos_y] = this.get_xypos(x,y);
         this.clear_canvas("current");
-        this.draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current", true);
+
+        let current_ctx = this.canvases.get("current").getContext("2d");
+        this.draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", current_ctx, true);
         let current_x = pos_x;
         let current_y = pos_y;
 
@@ -488,23 +513,24 @@ class TreeGraphics {
 
         // draw root
         let origin = this.get_xypos(0, 0);
-        this.draw_root(origin[0], origin[1], w, "stones");
+        let ctx = this.canvases.get("stones").getContext("2d");
+        this.draw_root(origin[0], origin[1], w, ctx);
 
         // draw stones
         // we only need to redraw stones if there are new ones to draw
+        console.time("draw-stones");
         if (change_stones) {
             this.draw_stones(tree, grid, loc);
         }
+        console.timeEnd("draw-stones");
+        console.log("---");
         if (change_preferred) {
             this.draw_preferred_stones(tree, loc);
         }
         return [current_x, current_y];
     }
 
-    draw_text(text, x, y, color, id) {
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
-
+    draw_text(text, x, y, color, ctx) {
         let font_size = this.r;
 
         ctx.font = "bold " + font_size.toString() + "px Arial";
@@ -521,7 +547,7 @@ class TreeGraphics {
         ctx.fillText(text, x-x_offset, y+y_offset);
     }
 
-    draw_connecting_line(cur, loc, color, id) {
+    draw_connecting_line(cur, loc, color, ctx) {
 
         let [x,y] = loc.get(cur.index);
         let [pos_x, pos_y] = this.get_xypos(x,y);
@@ -531,17 +557,15 @@ class TreeGraphics {
         let [back_x, back_y] = this.get_xypos(x1, y1);
 
         if (y == y1) {
-            this.draw_line(pos_x, pos_y, back_x, back_y, color, id);
+            this.draw_line(pos_x, pos_y, back_x, back_y, color, ctx);
         } else {
             let [mid_x, mid_y] = this.get_xypos(x-1, y-1);
-            this.draw_line(pos_x, pos_y, mid_x, mid_y, color, id);
-            this.draw_line(mid_x, mid_y, back_x, back_y, color, id);
+            this.draw_line(pos_x, pos_y, mid_x, mid_y, color, ctx);
+            this.draw_line(mid_x, mid_y, back_x, back_y, color, ctx);
         }
     }
 
-    draw_line(x0, y0, x1, y1, hexColor, id) {
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
+    draw_line(x0, y0, x1, y1, hexColor, ctx) {
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = hexColor;
@@ -550,12 +574,10 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_x(x, y, r, hexColor, id) {
+    draw_x(x, y, r, hexColor, ctx) {
         let ratio = window.devicePixelRatio;
         let l = r/2;
 
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
         ctx.lineWidth = 3;
         ctx.strokeStyle = hexColor;
 
@@ -571,10 +593,8 @@ class TreeGraphics {
     }
 
     // tree graphics
-    draw_circle(x, y, r, hexColor, id, filled=true, stroke=3, theta_0=0, theta_1=2*Math.PI) {
+    draw_circle(x, y, r, hexColor, ctx, filled=true, stroke=3, theta_0=0, theta_1=2*Math.PI) {
         let ratio = window.devicePixelRatio;
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
         ctx.beginPath();
         if (filled) {
             ctx.strokeStyle = "#00000000";
@@ -590,14 +610,12 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_shadow(x, y, r, id) {
-        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011", id);
+    draw_shadow(x, y, r, ctx) {
+        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011", ctx);
     }
 
-    draw_crescent(x, y, r, theta_0, theta_1, color, id) {
+    draw_crescent(x, y, r, theta_0, theta_1, color, ctx) {
         let frac = 1/4;
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
 
         let center_theta = (theta_0 + theta_1)/2;
         let new_x = x - Math.cos(center_theta)*r*frac;
@@ -612,25 +630,23 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_square(x, y, w, hexColor, id, filled=true) {
-        let canvas = this.canvases.get(id);
-        let ctx = canvas.getContext("2d");
+    draw_square(x, y, w, hexColor, ctx, filled=true) {
         ctx.beginPath();
         ctx.fillStyle = hexColor;
         ctx.fillRect(x, y, w, w);
     }
 
-    draw_root(x, y, w, id) {
+    draw_root(x, y, w, ctx) {
         let r = w/3;
 
         // half black circle
-        this.draw_circle(x, y, r, "#000000", id, true, 0, -Math.PI/2, Math.PI/2);
+        this.draw_circle(x, y, r, "#000000", ctx, true, 0, -Math.PI/2, Math.PI/2);
 
         // half white circle
-        this.draw_circle(x, y, r, "#FFFFFF", id, true, 0, Math.PI/2, 3*Math.PI/2);
+        this.draw_circle(x, y, r, "#FFFFFF", ctx, true, 0, Math.PI/2, 3*Math.PI/2);
 
-        this.draw_circle(x, y+r/2, r/2, "#000000", id, true, 0);
-        this.draw_circle(x, y-r/2, r/2, "#FFFFFF", id, true, 0);
+        this.draw_circle(x, y+r/2, r/2, "#000000", ctx, true, 0);
+        this.draw_circle(x, y-r/2, r/2, "#FFFFFF", ctx, true, 0);
 
 
     }
