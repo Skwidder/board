@@ -29,13 +29,11 @@ class TreeGraphics {
 
         // TODO: the fact that this is a fixed number
         // is a little bothersome
-        this.saved_height = 0;
         this.saved_height = review.offsetHeight/2;
         container.style.height = this.saved_height + "px";
         container.style.background = this.bgcolor;
 
         this.width = container.offsetWidth;
-        this.height = container.offsetHeight;
 
         this.canvases = new Map();
 
@@ -53,6 +51,8 @@ class TreeGraphics {
         this.x_offset = 2*this.r;
         this.y_offset = 2*this.r;
 
+        this.resize();
+        this.height = container.offsetHeight;
         this.draw_background();
     }
 
@@ -111,8 +111,8 @@ class TreeGraphics {
             let h = review.offsetHeight + arrows.offsetHeight*4.5;
             let new_height = window.innerHeight - h;
             // TODO:
-            // still annoying that this '180' is hardcoded
-            this.container.style.height = Math.max(new_height, 180) + "px";
+            // still annoying that this '100' is hardcoded
+            this.container.style.height = Math.max(new_height, 100) + "px";
         } else {
             let review = document.getElementById("review")
             new_width = window.innerWidth - review.offsetWidth - 100;
@@ -202,7 +202,7 @@ class TreeGraphics {
         let changes = false;
         let width = this.width;
         let w = (m+1)*this.step;
-        if (w > width) {
+        if (w != width) {
             width = w;
             this.width = w;
             changes = true;
@@ -210,7 +210,7 @@ class TreeGraphics {
 
         let height = this.height;
         let h = (g+1)*this.step;
-        if (h > height) {
+        if (h != height) {
             height = h;
             this.height = height;
             changes = true;
