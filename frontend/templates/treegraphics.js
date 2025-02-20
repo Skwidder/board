@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2025 Tripleko LLC
+Copyright (c) 2025 Jared Nishikawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -7,6 +7,8 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
+import { get_viewport } from './common.js';
 
 export {
     TreeGraphics
@@ -19,9 +21,6 @@ class TreeGraphics {
         let explorer = document.getElementById("explorer");
         this.container = container;
         this.explorer = explorer;
-        let canvas = document.createElement("canvas");
-        let ratio = window.devicePixelRatio;
-
         let size = explorer.getAttribute("size");
         this.bgcolor = "#DEDDDA";
 
@@ -30,13 +29,22 @@ class TreeGraphics {
 
         // TODO: the fact that this is a fixed number
         // is a little bothersome
-        let container_height = 155;
-        let container_style = container.getAttribute("style");
-        container.style.height = container_height + "px";
+        this.saved_height = 0;
+        this.saved_height = review.offsetHeight/2;
+        container.style.height = this.saved_height + "px";
         container.style.background = this.bgcolor;
 
         this.width = container.offsetWidth;
         this.height = container.offsetHeight;
+
+        this.canvases = new Map();
+
+        this.new_canvas("background", 0);
+        this.new_canvas("current", 10);
+        this.new_canvas("lines", 20);
+        this.new_canvas("preferred-lines", 30);
+        this.new_canvas("stones", 40);
+        this.new_canvas("preferred-stones", 50);
 
         this.grid = [];
 
@@ -45,28 +53,79 @@ class TreeGraphics {
         this.x_offset = 2*this.r;
         this.y_offset = 2*this.r;
 
-        //canvas.setAttribute("width", this.width);
-        //canvas.setAttribute("height", this.height);
+        this.draw_background();
+    }
+
+    new_canvas(id, z_index) {
+        if (this.canvases.has(id)) {
+            return;
+        }
+        let canvas = document.createElement("canvas");
+        let ratio = window.devicePixelRatio;
+
 
         canvas.width = this.width*ratio;
         canvas.height = this.height*ratio;
 
+        canvas.style.position = "absolute";
         canvas.style.margin = "auto";
         canvas.style.display = "flex";
         canvas.style.width = this.width + "px";
         canvas.style.height = this.height + "px";
+        canvas.style.zIndex = z_index;
 
         canvas.getContext("2d").scale(ratio, ratio);
 
-        explorer.appendChild(canvas);
-        this.canvas = canvas;
+        this.canvases.set(id, canvas);
 
-        this.draw_background();
+        this.explorer.appendChild(canvas);
+    }
+
+    clear_canvas(id) {
+        let canvas = this.canvases.get(id);
+        if (canvas == null) {
+            return;
+        }
+        let ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    clear_all() {
+        this.clear_canvas("background");
+        this.clear_canvas("current");
+        this.clear_canvas("lines");
+        this.clear_canvas("preferred-lines");
+        this.clear_canvas("stones");
+        this.clear_canvas("preferred-stones");
+    }
+
+    resize() {
+        let vp = get_viewport();
+        let new_width = 0;
+        if (vp == "xs" || vp == "sm" || vp == "md") {
+            let content = document.getElementById("content");
+            new_width = content.offsetWidth;
+
+            let review = document.getElementById("review");
+            let arrows = document.getElementById("arrows");
+            let h = review.offsetHeight + arrows.offsetHeight*4.5;
+            let new_height = window.innerHeight - h;
+            // TODO:
+            // still annoying that this '180' is hardcoded
+            this.container.style.height = Math.max(new_height, 180) + "px";
+        } else {
+            let review = document.getElementById("review")
+            new_width = window.innerWidth - review.offsetWidth - 100;
+            this.container.style.height = this.saved_height + "px";
+        }
+
+        this.container.style.width = new_width + "px";
     }
 
     capture_mouse(x, y) {
+        let canvas = this.canvases.get("background");
         let container_rect = this.container.getBoundingClientRect();
-        let rect = this.canvas.getBoundingClientRect();
+        let rect = canvas.getBoundingClientRect();
 
         // first make sure mouse is within containing element
 
@@ -94,26 +153,27 @@ class TreeGraphics {
         return 0;
     }
 
+    /*
     clear() {
         let ctx = this.canvas.getContext("2d");
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+    */
 
-    update(tree) {
+    update(tree, change_preferred=false, change_stones=false) {
         // draw background
         this.draw_background();
-
 
         // fill grid
         let [grid, loc] = this.fill_grid(tree);
         this.grid = grid;
 
         // set dimensions
-        this.set_dims(tree.max_depth, grid.length);
+        this.set_dims_all(tree.max_depth, grid.length);
 
         // draw lines and stones
         // [x,y] will be the location of the current blue square
-        let [x,y] = this.draw_tree(tree, grid, loc);
+        let [x,y] = this.draw_tree(tree, grid, loc, change_preferred, change_stones);
 
         // adjust scroll (of the container)
         // this should be based on the current move
@@ -128,7 +188,8 @@ class TreeGraphics {
         // basically, i want to see if the blue square is already there
         // and only update if not
 
-        if (old_left > x-x_padding || x + x_padding > old_left + this.width) {
+        let width = this.container.offsetWidth;
+        if (old_left > x-x_padding || x + x_padding > old_left + width) {
             this.container.scrollLeft = x - x_padding;
         }
         if (old_top > y - y_padding || y + y_padding > old_top + this.height) {
@@ -137,36 +198,53 @@ class TreeGraphics {
 
     }
 
-    set_dims(m, g) {
-        let ratio = window.devicePixelRatio;
+    set_dims_all(m, g) {
+        let changes = false;
         let width = this.width;
         let w = (m+1)*this.step;
         if (w > width) {
             width = w;
+            this.width = w;
+            changes = true;
         }
 
         let height = this.height;
         let h = (g+1)*this.step;
         if (h > height) {
             height = h;
+            this.height = height;
+            changes = true;
         }
 
-        this.explorer.style.height = height + "px";
-        this.explorer.style.width = width + "px";
+        if (changes) {
+            this.explorer.style.height = height + "px";
+            this.explorer.style.width = width + "px";
+            this.set_dims("background", width, height);
+            this.set_dims("current", width, height);
+            this.set_dims("lines", width, height);
+            this.set_dims("preferred-lines", width, height);
+            this.set_dims("stones", width, height);
+            this.set_dims("preferred-stones", width, height);
+        }
+    }
 
-        this.canvas.width = width*ratio;
-        this.canvas.height = height*ratio;
+    set_dims(id, width, height) {
+        let ratio = window.devicePixelRatio;
+        let canvas = this.canvases.get(id);
+        canvas.width = width*ratio;
+        canvas.height = height*ratio;
 
-        this.canvas.style.width = width + "px";
-        this.canvas.style.height = height + "px";
-        this.canvas.getContext("2d").scale(ratio, ratio);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        canvas.getContext("2d").scale(ratio, ratio);
     }
 
     draw_background() {
-        let ctx = this.canvas.getContext("2d");
+        let canvas = this.canvases.get("background");
+        let ctx = canvas.getContext("2d");
         ctx.beginPath();
         ctx.fillStyle = this.bgcolor;
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.closePath();
     }
 
@@ -194,6 +272,7 @@ class TreeGraphics {
                 continue;
             }
             // y is the row
+            // start with the last row
             y = grid.length - 1;
 
             if (grid[y][x] != 0) {
@@ -211,6 +290,11 @@ class TreeGraphics {
                     let p = cur.up;
                     if (p != null) {
                         let [x1, y1] = loc.get(p.index);
+                        // actually, don't go any farther than the 
+                        // diagonal connecting the parent
+                        if (x-y >= x1-y1) {
+                            break;
+                        }
                         // don't go any farther than the parent row
                         if (y == y1) {
                             break;
@@ -267,19 +351,7 @@ class TreeGraphics {
         return [this.get_xpos(x), this.get_ypos(y)];
     }
 
-    draw_tree(tree, grid, loc) {
-        // get indexes of tree's preferred nodes
-        let preferred = tree.preferred();
-
-        // draw "current" blue square
-        let w = this.step/2;
-        let [x,y] = loc.get(tree.current.index);
-        let [pos_x, pos_y] = this.get_xypos(x,y);
-        this.draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", true);
-        let current_x = pos_x;
-        let current_y = pos_y;
-
-        // draw lines
+    draw_lines(grid, loc) {
         for (let row of grid) {
             for (let cur of row) {
                 if (cur == 0 || cur == 1) {
@@ -288,11 +360,13 @@ class TreeGraphics {
                 if (cur.up == null) {
                     continue;
                 }
-                this.draw_connecting_line(cur, loc, "#BBBBBB");
+                this.draw_connecting_line(cur, loc, "#BBBBBB", "lines");
             }
         }
 
-        // draw preferred line
+    }
+
+    draw_preferred_line(tree, loc) {
         let start = tree.root;
         while (true) {
             if (start.down.length == 0) {
@@ -300,14 +374,73 @@ class TreeGraphics {
             }
 
             start = start.down[start.preferred_child];
-            this.draw_connecting_line(start, loc, "#8d42eb");
+            this.draw_connecting_line(start, loc, "#8d42eb", "preferred-lines");
         }
 
-        // draw root
-        let origin = this.get_xypos(0, 0);
-        this.draw_root(origin[0], origin[1], w);
+    }
 
-        // draw stones
+    draw_preferred_stones(tree, loc) {
+        let start = tree.root;
+        while (true) {
+            if (start.down.length == 0) {
+                break;
+            }
+            start = start.down[start.preferred_child];
+            this.draw_stone(start, loc, true, "preferred-stones");
+        }
+
+    }
+
+    draw_stone(cur, loc, preferred, id) {
+        let [x,y] = loc.get(cur.index);
+        let colors = cur.colors();
+        let is_x = true;
+        let hexColor = "#AA0000";
+        if (colors.has(1) && colors.has(2)) {
+            is_x = false;
+        } else if (colors.has(2)) {
+            is_x = false;
+            hexColor = "#FFFFFF";
+        } else if (colors.has(1)) {
+            is_x = false;
+            hexColor = "#000000";
+        }
+        if (!preferred) {
+            hexColor += "44";
+        }
+
+        let [pos_x, pos_y] = this.get_xypos(x, y);
+
+        if (is_x) {
+            this.draw_x(pos_x, pos_y, this.r, hexColor, id);
+        } else {
+            this.draw_circle(pos_x, pos_y, this.r, hexColor, id, true);
+            let text_color = "#FFFFFF";
+            if (colors.has(2) && !colors.has(1)) {
+                text_color = "#000000";
+                // shadow
+                /*
+                if (change_stones) {
+                    this.draw_shadow(pos_x, pos_y, this.r, "preferred-" + id);
+                }
+                this.draw_shadow(pos_x, pos_y, this.r, id);
+                */
+
+                // outline
+                this.draw_circle(pos_x, pos_y, this.r, "#00000044", id, false, 0.5);
+            }
+            if (!preferred) {
+                text_color += "44";
+            }
+            this.draw_text(cur.depth.toString(), pos_x, pos_y, text_color, id);
+        }
+
+    }
+
+    draw_stones(tree, grid, loc) {
+        // get indexes of tree's preferred nodes
+        let preferred = tree.preferred();
+
         for (let row of grid) {
             for (let cur of row) {
                 if (cur == 0 || cur == 1) {
@@ -318,50 +451,59 @@ class TreeGraphics {
                 }
 
                 // draw stone
-                let colors = cur.colors();
-                let is_x = true;
-                let hexColor = "#AA0000";
-                if (colors.has(1) && colors.has(2)) {
-                    is_x = false;
-                } else if (colors.has(2)) {
-                    is_x = false;
-                    hexColor = "#FFFFFF";
-                } else if (colors.has(1)) {
-                    is_x = false;
-                    hexColor = "#000000";
-                }
-                if (!preferred.has(cur.index)) {
-                    hexColor += "44";
-                }
-
-                let [x,y] = loc.get(cur.index);
-                let [pos_x, pos_y] = this.get_xypos(x, y);
-                if (is_x) {
-                    this.draw_x(pos_x, pos_y, this.r, hexColor);
-                } else {
-                    let text_color = "#FFFFFF";
-                    this.draw_circle(pos_x, pos_y, this.r, hexColor, true);
-                    if (colors.has(2) && !colors.has(1)) {
-                        text_color = "#000000";
-                        // shadow
-                        this.draw_shadow(pos_x, pos_y, this.r);
-
-                        // outline
-                        this.draw_circle(pos_x, pos_y, this.r, "#000000", false, 0.5);
-                    }
-
-                    if (!preferred.has(cur.index)) {
-                        text_color += "44";
-                    }
-                    this.draw_text(cur.depth.toString(), pos_x, pos_y, text_color);
-                }
+                this.draw_stone(cur, loc, false, "stones");
             }
+        }
+    }
+
+    draw_tree(tree, grid, loc, change_preferred, change_stones) {
+        if (change_preferred) {
+            this.clear_canvas("preferred-lines");
+            this.clear_canvas("preferred-stones");
+        }
+        if (change_stones) {
+            this.clear_all();
+        }
+
+        // draw "current" blue square
+        let w = this.step/2;
+        let [x,y] = loc.get(tree.current.index);
+        let [pos_x, pos_y] = this.get_xypos(x,y);
+        this.clear_canvas("current");
+        this.draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current", true);
+        let current_x = pos_x;
+        let current_y = pos_y;
+
+        // draw lines
+        // only if there's new stones
+        if (change_stones) {
+            this.draw_lines(grid, loc);
+        }
+
+        // draw preferred line
+        // only if there's a change in preferred line
+        if (change_preferred) {
+            this.draw_preferred_line(tree, loc);
+        }
+
+        // draw root
+        let origin = this.get_xypos(0, 0);
+        this.draw_root(origin[0], origin[1], w, "stones");
+
+        // draw stones
+        // we only need to redraw stones if there are new ones to draw
+        if (change_stones) {
+            this.draw_stones(tree, grid, loc);
+        }
+        if (change_preferred) {
+            this.draw_preferred_stones(tree, loc);
         }
         return [current_x, current_y];
     }
 
-    draw_text(text, x, y, color) {
-        let ctx = this.canvas.getContext("2d");
+    draw_text(text, x, y, color, id) {
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
 
         let font_size = this.r;
 
@@ -379,7 +521,7 @@ class TreeGraphics {
         ctx.fillText(text, x-x_offset, y+y_offset);
     }
 
-    draw_connecting_line(cur, loc, color) {
+    draw_connecting_line(cur, loc, color, id) {
 
         let [x,y] = loc.get(cur.index);
         let [pos_x, pos_y] = this.get_xypos(x,y);
@@ -389,16 +531,17 @@ class TreeGraphics {
         let [back_x, back_y] = this.get_xypos(x1, y1);
 
         if (y == y1) {
-            this.draw_line(pos_x, pos_y, back_x, back_y, color);
+            this.draw_line(pos_x, pos_y, back_x, back_y, color, id);
         } else {
             let [mid_x, mid_y] = this.get_xypos(x-1, y-1);
-            this.draw_line(pos_x, pos_y, mid_x, mid_y, color);
-            this.draw_line(mid_x, mid_y, back_x, back_y, color);
+            this.draw_line(pos_x, pos_y, mid_x, mid_y, color, id);
+            this.draw_line(mid_x, mid_y, back_x, back_y, color, id);
         }
     }
 
-    draw_line(x0, y0, x1, y1, hexColor) {
-        let ctx = this.canvas.getContext("2d");
+    draw_line(x0, y0, x1, y1, hexColor, id) {
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = hexColor;
@@ -407,11 +550,12 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_x(x, y, r, hexColor) {
+    draw_x(x, y, r, hexColor, id) {
         let ratio = window.devicePixelRatio;
         let l = r/2;
 
-        let ctx = this.canvas.getContext("2d");
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
         ctx.lineWidth = 3;
         ctx.strokeStyle = hexColor;
 
@@ -427,9 +571,10 @@ class TreeGraphics {
     }
 
     // tree graphics
-    draw_circle(x, y, r, hexColor, filled=true, stroke=3, theta_0=0, theta_1=2*Math.PI) {
+    draw_circle(x, y, r, hexColor, id, filled=true, stroke=3, theta_0=0, theta_1=2*Math.PI) {
         let ratio = window.devicePixelRatio;
-        let ctx = this.canvas.getContext("2d");
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
         ctx.beginPath();
         if (filled) {
             ctx.strokeStyle = "#00000000";
@@ -445,13 +590,14 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_shadow(x, y, r) {
-        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011");
+    draw_shadow(x, y, r, id) {
+        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011", id);
     }
 
-    draw_crescent(x, y, r, theta_0, theta_1, color) {
+    draw_crescent(x, y, r, theta_0, theta_1, color, id) {
         let frac = 1/4;
-        let ctx = this.canvas.getContext("2d");
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
 
         let center_theta = (theta_0 + theta_1)/2;
         let new_x = x - Math.cos(center_theta)*r*frac;
@@ -466,30 +612,28 @@ class TreeGraphics {
         ctx.stroke();
     }
 
-    draw_square(x, y, w, hexColor, filled=true) {
-        let ctx = this.canvas.getContext("2d");
+    draw_square(x, y, w, hexColor, id, filled=true) {
+        let canvas = this.canvases.get(id);
+        let ctx = canvas.getContext("2d");
         ctx.beginPath();
         ctx.fillStyle = hexColor;
         ctx.fillRect(x, y, w, w);
     }
 
-    draw_root(x, y, w) {
+    draw_root(x, y, w, id) {
         let r = w/3;
 
         // half black circle
-        this.draw_circle(x, y, r, "#000000", true, 0, -Math.PI/2, Math.PI/2);
+        this.draw_circle(x, y, r, "#000000", id, true, 0, -Math.PI/2, Math.PI/2);
 
         // half white circle
-        this.draw_circle(x, y, r, "#FFFFFF", true, 0, Math.PI/2, 3*Math.PI/2);
+        this.draw_circle(x, y, r, "#FFFFFF", id, true, 0, Math.PI/2, 3*Math.PI/2);
 
-        this.draw_circle(x, y+r/2, r/2, "#000000", true, 0);
-        this.draw_circle(x, y-r/2, r/2, "#FFFFFF", true, 0);
+        this.draw_circle(x, y+r/2, r/2, "#000000", id, true, 0);
+        this.draw_circle(x, y-r/2, r/2, "#FFFFFF", id, true, 0);
 
-        //this.draw_circle(x, y+r/2, r/7, "#FFFFFF", true, 0);
-        //this.draw_circle(x, y-r/2, r/7, "#000000", true, 0);
 
     }
-
 }
 
 

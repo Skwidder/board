@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2025 Tripleko LLC
+Copyright (c) 2025 Jared Nishikawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -16,6 +16,7 @@ export {
     letters2coord,
     new_icon_button,
     add_tooltip,
+    get_viewport,
 }
 
 class Coord {
@@ -94,5 +95,18 @@ function is_touch_device() {
     return "ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch;
 }
 
+
+function get_viewport () {
+  // https://stackoverflow.com/a/8876069
+  const width = Math.max(
+      document.documentElement.clientWidth,
+      window.innerWidth || 0);
+  if (width <= 576) return 'xs';
+  if (width <= 768) return 'sm';
+  if (width <= 992) return 'md';
+  if (width <= 1200) return 'lg';
+  if (width <= 1400) return 'xl';
+  return 'xxl';
+}
 
 

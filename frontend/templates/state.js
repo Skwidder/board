@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2025 Tripleko LLC
+Copyright (c) 2025 Jared Nishikawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -71,6 +71,9 @@ class State {
         if (prefer_dark_mode()) {
             this.dark_mode_toggle();
         }
+
+        this.resize();
+
     }
 
     set_network_handler(handler) {
@@ -130,7 +133,7 @@ class State {
 
         // only update graphics once
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true, true);
         this.board_graphics.draw_stones();
     }
 
@@ -148,8 +151,15 @@ class State {
     }
 
     resize(event) {
+        let content = document.getElementById("content");
+        let arrows = document.getElementById("arrows");
+        let h = arrows.offsetHeight*4.5;
+        let new_width = Math.min(window.innerHeight*1.5 - h, window.innerWidth);
+        content.style.width = new_width + "px";
+
         this.recompute_consts();
         this.board_graphics.resize();
+        this.tree_graphics.resize();
     }
 
     cut(index) {
@@ -166,7 +176,7 @@ class State {
 
         // then do regular update stuff
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true, true);
         this.update_toggle_color();
     }
 
@@ -238,7 +248,7 @@ class State {
 
         this.update_move_number();
         // wait to update the tree until the end
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true);
 
         this.update_toggle_color();
     }
@@ -405,12 +415,12 @@ class State {
 
     up() {
         this.board.tree.up();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true);
     }
 
     down() {
         this.board.tree.down();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true);
     }
 
     rewind() {
@@ -477,12 +487,12 @@ class State {
         this.mark = "";
 
         this.board = new Board(this.size);
-        this.tree_graphics.clear();
+        this.tree_graphics.clear_all();
         // update move number
         this.update_move_number();
 
         this.modals.update_modals();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true);
     }
 
     get_game_info() {
@@ -820,7 +830,7 @@ class State {
             this.toggle_color();
         }
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true, true);
     }
 
     place_stone_toggle(x, y, color) {
@@ -847,7 +857,7 @@ class State {
             this.toggle_color();
         }
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true, true);
     }
 
     place_stone_manual(x, y, color) {
@@ -874,7 +884,7 @@ class State {
             this.toggle_color();
         }
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree);
+        this.tree_graphics.update(this.board.tree, true, true);
     }
 
     place_mark(x, y, color, mark) {
