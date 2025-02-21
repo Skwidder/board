@@ -655,7 +655,7 @@ class BoardGraphics {
 
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let r = this.side/2;
+        let r = this.side/1.9;
         ctx.clearRect(real_x-r + offset, real_y-r + offset, 2*r, 2*r);
 }
 
