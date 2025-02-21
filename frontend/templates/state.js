@@ -60,7 +60,7 @@ class State {
         this.board = new Board(this.size);
 
         this.board_graphics = new BoardGraphics(this);
-        this.tree_graphics = new TreeGraphics(this);
+        this.tree_graphics = new TreeGraphics();
 
         this.board_graphics.draw_board();
         this.tree_graphics.update(this.board.tree);
@@ -492,7 +492,7 @@ class State {
         this.update_move_number();
 
         this.modals.update_modals();
-        this.tree_graphics.update(this.board.tree, true);
+        this.tree_graphics.update(this.board.tree, true, true);
     }
 
     get_game_info() {

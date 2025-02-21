@@ -15,8 +15,7 @@ export {
 }
 
 class TreeGraphics {
-    constructor(state) {
-        this.state = state;
+    constructor() {
         this.ratio = window.devicePixelRatio;
         let review = document.getElementById("review");
         let container = document.getElementById("explorer_container");
@@ -38,10 +37,8 @@ class TreeGraphics {
         this.width = container.offsetWidth;
 
         this.svgns = "http://www.w3.org/2000/svg";
-        this.canvases = new Map();
         this.svgs = new Map();
 
-        this.new_canvas("background", 0);
 
         this.new_svg("current", 10);
         this.new_svg("lines", 20);
@@ -59,8 +56,9 @@ class TreeGraphics {
 
         this.resize();
         this.height = container.offsetHeight;
-        this.draw_background();
         this.current = [0,0];
+
+        this.draw_root();
     }
 
     new_svg(id, z_index) {
@@ -75,27 +73,6 @@ class TreeGraphics {
         this.svgs.set(id, svg);
 
         explorer.appendChild(svg);
-    }
-
-    new_canvas(id, z_index, scale=1) {
-        if (this.canvases.has(id)) {
-            return;
-        }
-        let canvas = document.createElement("canvas");
-
-        canvas.width = this.width*this.ratio;
-        canvas.height = this.height*this.ratio;
-
-        canvas.style.position = "absolute";
-        canvas.style.margin = "auto";
-        canvas.style.display = "flex";
-        canvas.style.width = this.width + "px";
-        canvas.style.height = this.height + "px";
-        canvas.style.zIndex = z_index;
-
-        this.canvases.set(id, canvas);
-
-        this.explorer.appendChild(canvas);
     }
 
     clear_svg(id) {
@@ -129,9 +106,8 @@ class TreeGraphics {
     }
 
     capture_mouse(x, y) {
-        let canvas = this.canvases.get("background");
         let container_rect = this.container.getBoundingClientRect();
-        let rect = canvas.getBoundingClientRect();
+        let rect = this.explorer.getBoundingClientRect();
 
         // first make sure mouse is within containing element
 
@@ -220,23 +196,7 @@ class TreeGraphics {
                 svg.style.height = height + "px";
                 svg.style.width = width + "px";
             }
-            //this.set_dims("background", width, height);
-            //this.set_dims("root", width, height);
-            //this.set_dims("current", width, height);
-            //this.set_dims("lines", width, height);
-            //this.set_dims("preferred-lines", width, height);
-            //this.set_dims("stones", width, height);
-            //this.set_dims("preferred-stones", width, height);
         }
-    }
-
-    draw_background() {
-        let canvas = this.canvases.get("background");
-        let ctx = canvas.getContext("2d");
-        ctx.beginPath();
-        ctx.fillStyle = this.bgcolor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.closePath();
     }
 
     fill_grid(tree) {
@@ -488,7 +448,6 @@ class TreeGraphics {
             this.draw_preferred_line(tree, loc);
         }
 
-        this.draw_root();
 
         // draw stones
         // we only need to redraw stones if there are new ones to draw
