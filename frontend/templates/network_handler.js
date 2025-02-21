@@ -49,6 +49,11 @@ class NetworkHandler {
         }
     }
 
+    debug(message) {
+        let payload = {"event": "debug", "value": message};
+        this.send(payload);
+    }
+
     onopen(event) {
         this.state.modals.hide_modal("info-modal");
     }

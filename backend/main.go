@@ -209,6 +209,11 @@ func (s *Server) Handler(ws *websocket.Conn) {
             continue
         }
 
+		if evt.Event == "debug" {
+			log.Println(id, evt)
+			continue
+		}
+
 		// handle pings
 		//		no need to resend them
 		if evt.Event == "ping" {

@@ -60,7 +60,7 @@ class State {
         this.board = new Board(this.size);
 
         this.board_graphics = new BoardGraphics(this);
-        this.tree_graphics = new TreeGraphics();
+        this.tree_graphics = new TreeGraphics(this);
 
         this.board_graphics.draw_board();
         this.tree_graphics.update(this.board.tree);

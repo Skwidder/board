@@ -15,7 +15,8 @@ export {
 }
 
 class TreeGraphics {
-    constructor() {
+    constructor(state) {
+        this.state = state;
         this.ratio = window.devicePixelRatio;
         let review = document.getElementById("review");
         let container = document.getElementById("explorer_container");
@@ -36,14 +37,18 @@ class TreeGraphics {
 
         this.width = container.offsetWidth;
 
+        this.svgns = "http://www.w3.org/2000/svg";
         this.canvases = new Map();
+        this.svgs = new Map();
 
         this.new_canvas("background", 0);
-        this.new_canvas("current", 10);
-        this.new_canvas("lines", 20);
-        this.new_canvas("preferred-lines", 30);
-        this.new_canvas("stones", 40);
-        this.new_canvas("preferred-stones", 50);
+
+        this.new_svg("current", 10);
+        this.new_svg("lines", 20);
+        this.new_svg("preferred-lines", 30);
+        this.new_svg("root", 40);
+        this.new_svg("stones", 50);
+        this.new_svg("preferred-stones", 60);
 
         this.grid = [];
 
@@ -55,20 +60,28 @@ class TreeGraphics {
         this.resize();
         this.height = container.offsetHeight;
         this.draw_background();
+        this.current = [0,0];
     }
 
-    new_buffer_canvas() {
-        let canvas = new OffscreenCanvas(this.width*this.ratio, this.height*this.ratio);
-        canvas.getContext("2d").scale(this.ratio, this.ratio);
-        return canvas;
+    new_svg(id, z_index) {
+        let svg = document.createElementNS(this.svgns, "svg");
+        svg.style.position = "absolute";
+        svg.style.margin = "auto";
+        svg.style.display = "flex";
+        svg.style.width = this.width + "px";
+        svg.style.height = this.height + "px";
+        svg.style.zIndex = z_index;
+
+        this.svgs.set(id, svg);
+
+        explorer.appendChild(svg);
     }
 
-    new_canvas(id, z_index) {
+    new_canvas(id, z_index, scale=1) {
         if (this.canvases.has(id)) {
             return;
         }
         let canvas = document.createElement("canvas");
-
 
         canvas.width = this.width*this.ratio;
         canvas.height = this.height*this.ratio;
@@ -85,22 +98,11 @@ class TreeGraphics {
         this.explorer.appendChild(canvas);
     }
 
-    clear_canvas(id) {
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
-            return;
-        }
-        let ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    clear_svg(id) {
+        this.svgs.get(id).innerHTML = "";
     }
 
     clear_all() {
-        this.clear_canvas("background");
-        this.clear_canvas("current");
-        this.clear_canvas("lines");
-        this.clear_canvas("preferred-lines");
-        this.clear_canvas("stones");
-        this.clear_canvas("preferred-stones");
     }
 
     resize() {
@@ -157,17 +159,7 @@ class TreeGraphics {
         return 0;
     }
 
-    /*
-    clear() {
-        let ctx = this.canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-    */
-
     update(tree, change_preferred=false, change_stones=false) {
-        // draw background
-        this.draw_background();
-
         // fill grid
         let [grid, loc] = this.fill_grid(tree);
         this.grid = grid;
@@ -223,22 +215,19 @@ class TreeGraphics {
         if (changes) {
             this.explorer.style.height = height + "px";
             this.explorer.style.width = width + "px";
-            this.set_dims("background", width, height);
-            this.set_dims("current", width, height);
-            this.set_dims("lines", width, height);
-            this.set_dims("preferred-lines", width, height);
-            this.set_dims("stones", width, height);
-            this.set_dims("preferred-stones", width, height);
+
+            for (let [key, svg] of this.svgs.entries()) {
+                svg.style.height = height + "px";
+                svg.style.width = width + "px";
+            }
+            //this.set_dims("background", width, height);
+            //this.set_dims("root", width, height);
+            //this.set_dims("current", width, height);
+            //this.set_dims("lines", width, height);
+            //this.set_dims("preferred-lines", width, height);
+            //this.set_dims("stones", width, height);
+            //this.set_dims("preferred-stones", width, height);
         }
-    }
-
-    set_dims(id, width, height) {
-        let canvas = this.canvases.get(id);
-        canvas.width = width*this.ratio;
-        canvas.height = height*this.ratio;
-
-        canvas.style.width = width + "px";
-        canvas.style.height = height + "px";
     }
 
     draw_background() {
@@ -354,10 +343,7 @@ class TreeGraphics {
     }
 
     draw_lines(grid, loc) {
-        let buffer_canvas = this.new_buffer_canvas();
-        let buffer_ctx = buffer_canvas.getContext("2d");
-        let canvas = this.canvases.get("lines");
-        let ctx = canvas.getContext("2d");
+        let lines = [];
 
         for (let row of grid) {
             for (let cur of row) {
@@ -367,101 +353,72 @@ class TreeGraphics {
                 if (cur.up == null) {
                     continue;
                 }
-                this.draw_connecting_line(cur, loc, "#BBBBBB", buffer_ctx);
+                lines.push(...this.get_connecting_line(cur, loc));
             }
         }
-        ctx.drawImage(buffer_canvas, 0, 0);
+        this.svg_draw_polyline(lines, "#BBBBBB", "lines");
     }
 
     draw_preferred_line(tree, loc) {
-        let buffer_canvas = this.new_buffer_canvas();
-        let buffer_ctx = buffer_canvas.getContext("2d");
-        let canvas = this.canvases.get("preferred-lines");
-        let ctx = canvas.getContext("2d");
+        let cur = tree.root;
+        let lines = [];
 
-        let start = tree.root;
         while (true) {
-            if (start.down.length == 0) {
+            if (cur.down.length == 0) {
                 break;
             }
 
-            start = start.down[start.preferred_child];
-            this.draw_connecting_line(start, loc, "#8d42eb", buffer_ctx);
+            cur = cur.down[cur.preferred_child];
+            lines.push(...this.get_connecting_line(cur, loc));
         }
-        ctx.drawImage(buffer_canvas, 0, 0);
+        this.svg_draw_polyline(lines, "#8d42eb", "preferred-lines");
     }
 
     draw_preferred_stones(tree, loc) {
-        let buffer_canvas = this.new_buffer_canvas();
-        let buffer_ctx = buffer_canvas.getContext("2d");
-        let canvas = this.canvases.get("preferred-stones");
-        let ctx = canvas.getContext("2d");
+        let cur = tree.root;
 
-        let start = tree.root;
+        let white_stones = [];
+        let black_stones = [];
+        let xs = [];
+        let black_numbers = [];
+        let white_numbers = [];
+
         while (true) {
-            if (start.down.length == 0) {
+            if (cur.down.length == 0) {
                 break;
             }
-            start = start.down[start.preferred_child];
-            this.draw_stone(start, loc, true, buffer_ctx);
-        }
-        ctx.drawImage(buffer_canvas, 0, 0);
-    }
-
-    draw_stone(cur, loc, preferred, ctx) {
-        let [x,y] = loc.get(cur.index);
-        let colors = cur.colors();
-        let is_x = true;
-        let hexColor = "#AA0000";
-        if (colors.has(1) && colors.has(2)) {
-            is_x = false;
-        } else if (colors.has(2)) {
-            is_x = false;
-            hexColor = "#FFFFFF";
-        } else if (colors.has(1)) {
-            is_x = false;
-            hexColor = "#000000";
-        }
-        if (!preferred) {
-            hexColor += "44";
-        }
-
-        let [pos_x, pos_y] = this.get_xypos(x, y);
-
-        if (is_x) {
-            this.draw_x(pos_x, pos_y, this.r, hexColor, ctx);
-        } else {
-            this.draw_circle(pos_x, pos_y, this.r, hexColor, ctx, true);
-            let text_color = "#FFFFFF";
-            if (colors.has(2) && !colors.has(1)) {
-                text_color = "#000000";
-                // shadow
-                //this.draw_shadow(pos_x, pos_y, this.r, ctx);
-
-                // outline
-                let outline_color = "#000000";
-                if (!preferred) {
-                    outline_color += "44";
-                }
-                this.draw_circle(pos_x, pos_y, this.r, outline_color, ctx, false, 1.5);
+            cur = cur.down[cur.preferred_child];
+            // collect stones
+            let coord = loc.get(cur.index);
+            let cols = cur.colors();
+            if (!cols.has(1) && !cols.has(2)){
+                xs.push(coord);
+            } else if (cols.has(2)) {
+                white_stones.push(coord);
+                black_numbers.push([coord, cur.depth.toString()]);
+            } else {
+                black_stones.push(coord);
+                white_numbers.push([coord, cur.depth.toString()]);
             }
-            if (!preferred) {
-                text_color += "44";
-            }
-            this.draw_text(cur.depth.toString(), pos_x, pos_y, text_color, ctx);
         }
+
+        this.svg_draw_xs(xs, "#AA0000", "preferred-stones");
+        this.svg_draw_circles(black_stones, "#000000", "#000000", "preferred-stones");
+        this.svg_draw_circles(white_stones, "#000000", "#FFFFFF", "preferred-stones");
+        this.svg_draw_texts(black_numbers, "#000000", "preferred-stones");
+        this.svg_draw_texts(white_numbers, "#FFFFFF", "preferred-stones");
 
     }
 
     draw_stones(tree, grid, loc) {
-        let buffer_canvas = this.new_buffer_canvas();
-        let buffer_ctx = buffer_canvas.getContext("2d");
-        let canvas = this.canvases.get("stones");
-        let ctx = canvas.getContext("2d");
-
         // get indexes of tree's preferred nodes
         let preferred = tree.preferred();
 
+        let white_stones = [];
+        let black_stones = [];
+        let xs = [];
+        let black_numbers = [];
+        let white_numbers = [];
         for (let row of grid) {
             for (let cur of row) {
                 if (cur == 0 || cur == 1) {
@@ -471,35 +428,53 @@ class TreeGraphics {
                     continue;
                 }
 
-                // draw stone
-                this.draw_stone(cur, loc, false, buffer_ctx);
+                // collect stones
+                let coord = loc.get(cur.index);
+                let cols = cur.colors();
+                if (!cols.has(1) && !cols.has(2)){
+                    xs.push(coord);
+                } else if (cols.has(2)) {
+                    white_stones.push(coord);
+                    black_numbers.push([coord, cur.depth.toString()]);
+                } else {
+                    black_stones.push(coord);
+                    white_numbers.push([coord, cur.depth.toString()]);
+                }
             }
         }
-        ctx.drawImage(buffer_canvas, 0, 0);
+
+        this.svg_draw_xs(xs, "#AA000044", "stones");
+        this.svg_draw_circles(black_stones, "#00000044", "#00000044", "stones");
+        this.svg_draw_circles(white_stones, "#00000044", "#FFFFFF44", "stones");
+
+        this.svg_draw_texts(black_numbers, "#00000044", "stones");
+        this.svg_draw_texts(white_numbers, "#FFFFFF44", "stones");
+    }
+
+    draw_current(x, y) {
+        let w = this.step/2;
+        let [pos_x, pos_y] = this.get_xypos(x,y);
+        this.svg_draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current");
+        this.current = [x,y];
     }
 
     draw_tree(tree, grid, loc, change_preferred, change_stones) {
         if (change_preferred) {
-            this.clear_canvas("preferred-lines");
-            this.clear_canvas("preferred-stones");
+            this.clear_svg("preferred-lines");
+            this.clear_svg("preferred-stones");
         }
         if (change_stones) {
-            this.clear_all();
+            this.clear_svg("lines");
+            this.clear_svg("stones");
         }
 
         // draw "current" blue square
         let w = this.step/2;
         let [x,y] = loc.get(tree.current.index);
-        let [pos_x, pos_y] = this.get_xypos(x,y);
-        this.clear_canvas("current");
+        this.clear_svg("current");
+        this.draw_current(x, y);
 
-        let current_ctx = this.canvases.get("current").getContext("2d");
-        let buffer_canvas = this.new_buffer_canvas();
-        let buffer_ctx = buffer_canvas.getContext("2d");
-        this.draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", buffer_ctx, true);
-        current_ctx.drawImage(buffer_canvas, 0, 0);
-        let current_x = pos_x;
-        let current_y = pos_y;
+        let [pos_x, pos_y] = this.get_xypos(x,y);
 
         // draw lines
         // only if there's new stones
@@ -513,141 +488,194 @@ class TreeGraphics {
             this.draw_preferred_line(tree, loc);
         }
 
-        // draw root
-        let origin = this.get_xypos(0, 0);
-        buffer_canvas = this.new_buffer_canvas();
-        buffer_ctx = buffer_canvas.getContext("2d");
-        let ctx = this.canvases.get("stones").getContext("2d");
-        this.draw_root(origin[0], origin[1], w, buffer_ctx);
-        ctx.drawImage(buffer_canvas, 0, 0);
-
+        this.draw_root();
 
         // draw stones
         // we only need to redraw stones if there are new ones to draw
         if (change_stones) {
             this.draw_stones(tree, grid, loc);
         }
+
         if (change_preferred) {
             this.draw_preferred_stones(tree, loc);
         }
-        return [current_x, current_y];
+        return [pos_x, pos_y];
     }
 
-    draw_text(text, x, y, color, ctx) {
-        let font_size = this.r;
+    svg_draw_texts(values, color, id) {
+        let svg = this.svgs.get(id);
+        for (let [[x,y], text_value] of values) {
+            let [pos_x, pos_y] = this.get_xypos(x, y);
+            let text = document.createElementNS(this.svgns, "text");
+            let font_size = this.r;
 
-        ctx.font = "bold " + font_size.toString() + "px Arial";
-        ctx.fillStyle = color;
-        ctx.lineWidth = 2;
-        let x_offset = font_size/3;
-        if (text.length == 2) {
-            x_offset *= 1.6;
-        } else if (text.length == 3) {
-            x_offset *= 2.5;
+            let x_offset = font_size/3;
+            if (text_value.length == 2) {
+                x_offset *= 1.6;
+            } else if (text_value.length == 3) {
+                x_offset *= 2.5;
+            }
+            let y_offset = font_size/3;
+
+            text.setAttribute("x", pos_x-x_offset);
+            text.setAttribute("y", pos_y+y_offset);
+            text.style.fontSize = font_size + "px";
+            text.style.fill = color;
+            text.innerHTML = text_value;
+            svg.appendChild(text);
         }
-        let y_offset = font_size/3;
-
-        ctx.fillText(text, x-x_offset, y+y_offset);
     }
 
-    draw_connecting_line(cur, loc, color, ctx) {
+    get_connecting_line(cur, loc) {
+        let lines = [];
 
         let [x,y] = loc.get(cur.index);
-        let [pos_x, pos_y] = this.get_xypos(x,y);
 
         let par = cur.up;
         let [x1, y1] = loc.get(par.index);
-        let [back_x, back_y] = this.get_xypos(x1, y1);
 
         if (y == y1) {
-            this.draw_line(pos_x, pos_y, back_x, back_y, color, ctx);
+            lines.push([[x,y], [x1, y1]]);
         } else {
-            let [mid_x, mid_y] = this.get_xypos(x-1, y-1);
-            this.draw_line(pos_x, pos_y, mid_x, mid_y, color, ctx);
-            this.draw_line(mid_x, mid_y, back_x, back_y, color, ctx);
+            lines.push([[x,y], [x-1, y-1]]);
+            lines.push([[x-1, y-1], [x1, y1]]);
         }
+        return lines;
     }
 
-    draw_line(x0, y0, x1, y1, hexColor, ctx) {
-        ctx.beginPath();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = hexColor;
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-        ctx.stroke();
+    svg_draw_polyline(coord_pairs, hexColor, id) {
+        let svg = this.svgs.get(id);
+        let d = "";
+
+        let path = document.createElementNS(this.svgns, "path");
+        for (let [[x0, y0], [x1, y1]]  of coord_pairs) {
+            let [pos_x0, pos_y0] = this.get_xypos(x0, y0);
+            let [pos_x1, pos_y1] = this.get_xypos(x1, y1);
+            d += "M";
+            d += pos_x0.toString() + " ";
+            d += pos_y0.toString() + " ";
+            d += "L";
+            d += pos_x1.toString() + " ";
+            d += pos_y1.toString() + " ";
+        }
+        //path.style.fill = hexColor;
+        path.style.stroke = hexColor;
+        path.style.strokeWidth = 2;
+
+        path.setAttribute("d", d);
+        
+        svg.appendChild(path);
     }
 
-    draw_x(x, y, r, hexColor, ctx) {
+    svg_draw_xs(coords, hexColor, id) {
+        let svg = this.svgs.get(id);
+        let r = this.r;
         let l = r/2;
+        let path = document.createElementNS(this.svgns, "path");
+        let d = "";
+        for (let [x,y] of coords) {
+            let [pos_x, pos_y] = this.get_xypos(x, y);
+            d += "M ";
+            d += (pos_x-l) + " ";
+            d += (pos_y-l) + " ";
+            d += "L ";
+            d += (pos_x+l) + " ";
+            d += (pos_y+l) + " ";
 
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = hexColor;
-
-        ctx.beginPath();
-        ctx.moveTo(x - l, y - l);
-        ctx.lineTo(x + l, y + l);
-        ctx.stroke();
-
-        ctx.moveTo(x + l, y - l);
-        ctx.lineTo(x - l, y + l);
-        ctx.stroke();
-
-    }
-
-    // tree graphics
-    draw_circle(x, y, r, hexColor, ctx, filled=true, stroke=3, theta_0=0, theta_1=2*Math.PI) {
-        ctx.beginPath();
-        if (filled) {
-            ctx.strokeStyle = "#00000000";
-        } else {
-            ctx.lineWidth = stroke;
-            ctx.strokeStyle = hexColor;
+            d += "M ";
+            d += (pos_x+l) + " ";
+            d += (pos_y-l) + " ";
+            d += "L ";
+            d += (pos_x-l) + " ";
+            d += (pos_y+l) + " ";
         }
-        ctx.arc(x, y, r, theta_0, theta_1);
-        if (filled) {
-            ctx.fillStyle = hexColor;
-            ctx.fill();
+
+        path.style.stroke = hexColor;
+        path.style.strokeWidth = 3;
+        path.setAttribute("d", d);
+ 
+        svg.appendChild(path);
+    }
+
+    svg_draw_semicircle(x, y, r, sweep, hexColor, id) {
+        let svg = this.svgs.get(id);
+        let path = document.createElementNS(this.svgns, "path");
+        let d = "";
+        d += "M ";
+        d += x.toString() + " ";
+        d += (y-r).toString() + " ";
+        d += "A ";
+        d += r.toString() + " ";
+        d += r.toString() + " ";
+        d += 0 + " ";
+        d += 0 + " ";
+        d += sweep + " ";
+        d += x.toString() + " ";
+        d += (y+r).toString() + " ";
+        d += "Z";
+
+        //path.style.stroke = "#000000";
+        path.style.fill = hexColor;
+        path.setAttribute("d", d);
+ 
+        svg.appendChild(path);
+
+    }
+
+    svg_draw_circle(x, y, r, hexColor, id, strokeWidth=1) {
+        let svg = this.svgs.get(id);
+        let circle = document.createElementNS(this.svgns, "circle");
+        circle.setAttributeNS(null, 'cx', x);
+        circle.setAttributeNS(null, 'cy', y);
+        circle.setAttributeNS(null, 'r', r);
+        circle.style.fill = hexColor;
+        circle.style.stroke = "#000000";
+        circle.style.strokeWidth = strokeWidth;
+        svg.appendChild(circle);
+    }
+
+    svg_draw_circles(coords, strokeStyle, hexColor, id)  {
+        let svg = this.svgs.get(id);
+        for (let[x,y] of coords) {
+            let [pos_x, pos_y] = this.get_xypos(x, y);
+
+            let circle = document.createElementNS(this.svgns, "circle");
+            circle.setAttributeNS(null, 'cx', pos_x);
+            circle.setAttributeNS(null, 'cy', pos_y);
+            circle.setAttributeNS(null, 'r', this.r);
+            circle.style.fill = hexColor;
+            circle.style.stroke = strokeStyle;
+            circle.style.strokeWidth = 1.5;
+            svg.appendChild(circle);
         }
-        ctx.stroke();
     }
 
-    draw_shadow(x, y, r, ctx) {
-        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011", ctx);
+    svg_draw_square(x, y, w, hexColor, id) {
+        let svg = this.svgs.get(id);
+        let rect = document.createElementNS(this.svgns, "rect");
+        let [pos_x,pos_y] = this.get_xypos(x, y);
+        rect.setAttribute("width", w);
+        rect.setAttribute("height", w);
+        rect.setAttribute("x", x);
+        rect.setAttribute("y", y);
+        rect.setAttribute("fill", hexColor);
+        svg.appendChild(rect);
     }
 
-    draw_crescent(x, y, r, theta_0, theta_1, color, ctx) {
-        let frac = 1/4;
-
-        let center_theta = (theta_0 + theta_1)/2;
-        let new_x = x - Math.cos(center_theta)*r*frac;
-        let new_y = y - Math.sin(center_theta)*r*frac;
-        ctx.beginPath();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = color;
-        ctx.arc(x, y, r, theta_0, theta_1);
-        ctx.arc(new_x, new_y, r, theta_1, theta_0, true);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.stroke();
-    }
-
-    draw_square(x, y, w, hexColor, ctx, filled=true) {
-        ctx.beginPath();
-        ctx.fillStyle = hexColor;
-        ctx.fillRect(x, y, w, w);
-    }
-
-    draw_root(x, y, w, ctx) {
+    draw_root() {
+        let id = "root";
+        let [x,y] = this.get_xypos(0, 0);
+        let w = this.step/2;
         let r = w/3;
 
         // half black circle
-        this.draw_circle(x, y, r, "#000000", ctx, true, 0, -Math.PI/2, Math.PI/2);
+        this.svg_draw_semicircle(x, y, r, 1, "#000000", id);
 
         // half white circle
-        this.draw_circle(x, y, r, "#FFFFFF", ctx, true, 0, Math.PI/2, 3*Math.PI/2);
+        this.svg_draw_semicircle(x, y, r, 0, "#FFFFFF", id);
 
-        this.draw_circle(x, y+r/2, r/2, "#000000", ctx, true, 0);
-        this.draw_circle(x, y-r/2, r/2, "#FFFFFF", ctx, true, 0);
+        this.svg_draw_circle(x, y+r/2, r/2, "#000000", id, 0);
+        this.svg_draw_circle(x, y-r/2, r/2, "#FFFFFF", id, 0);
     }
 }
 
