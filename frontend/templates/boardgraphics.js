@@ -905,7 +905,7 @@ class BoardGraphics {
         // clearing "current" no matter what
         this.clear_canvas("current");
         this.state.update_move_number();
-        this.state.tree_graphics.update(this.state.board.tree);
+        this.state.tree_graphics.update(this.state.board.tree, true, true);
     }
 
     draw_ghost_mark(x, y) {

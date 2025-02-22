@@ -43,6 +43,8 @@ class TreeGraphics {
 
         this.shapes.set("circles", new Map());
         this.shapes.set("preferred-circles", new Map());
+        this.shapes.set("xs", new Map());
+        this.shapes.set("preferred-xs", new Map());
         //this.shapes.set("texts", new Map());
         //this.shapes.set("preferred-texts", new Map());
 
@@ -51,7 +53,9 @@ class TreeGraphics {
         this.new_svg("preferred-lines", 30);
         this.new_svg("root", 40);
         this.new_svg("stones", 50);
+        this.new_svg("xs", 50);
         this.new_svg("preferred-stones", 60);
+        this.new_svg("preferred-xs", 60);
 
         this.grid = [];
 
@@ -401,7 +405,7 @@ class TreeGraphics {
 
 
         // draw the new circles
-        this.svg_draw_xs(xs, "#AA0000", "preferred-stones");
+        this.svg_draw_xs(xs, true);
         this.svg_draw_circles(black_stones, 1, true, "preferred-stones");
         this.svg_draw_circles(white_stones, 2, true, "preferred-stones");
 
@@ -466,7 +470,7 @@ class TreeGraphics {
             }
         }
 
-        this.svg_draw_xs(xs, "#AA000044", "stones");
+        this.svg_draw_xs(xs, false);
 
         // clear all the circles that we don't want anymore
         for (let [id,v] of this.shapes.get("circles").entries()) {
@@ -501,10 +505,12 @@ class TreeGraphics {
     draw_tree(tree, grid, loc, change_preferred, change_stones) {
         if (change_preferred) {
             this.clear_svg("preferred-lines");
+            this.clear_svg("preferred-xs");
             //this.clear_svg("preferred-stones");
         }
         if (change_stones) {
             this.clear_svg("lines");
+            this.clear_svg("xs");
             //this.clear_svg("stones");
         }
 
@@ -527,7 +533,6 @@ class TreeGraphics {
         if (change_preferred) {
             this.draw_preferred_line(tree, loc);
         }
-
 
         // draw stones
         // we only need to redraw stones if there are new ones to draw
@@ -623,7 +628,17 @@ class TreeGraphics {
         svg.appendChild(path);
     }
 
-    svg_draw_xs(coords, hexColor, id) {
+    svg_draw_xs(coords, preferred) {
+        if (coords.length==0) {
+            return;
+        }
+
+        let hex_color = "#AA0000";
+        let id = "preferred-xs";
+        if (!preferred) {
+            hex_color += "44";
+            id = "xs";
+        }
         let svg = this.svgs.get(id);
         let r = this.r;
         let l = r/2;
@@ -646,7 +661,7 @@ class TreeGraphics {
             d += (pos_y+l) + " ";
         }
 
-        path.style.stroke = hexColor;
+        path.style.stroke = hex_color;
         path.style.strokeWidth = 3;
         path.setAttribute("d", d);
  
