@@ -39,6 +39,12 @@ class TreeGraphics {
         this.svgns = "http://www.w3.org/2000/svg";
         this.svgs = new Map();
 
+        this.shapes = new Map();
+
+        this.shapes.set("circles", new Map());
+        this.shapes.set("preferred-circles", new Map());
+        //this.shapes.set("texts", new Map());
+        //this.shapes.set("preferred-texts", new Map());
 
         this.new_svg("current", 10);
         this.new_svg("lines", 20);
@@ -342,6 +348,7 @@ class TreeGraphics {
         let xs = [];
         let black_numbers = [];
         let white_numbers = [];
+        let circles = new Map();
 
         while (true) {
             if (cur.down.length == 0) {
@@ -354,19 +361,54 @@ class TreeGraphics {
             if (!cols.has(1) && !cols.has(2)){
                 xs.push(coord);
             } else if (cols.has(2)) {
-                white_stones.push(coord);
-                black_numbers.push([coord, cur.depth.toString()]);
+                let [x,y] = coord;
+                let circle_id = "preferred-stones" + ":" + x + ":" + y + ":" + 2;
+                let text_id = "preferred-texts" + ":" + x + ":" + y + ":text";
+                circles.set(circle_id, 1);
+                if (this.shapes.get("preferred-circles").has(circle_id)) {
+                    this.shapes.get("preferred-circles").delete(circle_id);
+                    //this.shapes.get("preferred-texts").delete(text_id);
+                } else {
+                    white_stones.push(coord);
+                    black_numbers.push([coord, cur.depth.toString()]);
+                }
             } else {
-                black_stones.push(coord);
-                white_numbers.push([coord, cur.depth.toString()]);
+                let [x,y] = coord;
+                let circle_id = "preferred-stones" + ":" + x + ":" + y + ":" + 1;
+                let text_id = "preferred-texts" + ":" + x + ":" + y + ":text";
+                circles.set(circle_id, 1);
+                if (this.shapes.get("preferred-circles").has(circle_id)) {
+                    this.shapes.get("preferred-circles").delete(circle_id);
+                    //this.shapes.get("preferred-texts").delete(text_id);
+                } else {
+                    black_stones.push(coord);
+                    white_numbers.push([coord, cur.depth.toString()]);
+                }
             }
         }
 
+        // clear all the circles that we don't want anymore
+        for (let [id,v] of this.shapes.get("preferred-circles").entries()) {
+            document.getElementById(id).remove();
+            let spl = id.split(":");
+            let text_id = spl.slice(0, 3).join(":") + ":text";
+            document.getElementById(text_id).remove();
+        }
+
+        //for (let [id,v] of this.shapes.get("preferred-texts").entries()) {
+        //    document.getElementById(id).remove();
+        //}
+
+
+        // draw the new circles
         this.svg_draw_xs(xs, "#AA0000", "preferred-stones");
-        this.svg_draw_circles(black_stones, "#000000", "#000000", "preferred-stones");
-        this.svg_draw_circles(white_stones, "#000000", "#FFFFFF", "preferred-stones");
-        this.svg_draw_texts(black_numbers, "#000000", "preferred-stones");
-        this.svg_draw_texts(white_numbers, "#FFFFFF", "preferred-stones");
+        this.svg_draw_circles(black_stones, 1, true, "preferred-stones");
+        this.svg_draw_circles(white_stones, 2, true, "preferred-stones");
+
+        this.shapes.set("preferred-circles", circles);
+
+        this.svg_draw_texts(black_numbers, 1, true, "preferred-stones");
+        this.svg_draw_texts(white_numbers, 2, true, "preferred-stones");
 
     }
 
@@ -379,6 +421,7 @@ class TreeGraphics {
         let xs = [];
         let black_numbers = [];
         let white_numbers = [];
+        let circles = new Map();
         for (let row of grid) {
             for (let cur of row) {
                 if (cur == 0 || cur == 1) {
@@ -394,21 +437,58 @@ class TreeGraphics {
                 if (!cols.has(1) && !cols.has(2)){
                     xs.push(coord);
                 } else if (cols.has(2)) {
-                    white_stones.push(coord);
-                    black_numbers.push([coord, cur.depth.toString()]);
+                    let [x,y] = coord;
+                    let circle_id = "stones" + ":" + x + ":" + y + ":" + 2;
+                    let text_id = "stones" + ":" + x + ":" + y + ":text";
+                    circles.set(circle_id, 1);
+                    if (this.shapes.get("circles").has(circle_id)) {
+                        this.shapes.get("circles").delete(circle_id);
+                        //this.shapes.get("texts").delete(text_id);
+                    } else {
+                        // only add new stones that aren't already in the map
+                        white_stones.push(coord);
+                        black_numbers.push([coord, cur.depth.toString()]);
+                    }
                 } else {
-                    black_stones.push(coord);
-                    white_numbers.push([coord, cur.depth.toString()]);
+                    let [x,y] = coord;
+                    let circle_id = "stones" + ":" + x + ":" + y + ":" + 1;
+                    let text_id = "stones" + ":" + x + ":" + y + ":text";
+                    circles.set(circle_id, 1);
+                    if (this.shapes.get("circles").has(circle_id)) {
+                        this.shapes.get("circles").delete(circle_id);
+                        //this.shapes.get("texts").delete(text_id);
+                    } else {
+                        // only add new stones that aren't already in the map
+                        black_stones.push(coord);
+                        white_numbers.push([coord, cur.depth.toString()]);
+                    }
                 }
             }
         }
 
         this.svg_draw_xs(xs, "#AA000044", "stones");
-        this.svg_draw_circles(black_stones, "#00000044", "#00000044", "stones");
-        this.svg_draw_circles(white_stones, "#00000044", "#FFFFFF44", "stones");
 
-        this.svg_draw_texts(black_numbers, "#00000044", "stones");
-        this.svg_draw_texts(white_numbers, "#FFFFFF44", "stones");
+        // clear all the circles that we don't want anymore
+        for (let [id,v] of this.shapes.get("circles").entries()) {
+            document.getElementById(id).remove();
+            let spl = id.split(":");
+            let text_id = spl.slice(0, 3).join(":") + ":text";
+            document.getElementById(text_id).remove();
+        }
+
+        //for (let [id,v] of this.shapes.get("texts").entries()) {
+        //    document.getElementById(id).remove();
+        //}
+
+        // draw all the circles that weren't already there
+        this.svg_draw_circles(black_stones, 1, false, "stones");
+        this.svg_draw_circles(white_stones, 2, false, "stones");
+
+        this.shapes.set("circles", circles);
+
+        // and the text
+        this.svg_draw_texts(black_numbers, 1, false, "stones");
+        this.svg_draw_texts(white_numbers, 2, false, "stones");
     }
 
     draw_current(x, y) {
@@ -421,11 +501,11 @@ class TreeGraphics {
     draw_tree(tree, grid, loc, change_preferred, change_stones) {
         if (change_preferred) {
             this.clear_svg("preferred-lines");
-            this.clear_svg("preferred-stones");
+            //this.clear_svg("preferred-stones");
         }
         if (change_stones) {
             this.clear_svg("lines");
-            this.clear_svg("stones");
+            //this.clear_svg("stones");
         }
 
         // draw "current" blue square
@@ -461,9 +541,24 @@ class TreeGraphics {
         return [pos_x, pos_y];
     }
 
-    svg_draw_texts(values, color, id) {
+    svg_draw_texts(values, color, preferred, id) {
+        let hex_color = "#000000";
+        if (color == 2) {
+            hex_color = "#FFFFFF";
+        }
+        if (!preferred) {
+            hex_color += "44";
+        }
         let svg = this.svgs.get(id);
         for (let [[x,y], text_value] of values) {
+            let text_id = id + ":" + x + ":" + y + ":text";
+
+            //if (preferred) {
+            //    this.shapes.get("preferred-texts").set(text_id, 1);
+            //} else {
+            //    this.shapes.get("texts").set(text_id, 1);
+            //}
+
             let [pos_x, pos_y] = this.get_xypos(x, y);
             let text = document.createElementNS(this.svgns, "text");
             let font_size = this.r;
@@ -479,8 +574,10 @@ class TreeGraphics {
             text.setAttribute("x", pos_x-x_offset);
             text.setAttribute("y", pos_y+y_offset);
             text.style.fontSize = font_size + "px";
-            text.style.fill = color;
+            text.style.fill = hex_color;
             text.innerHTML = text_value;
+            text.setAttributeNS(null, "id", text_id);
+            text.style.cursor = "default";
             svg.appendChild(text);
         }
     }
@@ -593,18 +690,36 @@ class TreeGraphics {
         svg.appendChild(circle);
     }
 
-    svg_draw_circles(coords, strokeStyle, hexColor, id)  {
+    svg_draw_circles(coords, color, preferred, id)  {
+        let stroke_style = "#000000";
+        let hex_color = "#000000";
+        if (color == 2) {
+            hex_color = "#FFFFFF";
+        }
+
+        if (!preferred) {
+            hex_color += "44";
+            stroke_style += "44";
+        }
         let svg = this.svgs.get(id);
         for (let[x,y] of coords) {
+            let circle_id = id + ":" + x + ":" + y + ":" + color;
+            if (preferred) {
+                this.shapes.get("preferred-circles").set(circle_id, 1);
+            } else {
+                this.shapes.get("circles").set(circle_id, 1);
+            }
+
             let [pos_x, pos_y] = this.get_xypos(x, y);
 
             let circle = document.createElementNS(this.svgns, "circle");
             circle.setAttributeNS(null, 'cx', pos_x);
             circle.setAttributeNS(null, 'cy', pos_y);
             circle.setAttributeNS(null, 'r', this.r);
-            circle.style.fill = hexColor;
-            circle.style.stroke = strokeStyle;
+            circle.style.fill = hex_color;
+            circle.style.stroke = stroke_style;
             circle.style.strokeWidth = 1.5;
+            circle.setAttributeNS(null, "id", circle_id);
             svg.appendChild(circle);
         }
     }
