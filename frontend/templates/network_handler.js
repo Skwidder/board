@@ -410,7 +410,7 @@ class NetworkHandler {
         let flip = this.state.keys_down.has("Shift");
 
         let explorer_node = this.state.tree_graphics.capture_mouse(x, y);
-        if (explorer_node != 0) {
+        if (explorer_node != 0 && explorer_node != 1) {
             let payload = {"event": "goto_grid", "value": explorer_node.index};
             this.prepare(payload);
             return;
