@@ -283,15 +283,29 @@ func (s *State) Down() {
 
 func (s *State) GotoCoord(x, y int) {
 	cur := s.Current
+	// look forward
 	for {
 		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
 			s.Current = cur
-			break
+			return
 		}
 		if len(cur.Down) == 0 {
 			break
 		}
 		cur = cur.Down[cur.PreferredChild]
+	}
+
+	cur = s.Current
+	// look backward
+	for {
+		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
+			s.Current = cur
+			return
+		}
+		if cur.Up == nil {
+			break
+		}
+		cur = cur.Up
 	}
 }
 
