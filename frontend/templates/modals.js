@@ -315,6 +315,7 @@ export function create_modals(_state) {
         let line1 = document.createElement("p");
         line1.appendChild(save_button);
         let span1 = document.createElement("span");
+        span1.style.cursor = "pointer";
         span1.innerHTML = "&nbsp;Save SGF to disk";
         span1.onclick = () => document.getElementById("save-sgf").click();
         line1.appendChild(span1);
@@ -342,6 +343,7 @@ export function create_modals(_state) {
         let line2 = document.createElement("p");
         line2.appendChild(copy_button);
         let span2 = document.createElement("span");
+        span2.style.cursor = "pointer";
         span2.innerHTML = "&nbsp;Copy link to raw SGF";
         span2.onclick = () => document.getElementById("copy-sgf").click();
         line2.appendChild(span2);
@@ -376,6 +378,7 @@ export function create_modals(_state) {
         line1.appendChild(inp);
         line1.appendChild(disk_button);
         let span1 = document.createElement("span");
+        span1.style.cursor = "pointer";
         span1.innerHTML = "&nbsp;Upload from disk";
         span1.onclick = () => document.getElementById("upload-sgf").click();
         line1.appendChild(span1);
