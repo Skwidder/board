@@ -583,6 +583,7 @@ class TreeGraphics {
             text.innerHTML = text_value;
             text.setAttributeNS(null, "id", text_id);
             text.style.cursor = "default";
+            text.style.userSelect = "none";
             svg.appendChild(text);
         }
     }
