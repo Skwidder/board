@@ -49,6 +49,7 @@ func ApprovedFetch(urlStr string) (string, error) {
 	okList["gokifu.com"] = true
 	okList["board.tripleko.com"] = true
 	okList["board-test.tripleko.com"] = true
+	okList["raw.githubusercontent.com"] = true
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
