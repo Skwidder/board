@@ -296,39 +296,76 @@ class NetworkHandler {
 
     keydown(event) {
         let payload = {"event": "keydown", "value": event.key};
-        let keys = new Set();
-        keys.add("ArrowLeft");
-        keys.add("ArrowRight");
-        keys.add("ArrowUp");
-        keys.add("ArrowDown");
-        if (keys.has(event.key)) {
-            let flip = this.state.keys_down.has("Shift");
-            // logical xor
-            let jump = this.state.branch_jump != flip
+        let flip = this.state.keys_down.has("Shift");
+        // logical xor
+        let jump = this.state.branch_jump != flip
 
 
-            if (jump && (event.key == "ArrowUp" || event.key == "ArrowDown")) {
-                if (event.key == "ArrowUp") {
+        switch(event.key){
+            case "ArrowUp":
+                if (jump){
                     let index = this.state.get_index_up();
                     if (index == -1) {
                         return;
                     }
                     payload = {"event": "goto_grid", "value": index};
                     this.prepare(payload);
-                } else if (event.key == "ArrowDown") {
+                }else{
+                    this.prepare(payload);
+                }
+                break;
+
+            case "ArrowDown":
+                if (jump){
                     let index = this.state.get_index_down();
                     if (index == -1) {
                         return;
                     }
                     payload = {"event": "goto_grid", "value": index};
                     this.prepare(payload);
+                }else{
+                    this.prepare(payload);
                 }
+                break;
 
-            } else {
+            case "ArrowLeft":
+            case "ArrowRight":
                 this.prepare(payload);
-            }
-        } else {
-            this.state.keys_down.set(event.key, true);
+                break;
+            
+            case "1":
+                this.state.set_toggle();
+                break;
+            case "2":
+                this.state.set_black();
+                break;
+            case "3":
+                this.state.set_white();
+                break;
+            case "4":
+                this.prepare_pass();
+                break;
+            case "5":
+                this.state.set_triangle();
+                break;
+            case "6":
+                this.state.set_square();
+                break;
+            case "7":
+                this.state.set_letter();
+                break;
+            case "8":
+                this.state.set_number();
+                break;
+            case "9":
+                this.state.set_pen();
+                break;
+            case "0":
+                this.state.erase_pen();
+                break;
+
+            default:
+                this.state.keys_down.set(event.key, true);
         }
     }
 
