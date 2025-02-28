@@ -4,6 +4,6 @@ export {
     port,
 }
 
-const shared = false;
+const shared = true;
 const debug = true;
 const port = 9000;
