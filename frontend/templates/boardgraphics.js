@@ -657,7 +657,7 @@ class BoardGraphics {
         let real_y = y*this.side + this.pad;
         let r = this.side/1.9;
         ctx.clearRect(real_x-r + offset, real_y-r + offset, 2*r, 2*r);
-}
+    }
 
     draw_ghost_stone(x, y, color) {
         this.clear_canvas("ghost");
@@ -1020,5 +1020,10 @@ class BoardGraphics {
         this.clear_canvas("backdrop-0");
         this.clear_canvas("backdrop-1");
         this.clear_canvas("pen");
+    }
+
+    clear_ghosts(){
+        this.clear_canvas("ghost");
+        this.clear_canvas("ghost-marks");
     }
 }

@@ -660,6 +660,7 @@ class State {
         this.color = 1;
         this.toggling = false;
         this.mark = "";
+        this.board_graphics.clear_ghosts();
     }
 
     set_white() {
@@ -667,20 +668,24 @@ class State {
         this.color = 2;
         this.toggling = false;
         this.mark = "";
+        this.board_graphics.clear_ghosts();
     }
 
     set_toggle() {
         this.toggling = true;
         this.update_toggle_color();
         this.mark = "";
+        this.board_graphics.clear_ghosts();
     }
 
     set_eraser() {
         this.mark = "eraser";
+        this.board_graphics.clear_ghosts();
     }
 
     set_pen() {
         this.mark = "pen";
+        this.board_graphics.clear_ghosts();
     }
 
     erase_pen() {
@@ -712,18 +717,22 @@ class State {
 
     set_triangle() {
         this.mark = "triangle";
+        this.board_graphics.clear_ghosts();
     }
 
     set_square() {
         this.mark = "square";
+        this.board_graphics.clear_ghosts();
     }
 
     set_letter() {
         this.mark = "letter";
+        this.board_graphics.clear_ghosts();
     }
 
     set_number() {
         this.mark = "number";
+        this.board_graphics.clear_ghosts();
     }
 
     upload() {
@@ -898,7 +907,4 @@ class State {
             return;
         }
     }
-
-
-
 }
