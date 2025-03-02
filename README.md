@@ -1,28 +1,44 @@
 # Board
 
-## Quickstart
+This is the only online go board that allows for synchronous control across all participants.
 
-Make python virtual environment for the frontend and setup `config.js`
+This project is free and open-source and always will be. Feel free to contribute by submiting PRs, reporting bugs, suggesting features, or just sharing with friends.
+
+[Main page](https://board.tripleko.com)
+
+[Test page](https://board-test.tripleko.com)
+
+[Discord](https://discord.gg/y4wGZyed3e)
+
+## Developing
+
+If you make a pull request, please use `test` as the target branch. The test domain (above) tracks the `test` branch while the main domain tracks the `main` branch.
+
+### Running locally
+
+1. Install python
+2. Install golang
+
+3. Make python virtual environment for the frontend
+
 ```bash
 $ cd frontend/
 $ python -m venv env
 $ . env/bin/activate
 $ pip install -r requirements.txt
-$ cp templates/config.js.example templates/config.js
-
-# make any necessary changes to config.js
-# for example, set shared=true
 ```
 
-Run the frontend
+4. Run the frontend
 ```bash
 $ cd frontend/
 $ . env/bin/activate
 $ python app.py
 ```
 
-Run the backend
+5. Run the backend
 ```bash
 $ cd backend/
 $ go run *.go
 ```
+
+6. Visit `http://localhost:8080` in your browser.
