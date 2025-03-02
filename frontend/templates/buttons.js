@@ -35,22 +35,22 @@ export function create_buttons(_state) {
 
     // toggle
     let toggle_button = new_icon_button("bi-circle-half", () => state.set_toggle());
-    add_tooltip(toggle_button, "Place alternating stones");
+    add_tooltip(toggle_button, "Place alternating stones (1)");
     button_row1.appendChild(toggle_button);
 
     // black stones
     let black_stone_button = new_icon_button("bi-circle-fill", () => state.set_black());
-    add_tooltip(black_stone_button, "Place black stones");
+    add_tooltip(black_stone_button, "Place black stones (2)");
     button_row1.appendChild(black_stone_button);
 
     // white stones
     let white_stone_button = new_icon_button("bi-circle", () => state.set_white());
-    add_tooltip(white_stone_button, "Place white stones");
+    add_tooltip(white_stone_button, "Place white stones (3)");
     button_row1.appendChild(white_stone_button);
 
     // pass
     let pass_button = new_icon_button("bi-arrow-repeat", () => state.network_handler.prepare_pass());
-    add_tooltip(pass_button, "Pass");
+    add_tooltip(pass_button, "Pass (4)");
     button_row1.appendChild(pass_button);
 
     /*
@@ -62,29 +62,29 @@ export function create_buttons(_state) {
 
     // triangle
     let triangle_button = new_icon_button("bi-triangle", () => state.set_triangle());
-    add_tooltip(triangle_button, "Place triangles");
+    add_tooltip(triangle_button, "Place triangles (5)");
     button_row1.appendChild(triangle_button);
 
     // square
     let square_button = new_icon_button("bi-square", () => state.set_square());
-    add_tooltip(square_button, "Place squares");
+    add_tooltip(square_button, "Place squares (6)");
     button_row1.appendChild(square_button);
 
     // row 2
 
     // letters
     let letter_button = new_icon_button("bi-alphabet-uppercase", () => state.set_letter());
-    add_tooltip(letter_button, "Place letters");
+    add_tooltip(letter_button, "Place letters (7)");
     button_row2.appendChild(letter_button);
 
     // numbers
     let number_button = new_icon_button("bi-123", () => state.set_number());
-    add_tooltip(number_button, "Place numbers");
+    add_tooltip(number_button, "Place numbers (8)");
     button_row2.appendChild(number_button);
 
     // pen
     let pen_button = new_icon_button("bi-pen", () => state.set_pen());
-    add_tooltip(pen_button, "Draw with a pen");
+    add_tooltip(pen_button, "Draw with a pen (9)");
     button_row2.appendChild(pen_button);
 
     // color picker
@@ -103,7 +103,7 @@ export function create_buttons(_state) {
 
     // eraser
     let eraser_button = new_icon_button("bi-eraser-fill", () => state.erase_pen());
-    add_tooltip(eraser_button, "Erase pen marks");
+    add_tooltip(eraser_button, "Erase pen marks (0)");
     button_row2.appendChild(eraser_button);
 
     // scissors button
