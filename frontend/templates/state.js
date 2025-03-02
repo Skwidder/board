@@ -337,7 +337,7 @@ class State {
         this.update_toggle_color();
 
         // clear marks
-        this.board_graphics.clear_marks();
+        this.board_graphics.clear_and_remove();
 
         // update move number
         this.update_move_number();
@@ -403,7 +403,7 @@ class State {
 
         // clear marks
         if (update) {
-            this.board_graphics.clear_marks();
+            this.board_graphics.clear_and_remove();
         }
 
         // update explorer

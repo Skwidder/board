@@ -1011,6 +1011,7 @@ class BoardGraphics {
         this.number_map = new Map();
         this.used_numbers = new Map();
         this.used_numbers.set(0, 1);
+        this.marks = new Map();
         this.clear_marks();
     }
 
