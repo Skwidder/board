@@ -2,7 +2,7 @@
 
 This is the only online go board that allows for synchronous control across all participants.
 
-This project is free and open-source and always will be. Feel free to contribute by submiting PRs, reporting bugs, suggesting features, or just sharing with friends.
+This project is free and open-source and always will be. Feel free to contribute by submitting PRs, reporting bugs, suggesting features, or just sharing with friends.
 
 [Main page](https://board.tripleko.com)
 
