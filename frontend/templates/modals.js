@@ -255,9 +255,9 @@ export function create_modals(_state) {
         span.innerHTML += "If relevant, download and attach the current ";
 
         let anchor2 = document.createElement("a");
-        anchor2.setAttribute("href", window.location.href + "/sgf");
+        anchor2.setAttribute("href", window.location.href + "/sgfix");
         anchor2.setAttribute("target", "_blank");
-        anchor2.innerHTML = "sgf";
+        anchor2.innerHTML = "indexed sgf";
 
         span.appendChild(anchor2);
 

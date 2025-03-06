@@ -62,7 +62,7 @@ type State struct {
     Root *TreeNode
     Current *TreeNode
     Nodes map[int]*TreeNode
-    nextIndex int
+    NextIndex int
 	InputBuffer int64
 	Timeout float64
 	Size int
@@ -79,10 +79,10 @@ func (s *State) Prefs() string {
 
         c := cur.PreferredChild
         if first {
-            result = fmt.Sprintf("%s\"%d\":\"%d\"", result, cur.Index, c)
+            result = fmt.Sprintf("%s\"%d\":%d", result, cur.Index, c)
             first = false
         } else {
-            result = fmt.Sprintf("%s,\"%d\":\"%d\"", result, cur.Index, c)
+            result = fmt.Sprintf("%s,\"%d\":%d", result, cur.Index, c)
         }
 
         if len(cur.Down) == 1 {
@@ -142,6 +142,31 @@ func (s *State) ResetPrefs() {
 	}
 }
 
+func (s *State) SetPrefs(prefs map[string]int) {
+    stack := []*TreeNode{s.Root}
+    for len(stack) > 0 {
+        i := len(stack) - 1
+        cur := stack[i]
+        stack = stack[:i]
+
+		key := fmt.Sprintf("%d", cur.Index)
+		p := prefs[key]
+
+		cur.PreferredChild = p
+
+        if len(cur.Down) == 1 {
+            stack = append(stack, cur.Down[0])
+        } else if len(cur.Down) > 1 {
+            // go backward through array
+            for i:=len(cur.Down)-1; i >= 0; i-- {
+                n := cur.Down[i]
+                stack = append(stack, n)
+            }
+        }
+	}
+}
+
+
 func (s *State) Locate() string {
     dirs := []int{}
     c := s.Current
@@ -172,14 +197,14 @@ func (s *State) Locate() string {
     return result
 }
 
-func (s *State) NextIndex() int {
-    i := s.nextIndex
-    s.nextIndex++
+func (s *State) GetNextIndex() int {
+    i := s.NextIndex
+    s.NextIndex++
     return i
 }
 
 func (s *State) AddFieldNode(fields map[string][]string) {
-	index := s.NextIndex()
+	index := s.GetNextIndex()
 	n := NewTreeNode(nil, -1, index, s.Current, false, fields)
 	s.Nodes[index] = n
 	if s.Root == nil {
@@ -192,7 +217,7 @@ func (s *State) AddFieldNode(fields map[string][]string) {
 }
 
 func (s *State) AddPassNode(col int, fields map[string][]string) {
-    index := s.NextIndex()
+    index := s.GetNextIndex()
     n := NewTreeNode(nil, col, index, s.Current, false, fields)
     s.Nodes[index] = n
 	if s.Root == nil {
@@ -206,7 +231,7 @@ func (s *State) AddPassNode(col int, fields map[string][]string) {
 
 func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string) {
     coord := &Coord{x, y}
-    index := s.NextIndex()
+    index := s.GetNextIndex()
     n := NewTreeNode(coord, col, index, s.Current, erase, fields)
 
 	// check to see if it's already there
@@ -460,17 +485,21 @@ func (s *State) ToSGF(indexes bool) string {
 				result += fmt.Sprintf("%s[]", color)
 			}
         }
-		if indexes {
-        	result += fmt.Sprintf("IX[%d]", node.Index)
-		}
-
 		// throw in other fields
 		for key, multifield := range(node.Fields) {
+			if key == "IX" {
+				continue
+			}
 			result += fmt.Sprintf("%s", key)
 			for _,fieldValue := range(multifield) {
 				m := strings.ReplaceAll(fieldValue, "]", "\\]")
 				result += fmt.Sprintf("[%s]", m)
 			}
+
+		}
+
+		if indexes {
+        	result += fmt.Sprintf("IX[%d]", node.Index)
 		}
 
         if len(node.Down) == 1 {
@@ -531,6 +560,15 @@ func FromSGF(data string) (*State, error) {
 			} else {
 				state.AddFieldNode(node.Fields)
 			}
+			if indexes, ok := node.Fields["IX"]; ok {
+				if len(indexes) > 0 {
+					index, err := strconv.ParseInt(indexes[0], 10, 64)
+					if err != nil {
+						continue
+					}
+					state.Current.Index = int(index)
+				}
+			}
 
             for i:=len(node.Down)-1; i>=0; i-- {
                 stack = append(stack, &StackSGFNode{"string", nil, "<"})
@@ -547,7 +585,7 @@ func (s *State) InitData(event string) *EventJSON {
     sgf := s.ToSGF(true)
     loc := s.Locate()
     prefs := s.Prefs()
-	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":\"%d\", \"next_index\":%d}", sgf, loc, prefs, s.InputBuffer, s.nextIndex)
+	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", sgf, loc, prefs, s.InputBuffer, s.NextIndex)
 	evt := &EventJSON{event, value, 0, "", ""}
 	return evt
     

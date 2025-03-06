@@ -343,7 +343,7 @@ class Tree {
         while (stack.length > 0) {
             let cur = stack.pop();
             let key = cur.index.toString();
-            let p = parseInt(prefs[key]);
+            let p = prefs[key];
             cur.preferred_child = p;
 
             if (cur.down.length == 1) {

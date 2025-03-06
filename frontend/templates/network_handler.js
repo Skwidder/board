@@ -74,6 +74,13 @@ class NetworkHandler {
         return this.socket.readyState;
     }
 
+    // evidently necessary because unfocused tabs don't hide modals
+    focus() {
+        if (this.ready_state() == WebSocket.OPEN) {
+            this.state.modals.hide_modal("info-modal");
+        }
+    }
+
     add_listeners() {
         document.addEventListener("click", (event) => this.click(event));
         document.addEventListener("pointermove", (event) => this.pointermove(event));
@@ -87,6 +94,8 @@ class NetworkHandler {
 
         document.addEventListener("keydown", (event) => this.keydown(event));
         document.addEventListener("keyup", (event) => this.keyup(event));
+
+        window.addEventListener("focus", () => this.focus());
     }
 
     set_state(state) {
@@ -161,6 +170,7 @@ class NetworkHandler {
         } else if (evt == "error") {
             let value = payload["value"];
             this.state.modals.show_error_modal(value);
+            console.log(this.state.board.tree.to_sgf());
         }
     }
 

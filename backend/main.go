@@ -15,14 +15,54 @@ import (
     "encoding/binary"
     "encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/net/websocket"
 )
+
+func CreateDir(dir string) bool {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func Path() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = "."
+	}
+	roomDir := filepath.Join(home, ".config", "tripleko")
+	return roomDir
+}
+
+func Setup() {
+	roomDir := Path()
+	ok := CreateDir(roomDir)
+	if !ok {
+		log.Fatal("error creating room")
+	}
+}
+
+type LoadJSON struct {
+	SGF string `json:"sgf"`
+	Loc string `json:"loc"`
+	Prefs map[string]int `json:"prefs"`
+	Buffer int64 `json:"buffer"`
+	NextIndex int `json:"next_index"`
+}
 
 type EventJSON struct {
     Event string `json:"event"`
@@ -59,6 +99,74 @@ type Server struct {
 
 func NewServer() *Server {
 	return &Server{make(map[string]*Room)}
+}
+
+func (s *Server) Save() {
+	for id,room := range s.rooms {
+		path := filepath.Join(Path(), id)
+		log.Printf("Saving %s", path)
+
+		// the same process as a client handshake
+        evt := room.state.InitData("handshake")
+		data := []byte(evt.Value.(string))
+
+		err := ioutil.WriteFile(path, data, 0644)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func (s *Server) Load() {
+	dir := Path()
+	sgfs, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _,e := range sgfs {
+		id := e.Name()
+		path := filepath.Join(dir, id)
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		load := &LoadJSON{}
+		err = json.Unmarshal(data, load)
+		if err != nil {
+			continue
+		}
+
+		sgf, err := base64.StdEncoding.DecodeString(load.SGF)
+		if err != nil {
+			continue
+		}
+
+		state, err := FromSGF(string(sgf))
+		if err != nil {
+			continue
+		}
+
+		state.SetPrefs(load.Prefs)
+
+		state.NextIndex = load.NextIndex
+		state.InputBuffer = load.Buffer
+
+		loc := load.Loc
+		if loc != "" {
+			dirs := strings.Split(loc, ",")
+			for _ = range(dirs) {
+				state.Right()
+			}
+		}
+
+		log.Printf("Loading %s", path)
+
+		r := NewRoom()
+		r.state = state
+		s.rooms[id] = r
+		go s.Heartbeat(id)
+	}
 }
 
 func (s *Server) Heartbeat(roomID string) {
@@ -143,6 +251,15 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 		ws.Write([]byte(data))
 		return
+	} else if op == "sgfix" {
+		// basically do the same thing but include indexes
+		data := ""
+		if room, ok := s.rooms[roomID]; ok {
+			data = room.state.ToSGF(true)
+		}
+		ws.Write([]byte(data))
+		return
+
 	}
 
     // assign the new connection a new id
@@ -359,16 +476,13 @@ func (s *Server) Handler(ws *websocket.Conn) {
    
 }
 
-/*
-func (s *Server) Handshake(cfg *websocket.Config, req *http.Request) error {
-    return nil
-}
-*/
-
 func main() {
+	Setup()
+
 	cfg := websocket.Config{}
 
 	s := NewServer()
+	s.Load()
 
 	ws := websocket.Server{
 		cfg,
@@ -378,13 +492,29 @@ func main() {
 	http.Handle("/", ws)
 
 	port := "9000"
-
 	host := "localhost"
 	url := fmt.Sprintf("%s:%s", host, port)
+
 	log.Println("Listening on", url)
-	err := http.ListenAndServe(url, nil)
+
+	// get ready to catch signals
+	cancelChan := make(chan os.Signal, 1)
+
+    // catch SIGETRM or SIGINTERRUPT
+    signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
+
+	go http.ListenAndServe(url, nil)
+	sig := <-cancelChan
+
+	log.Printf("Caught signal %v", sig)
+	log.Println("Shutting down gracefully")
+
+	s.Save()
+
+	/*
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
+	*/
 }
 

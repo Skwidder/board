@@ -69,6 +69,17 @@ def sgf(path):
         resp.headers["Content-Type"] = "text/plain"
         return resp
 
+@app.get("/b/<path>/sgfix", strict_slashes=False)
+def sgfix(path):
+    ws_url = f"ws://{ws_host}:{ws_port}/b/{path}/sgfix"
+
+    with connect(ws_url) as websocket:
+        message = websocket.recv()
+        decoded =  base64.b64decode(message)
+        resp = make_response(decoded)
+        resp.headers["Content-Type"] = "text/plain"
+        return resp
+
 @app.post("/new")
 def new_board():
     board_id = request.form.get("board_id")
