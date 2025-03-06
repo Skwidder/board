@@ -193,6 +193,13 @@ func (s *Server) Heartbeat(roomID string) {
 
 	// delete the room from the server map
     delete(s.rooms, roomID)
+
+	// delete the saved file (if it exists)
+	path := filepath.Join(Path(), roomID)
+	if _, err := os.Stat(path); err == nil {
+		os.Remove(path)
+	}
+
 }
 
 func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
