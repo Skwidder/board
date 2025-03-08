@@ -22,6 +22,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -443,6 +444,25 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.state = NewState(settings.Size, true)
 				room.state.InputBuffer = buffer
 			}
+		} else if evt.Event == "link_ogs_game" {
+			url := evt.Value.(string)
+			spl := strings.Split(url, "/")
+			if len(spl) < 2 {
+				continue
+			}
+			idStr := spl[len(spl)-1]
+			id64, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				continue
+			}
+			id := int(id64)
+
+			o, err := NewOGSConnector()
+			if err != nil {
+				continue
+			}
+			go o.GameLoop(id)
+
 		} else {
             err = room.state.Add(evt)
 			if err != nil {
@@ -462,7 +482,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		// marshal event back into data
         data, err = json.Marshal(evt)
 		if err != nil {
-			fmt.Println(id, err)
+			log.Println(id, err)
             continue
         }
 

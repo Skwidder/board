@@ -219,6 +219,11 @@ class NetworkHandler {
         this.prepare(payload);
     }
 
+    prepare_link_ogs_game(url) {
+        let payload = {"event":"link_ogs_game", "value": url};
+        this.prepare(payload);
+    }
+
     prepare_trash() {
         let payload = {"event":"trash", "value": "all"};
         this.prepare(payload);
@@ -254,10 +259,19 @@ class NetworkHandler {
 
         // if a modal is up, then the events we allow are:
         // "trash"
-        // "update_buffer"
+        // "update_settings"
         // "scissors"
         // "upload_sgf"
-        if (this.state.modals.modals_up.size > 0 && evt != "trash" && evt != "update_settings" && evt != "scissors" && evt != "upload_sgf" && evt != "request_sgf") {
+        // "request_sgf"
+        // link_ogs_game
+        if (
+            this.state.modals.modals_up.size > 0 &&
+            evt != "trash" &&
+            evt != "update_settings" &&
+            evt != "scissors" &&
+            evt != "upload_sgf" &&
+            evt != "request_sgf" &&
+            evt != "link_ogs_game") {
             return;
         }
 

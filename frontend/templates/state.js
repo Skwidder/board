@@ -783,6 +783,19 @@ class State {
         }
     }
 
+    link_ogs_game() {
+        let textarea = document.getElementById("ogs-textarea");
+        // get the textarea value
+        let value = textarea.value;
+        textarea.value = "";
+
+        this.network_handler.prepare_link_ogs_game(value);
+
+        // hide the upload modal
+        this.modals.hide_modal("upload-modal");
+    }
+
+
     get_sgf_link() {
         let href = window.location.href;
         return href + "/sgf";

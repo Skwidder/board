@@ -362,6 +362,8 @@ export function create_modals(_state) {
         let id = "upload-modal";
         let body_element = document.createElement("div");
 
+        // upload file from disk
+
         // dummy element which acts as upload operation
         let inp = document.createElement("input");
         // we CAN accept multiple files
@@ -384,7 +386,9 @@ export function create_modals(_state) {
         line1.appendChild(span1);
         body_element.appendChild(line1);
 
-        let paste_button = new_icon_button("bi-box-arrow-in-right",() => state.paste());
+        // upload via url/sgf paste
+
+        let paste_button = new_icon_button("bi-box-arrow-in-right", () => state.paste());
         paste_button.setAttribute("type", "button");
         paste_button.setAttribute("class", "btn btn-primary");
 
@@ -407,6 +411,35 @@ export function create_modals(_state) {
 
         line2.appendChild(input_text);
         body_element.appendChild(line2);
+
+        // upload via link to live ogs game
+        
+        let clock_button = new_icon_button("bi-clock", () => state.link_ogs_game());
+        clock_button.setAttribute("type", "button");
+        clock_button.setAttribute("class", "btn btn-primary");
+
+        let line3 = document.createElement("p");
+        line3.appendChild(clock_button);
+        let span3 = document.createElement("span");
+        span3.innerHTML = "&nbsp;";
+        line3.appendChild(span3);
+
+        let input_text2 = document.createElement("input");
+        input_text2.setAttribute("type", "text");
+        input_text2.setAttribute("id", "ogs-textarea");
+        input_text2.setAttribute("placeholder", "URL to live OGS game");
+
+        input_text2.addEventListener("keypress", (event) => {
+            if (event.key == "Enter") {
+                state.link_ogs_game();
+            }
+        });
+
+        line3.appendChild(input_text2);
+        body_element.appendChild(line3);
+
+
+        // finish
 
         let title = document.createElement("h5");
         title.innerHTML = "Upload SGF";
