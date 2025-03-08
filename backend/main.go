@@ -22,7 +22,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"strconv"
+	//"strconv"
 	"syscall"
 	"time"
 
@@ -445,6 +445,9 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.state.InputBuffer = buffer
 			}
 		} else if evt.Event == "link_ogs_game" {
+			// will unlock this in the next release
+			continue
+			/*
 			url := evt.Value.(string)
 			spl := strings.Split(url, "/")
 			if len(spl) < 2 {
@@ -462,6 +465,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				continue
 			}
 			go o.GameLoop(id)
+			*/
 
 		} else {
             err = room.state.Add(evt)

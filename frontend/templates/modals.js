@@ -413,6 +413,9 @@ export function create_modals(_state) {
         body_element.appendChild(line2);
 
         // upload via link to live ogs game
+
+        /*
+         * will unlock in the next release
         
         let clock_button = new_icon_button("bi-clock", () => state.link_ogs_game());
         clock_button.setAttribute("type", "button");
@@ -437,6 +440,7 @@ export function create_modals(_state) {
 
         line3.appendChild(input_text2);
         body_element.appendChild(line3);
+        */
 
 
         // finish
