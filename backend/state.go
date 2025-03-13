@@ -203,8 +203,11 @@ func (s *State) GetNextIndex() int {
     return i
 }
 
-func (s *State) AddFieldNode(fields map[string][]string) {
-	index := s.GetNextIndex()
+func (s *State) AddFieldNode(fields map[string][]string, index int) {
+	tmp := s.GetNextIndex()
+	if index == -1 {
+		index = tmp
+	}
 	n := NewTreeNode(nil, -1, index, s.Current, false, fields)
 	s.Nodes[index] = n
 	if s.Root == nil {
@@ -216,8 +219,11 @@ func (s *State) AddFieldNode(fields map[string][]string) {
 	s.Current = n
 }
 
-func (s *State) AddPassNode(col int, fields map[string][]string) {
-    index := s.GetNextIndex()
+func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
+	tmp := s.GetNextIndex()
+	if index == -1 {
+    	index = tmp
+	}
     n := NewTreeNode(nil, col, index, s.Current, false, fields)
     s.Nodes[index] = n
 	if s.Root == nil {
@@ -229,9 +235,12 @@ func (s *State) AddPassNode(col int, fields map[string][]string) {
 	s.Current = n
 }
 
-func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string) {
+func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int) {
     coord := &Coord{x, y}
-    index := s.GetNextIndex()
+	tmp := s.GetNextIndex()
+	if index == -1 {
+	    index = tmp
+	}
     n := NewTreeNode(coord, col, index, s.Current, erase, fields)
 
 	// check to see if it's already there
@@ -349,7 +358,7 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, evt.Color, false, nil)
+        s.AddNode(x, y, evt.Color, false, nil, -1)
 
 	} else if evt.Event == "stone-manual" {
         coords := make([]int, 0)
@@ -368,7 +377,7 @@ func (s *State) Add(evt *EventJSON) error {
 		// i suppose this is kind of opinionated
 		// but for now manual stone placements are going to
 		// be interpreted the same as toggled placements
-		s.AddNode(x, y, evt.Color, false, nil)
+		s.AddNode(x, y, evt.Color, false, nil, -1)
 
 		/*
 		fields := make(map[string][]string)
@@ -382,7 +391,7 @@ func (s *State) Add(evt *EventJSON) error {
 		*/
 	} else if evt.Event == "pass" {
 		fields := make(map[string][]string)
-		s.AddPassNode(evt.Color, fields)
+		s.AddPassNode(evt.Color, fields, -1)
 	} else if evt.Event == "mark" {
         coords := make([]int, 0)
         // coerce the value to an array
@@ -398,7 +407,7 @@ func (s *State) Add(evt *EventJSON) error {
         }
 
         if evt.Mark == "eraser" {
-            s.AddNode(x, y, 0, true, nil)
+            s.AddNode(x, y, 0, true, nil, -1)
         }
 
 	} else if evt.Event == "scissors" {
@@ -553,23 +562,25 @@ func FromSGF(data string) (*State, error) {
             node := cur.NodeValue
             v := node.Value
             col := node.Color
-            if col != 0 && v != nil {
-                state.AddNode(v.X, v.Y, col, false, node.Fields)
-            } else if col != 0 {
-				state.AddPassNode(col, node.Fields)
-			} else {
-				state.AddFieldNode(node.Fields)
-			}
+
+			index := -1
 			if indexes, ok := node.Fields["IX"]; ok {
 				if len(indexes) > 0 {
-					index, err := strconv.ParseInt(indexes[0], 10, 64)
+					_index, err := strconv.ParseInt(indexes[0], 10, 64)
+					index = int(_index)
 					if err != nil {
-						continue
+						index = -1
 					}
-					state.Current.Index = int(index)
 				}
 			}
 
+            if col != 0 && v != nil {
+                state.AddNode(v.X, v.Y, col, false, node.Fields, index)
+            } else if col != 0 {
+				state.AddPassNode(col, node.Fields, index)
+			} else {
+				state.AddFieldNode(node.Fields, index)
+			}
             for i:=len(node.Down)-1; i>=0; i-- {
                 stack = append(stack, &StackSGFNode{"string", nil, "<"})
                 stack = append(stack, &StackSGFNode{"node", node.Down[i], ""})

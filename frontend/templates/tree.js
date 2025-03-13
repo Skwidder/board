@@ -385,6 +385,9 @@ class Tree {
             result += ";";
 
             for (let [key, values] of cur.fields) {
+                if (key == "IX") {
+                    continue;
+                }
                 result += key;
                 for (let v of values) {
                     result += "[";
@@ -392,6 +395,7 @@ class Tree {
                     result += "]";
                 }
             }
+            result += "IX" + "[" + cur.index + "]";
 
             if (cur.down.length == 1) {
                 stack.push(cur.down[0]);
