@@ -152,10 +152,51 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 		if topic == fmt.Sprintf("game/%d/move", gameID) {
 			move := payload["move"].([]interface{})
 
-			log.Println(move[0].(float64), move[1].(float64))
+			c := &Coord{X: int(move[0].(float64)), Y: int(move[1].(float64))}
+			log.Println(c.ToLetters())
 		} else if topic == fmt.Sprintf("game/%d/gamedata", gameID) {
-			log.Println(payload)
+			GamedataToSGF(payload)
 		}
 	}
 	return nil
+}
+
+func GamedataToSGF(gamedata map[string]interface{}) string {
+	size := int(gamedata["width"].(float64))
+	komi := gamedata["komi"].(float64)
+	name := gamedata["game_name"].(string)
+	rules := gamedata["rules"].(string)
+	ip := gamedata["initial_player"].(string)
+	initState := gamedata["initial_state"].(map[string]interface{})
+
+	sgf := fmt.Sprintf(
+		"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[Black]PW[White]RU[%s]KM[%f]GN[%s]",
+		size, rules, komi, name)
+
+	bstate := initState["black"].(string)
+	wstate := initState["white"].(string)
+
+	for i:=0; i < len(bstate)/2; i++ {
+		sgf += fmt.Sprintf("AB[%s]", bstate[2*i:2*i+2])
+	}
+
+	for i:=0; i < len(wstate)/2; i++ {
+		sgf += fmt.Sprintf("AW[%s]", bstate[2*i:2*i+2])
+	}
+
+	for index,m := range(gamedata["moves"].([]interface{})) {
+		arr := m.([]interface{})
+		c := &Coord{X: int(arr[0].(float64)), Y: int(arr[1].(float64))}
+
+		col := "B"
+
+		if (index % 2 == 1 && ip == "black") || (index % 2 == 0 && ip == "white") {
+			col = "W"
+		}
+
+		sgf += fmt.Sprintf(";%s[%s]", col, c.ToLetters())
+	}
+	sgf += ")"
+
+	return sgf
 }
