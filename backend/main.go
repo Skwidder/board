@@ -79,11 +79,12 @@ func ErrorJSON(msg string) *EventJSON {
 
 type Room struct {
     conns map[string]*websocket.Conn
-    state *State
+    State *State
 	timeLastEvent *time.Time
 	lastUser string
 	lastMessages map[string]*time.Time
 	open bool
+	OGSLink *OGSConnector
 }
 
 func NewRoom() *Room {
@@ -91,7 +92,53 @@ func NewRoom() *Room {
     state := NewState(19, true)
 	now := time.Now()
 	msgs := make(map[string]*time.Time)
-    return &Room{conns, state, &now, "", msgs, true}
+    return &Room{conns, state, &now, "", msgs, true, nil}
+}
+
+func (r *Room) Broadcast(evt *EventJSON, id string) {
+	// augment event with connection id
+	evt.UserID = id
+
+	// marshal event back into data
+	data, err := json.Marshal(evt)
+	if err != nil {
+		log.Println(id, err)
+		return
+    }
+
+	// rebroadcast message
+	for _, conn := range r.conns {
+		conn.Write(data)
+	}
+
+	// set last user information
+	r.lastUser = id
+	now := time.Now()
+	r.timeLastEvent = &now
+}
+
+func (r *Room) PushHead(x, y, col int) *EventJSON {
+	r.State.PushHead(x, y, col)
+	evt := &EventJSON{
+		Event: "push_head",
+		Value: []int{x, y},
+		Color: col,
+		Mark: "",
+		UserID: "",
+	}
+	return evt
+}
+
+func (r *Room) UploadSGF(sgf string) *EventJSON {
+    state, err := FromSGF(sgf)
+    if err != nil {
+        log.Println(err)
+		return ErrorJSON("Error parsing SGF")
+    }
+    r.State = state
+	
+	// replace evt with initdata
+	return r.State.InitData("upload_sgf")
 }
 
 type Server struct {
@@ -108,7 +155,7 @@ func (s *Server) Save() {
 		log.Printf("Saving %s", path)
 
 		// the same process as a client handshake
-        evt := room.state.InitData("handshake")
+        evt := room.State.InitData("handshake")
 		data := []byte(evt.Value.(string))
 
 		err := ioutil.WriteFile(path, data, 0644)
@@ -164,7 +211,7 @@ func (s *Server) Load() {
 		log.Printf("Loading %s", path)
 
 		r := NewRoom()
-		r.state = state
+		r.State = state
 		s.rooms[id] = r
 		go s.Heartbeat(id)
 	}
@@ -179,7 +226,7 @@ func (s *Server) Heartbeat(roomID string) {
 		now := time.Now()
 		diff := now.Sub(*room.timeLastEvent)
 		log.Println(roomID, "Inactive for", diff)
-		if diff.Seconds() > room.state.Timeout {
+		if diff.Seconds() > room.State.Timeout {
 			room.open = false
 			break
 		}
@@ -255,7 +302,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		// if the room doesn't exist, send empty string
 		data := ""
 		if room, ok := s.rooms[roomID]; ok {
-			data = room.state.ToSGF(false)
+			data = room.State.ToSGF(false)
 		}
 		ws.Write([]byte(data))
 		return
@@ -263,7 +310,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		// basically do the same thing but include indexes
 		data := ""
 		if room, ok := s.rooms[roomID]; ok {
-			data = room.state.ToSGF(true)
+			data = room.State.ToSGF(true)
 		}
 		ws.Write([]byte(data))
 		return
@@ -288,7 +335,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
     // send initial state
     if !first {
-        evt := room.state.InitData("handshake")
+        evt := room.State.InitData("handshake")
         if initData, err := json.Marshal(evt); err != nil {
             log.Println(id, err)
 			return
@@ -352,7 +399,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if evt.Event != "update_buffer" && evt.Event != "draw" && room.lastUser != id {
 			now := time.Now()
 			diff := now.Sub(*room.timeLastEvent)
-			if diff.Milliseconds() < room.state.InputBuffer {
+			if diff.Milliseconds() < room.State.InputBuffer {
 				continue
 			}
 		}
@@ -373,27 +420,21 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 		// handle event
         if (evt.Event == "upload_sgf") {
-            decoded, err := base64.StdEncoding.DecodeString(evt.Value.(string))
-            if err != nil {
-                log.Println(err)
-                continue
-            }
-            state, err := FromSGF(string(decoded))
-            if err != nil {
-                log.Println(err)
-				newEvent := ErrorJSON("Error parsing SGF")
-				data, _ := json.Marshal(newEvent)
-				// broadcast error message
-				for _, conn := range room.conns {
-					conn.Write(data)
-				}
-                continue
-            }
-            room.state = state
-			
-			// replace evt with initdata
-			evt = room.state.InitData("upload_sgf")
+			if room.OGSLink != nil {
+				room.OGSLink.End()
+			}
+
+		    decoded, err := base64.StdEncoding.DecodeString(evt.Value.(string))
+		    if err != nil {
+		        log.Println(err)
+		        continue
+		    }
+			evt = room.UploadSGF(string(decoded))
 		} else if evt.Event == "request_sgf" {
+			if room.OGSLink != nil {
+				room.OGSLink.End()
+			}
+
 			data, err := ApprovedFetch(evt.Value.(string))
 			if err != nil {
 				log.Println(err)
@@ -423,28 +464,36 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				}
                 continue
 			}
-			room.state = state
-			evt = room.state.InitData("upload_sgf")
+			room.State = state
+			evt = room.State.InitData("upload_sgf")
         } else if evt.Event == "trash" {
             // reset room
-			oldBuffer := room.state.InputBuffer
-            room.state = NewState(room.state.Size, true)
+			oldBuffer := room.State.InputBuffer
+            room.State = NewState(room.State.Size, true)
 
 			// reuse old inputbuffer
-			room.state.InputBuffer = oldBuffer
+			room.State.InputBuffer = oldBuffer
+
+			if room.OGSLink != nil {
+				room.OGSLink.End()
+			}
 		} else if evt.Event == "update_settings" {
 			sMap := evt.Value.(map[string]interface{})
 			buffer := int64(sMap["buffer"].(float64))
 			size := int(sMap["size"].(float64))
 			settings := &Settings{buffer, size}
 
-			room.state.InputBuffer = settings.Buffer
-			if settings.Size != room.state.Size {
+			room.State.InputBuffer = settings.Buffer
+			if settings.Size != room.State.Size {
 				// essentially trashing
-				room.state = NewState(settings.Size, true)
-				room.state.InputBuffer = buffer
+				room.State = NewState(settings.Size, true)
+				room.State.InputBuffer = buffer
 			}
 		} else if evt.Event == "link_ogs_game" {
+			if room.OGSLink != nil {
+				room.OGSLink.End()
+			}
+
 			url := evt.Value.(string)
 			spl := strings.Split(url, "/")
 			if len(spl) < 2 {
@@ -457,14 +506,18 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			}
 			id := int(id64)
 
-			o, err := NewOGSConnector()
+			o, err := NewOGSConnector(room)
 			if err != nil {
 				continue
 			}
 			go o.GameLoop(id)
+			room.OGSLink = o
+
+			// no need to broadcast this
+			continue
 
 		} else {
-            err = room.state.Add(evt)
+            err = room.State.Add(evt)
 			if err != nil {
 				newEvent := ErrorJSON(err.Error())
 				data, _ := json.Marshal(newEvent)
@@ -476,30 +529,12 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			}
         }
 
-		// augment event with connection id
-		evt.UserID = id
+		room.Broadcast(evt, id)
 
-		// marshal event back into data
-        data, err = json.Marshal(evt)
-		if err != nil {
-			log.Println(id, err)
-            continue
-        }
-
-		// rebroadcast message
-		for _, conn := range room.conns {
-			conn.Write(data)
-		}
-
-		// set last user information
-		room.lastUser = id
-		now := time.Now()
-		room.timeLastEvent = &now
 	}
 
     // removes the client
 	delete(room.conns, id)
-
    
 }
 

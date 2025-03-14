@@ -27,7 +27,6 @@ function from_sgf(b64_data) {
         return;
     }
 
-
     // result.value should be an SGFNode (the root)
     // now i need to turn that into a tree
     let root = result.value

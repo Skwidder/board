@@ -61,6 +61,7 @@ func NewTreeNode(coord *Coord, col, index int, up *TreeNode, erase bool, fields 
 type State struct {
     Root *TreeNode
     Current *TreeNode
+	Head *TreeNode
     Nodes map[int]*TreeNode
     NextIndex int
 	InputBuffer int64
@@ -233,6 +234,23 @@ func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
 	    s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
+}
+
+func (s *State) PushHead(x, y, col int) {
+	coord := &Coord{x, y}
+	index := s.GetNextIndex()
+    n := NewTreeNode(coord, col, index, s.Head, false, nil)
+	s.Nodes[index] = n
+	if len(s.Head.Down) > 0 {
+		s.Head.PreferredChild++
+	}
+	s.Head.Down = append([]*TreeNode{n}, s.Head.Down...)
+
+	if s.Current == s.Head {
+		// follow along if we're at the head
+		s.Current = n
+	}
+	s.Head = n
 }
 
 func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int) {
@@ -585,6 +603,7 @@ func FromSGF(data string) (*State, error) {
                 stack = append(stack, &StackSGFNode{"string", nil, "<"})
                 stack = append(stack, &StackSGFNode{"node", node.Down[i], ""})
             }
+			state.Head = state.Current
         }
     }
     state.Current = state.Root
@@ -627,7 +646,7 @@ func NewState(size int, initRoot bool) *State {
 	}
 	// default input buffer of 250
 	// default room timeout of 86400
-    return &State{root, root, nodes, index, 250, 86400, size}
+    return &State{root, root, root, nodes, index, 250, 86400, size}
 }
 
 type StackTreeNode struct {
