@@ -95,7 +95,7 @@ func NewRoom() *Room {
     return &Room{conns, state, &now, "", msgs, true, nil}
 }
 
-func (r *Room) Broadcast(evt *EventJSON, id string) {
+func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
 	// augment event with connection id
 	evt.UserID = id
 
@@ -111,10 +111,12 @@ func (r *Room) Broadcast(evt *EventJSON, id string) {
 		conn.Write(data)
 	}
 
-	// set last user information
-	r.lastUser = id
-	now := time.Now()
-	r.timeLastEvent = &now
+	if setTime {
+		// set last user information
+		r.lastUser = id
+		now := time.Now()
+		r.timeLastEvent = &now
+	}
 }
 
 func (r *Room) PushHead(x, y, col int) *EventJSON {
@@ -529,7 +531,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			}
         }
 
-		room.Broadcast(evt, id)
+		room.Broadcast(evt, id, true)
 
 	}
 

@@ -161,7 +161,10 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 
 	socketchan := make(chan byte)
 
+	go o.Ping()
 	go o.ReadSocketToChan(socketchan)
+
+	defer o.End()
 
 	for {
 		if o.Exit {
@@ -193,7 +196,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			}
 			o.Room.State.PushHead(x, y, col)
         	evt := o.Room.State.InitData("handshake")
-			o.Room.Broadcast(evt, "")
+			o.Room.Broadcast(evt, "", false)
 
 		} else if topic == fmt.Sprintf("game/%d/gamedata", gameID) {
 			payload := arr[1].(map[string]interface{})
@@ -203,7 +206,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			}
 			sgf := o.GamedataToSGF(payload)
 			evt := o.Room.UploadSGF(sgf)
-			o.Room.Broadcast(evt, "")
+			o.Room.Broadcast(evt, "", false)
 		} else {
 			//log.Println(arr[1])
 		}
