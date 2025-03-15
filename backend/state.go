@@ -238,6 +238,9 @@ func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
 
 func (s *State) PushHead(x, y, col int) {
 	coord := &Coord{x, y}
+	if x == -1 || y == -1 {
+		coord = nil
+	}
 	index := s.GetNextIndex()
     n := NewTreeNode(coord, col, index, s.Head, false, nil)
 	s.Nodes[index] = n

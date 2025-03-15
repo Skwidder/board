@@ -20,6 +20,19 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+func GetUser(id int) (string, error) {
+	data, err := Fetch(fmt.Sprintf("http://online-go.com/api/v1/players/%d/", id))
+	if err != nil {
+		return "", err
+	}
+	user := &User{}
+	err = json.Unmarshal([]byte(data), user)
+	if err != nil {
+		return "", err
+	}
+	return user.Username, nil
+}
+
 type User struct {
 	ID int `json:"id"`
 	Username string `json:"username"`
@@ -186,9 +199,6 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			x := int(move[0].(float64))
 			y := int(move[1].(float64))
 
-			if x == -1 || y == -1 {
-				continue
-			}
 			col := 1
 			curColor := o.Room.State.Head.Color
 			if curColor == 1 {
@@ -220,6 +230,17 @@ func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 	name := gamedata["game_name"].(string)
 	rules := gamedata["rules"].(string)
 	ip := gamedata["initial_player"].(string)
+	black_id := int(gamedata["black_player_id"].(float64))
+	white_id := int(gamedata["white_player_id"].(float64))
+	black, err := GetUser(black_id)
+	if err != nil {
+		black = "Black"
+	}
+	white, err := GetUser(white_id)
+	if err != nil {
+		white = "White"
+	}
+
 	if ip == "black" {
 		o.First = 0
 	} else {
@@ -228,8 +249,8 @@ func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 	initState := gamedata["initial_state"].(map[string]interface{})
 
 	sgf := fmt.Sprintf(
-		"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[Black]PW[White]RU[%s]KM[%f]GN[%s]",
-		size, rules, komi, name)
+		"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[%s]PW[%s]RU[%s]KM[%f]GN[%s]",
+		size, black, white, rules, komi, name)
 
 	bstate := initState["black"].(string)
 	wstate := initState["white"].(string)
