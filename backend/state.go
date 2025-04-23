@@ -258,12 +258,6 @@ func (s *State) PushHead(x, y, col int) {
 
 func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int) {
     coord := &Coord{x, y}
-	tmp := s.GetNextIndex()
-	if index == -1 {
-	    index = tmp
-	}
-    n := NewTreeNode(coord, col, index, s.Current, erase, fields)
-
 	// check to see if it's already there
 	for i,node := range(s.Current.Down) {
 		coord_old := node.XY
@@ -273,6 +267,13 @@ func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, i
 			return
 		}
 	}
+
+	tmp := s.GetNextIndex()
+	if index == -1 {
+	    index = tmp
+	}
+    n := NewTreeNode(coord, col, index, s.Current, erase, fields)
+
     s.Nodes[index] = n
 	if s.Root == nil {
 		s.Root = n
