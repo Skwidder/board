@@ -31,18 +31,17 @@ function from_sgf(b64_data) {
     // now i need to turn that into a tree
     let root = result.value
     let size_field = root.fields.get("SZ");
-    if (size_field == null) {
-        console.log("error: SZ not present in sgf");
-        return;
-    }
-    if (size_field.length != 1) {
-        console.log("error: SZ is a multifield");
-        return;
-    }
-    let size = parseInt(size_field[0]);
-    if (size != 9 && size != 13 && size != 19) {
-        console.log("error: non-standard size");
-        return;
+    let size = 19;
+    if (size_field != null) {
+        if (size_field.length != 1) {
+            console.log("error: SZ is a multifield");
+            return;
+        }
+        size = parseInt(size_field[0]);
+        if (size != 9 && size != 13 && size != 19) {
+            console.log("error: non-standard size");
+            return;
+        }
     }
     let board = new Board(size, false);
     let stack = [root];

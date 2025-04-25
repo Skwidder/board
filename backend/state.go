@@ -558,16 +558,16 @@ func FromSGF(data string) (*State, error) {
         return nil, err
     }
 
-	if _,ok := root.Fields["SZ"]; !ok {
-		return nil, fmt.Errorf("SZ not present in SGF")
-	}
-	size_field := root.Fields["SZ"]
-	if len(size_field) != 1 {
-		return nil, fmt.Errorf("SZ cannot be a multifield")
-	}
-	size, err := strconv.ParseInt(size_field[0], 10, 64)
-	if err != nil {
-		return nil, err
+	var size int64 = 19
+	if _,ok := root.Fields["SZ"]; ok {
+		size_field := root.Fields["SZ"]
+		if len(size_field) != 1 {
+			return nil, fmt.Errorf("SZ cannot be a multifield")
+		}
+		size, err = strconv.ParseInt(size_field[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
 	}
 
     state := NewState(int(size), false)
