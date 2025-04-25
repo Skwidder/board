@@ -152,7 +152,7 @@ class Tree {
         }
 
         let n = new Node(removed, new_index, this.current, fields, this.current_depth);
-        if (this.root != null) {
+        if (this.root != null && set_index==-1) {
             // first check if it's already there
             for (let i=0; i<this.current.down.length; i++) {
                 let node = this.current.down[i];
