@@ -8,6 +8,7 @@
 
 from flask import Flask, render_template, make_response, redirect, request, abort
 from websockets.sync.client import connect
+
 import jinja2
 import json
 import base64
@@ -15,6 +16,9 @@ import uuid
 import os
 import logging
 import struct
+
+import urllib.request
+import urllib.parse
 
 app = Flask(__name__)
 
@@ -101,13 +105,26 @@ def upload_board():
     if not board_id.strip():
         board_id = uuid.uuid4().hex
     if url is not None:
-        request_sgf(board_id, url)
+        handle_url(board_id, url)
     return redirect(f"/b/{board_id}")
 
 @app.errorhandler(404)
 def page404(e):
     app.logger.info("404 - " + request.path)
     return render_template("404.html"), 404
+
+def handle_url(board_id, url):
+    parsed = urllib.parse.urlparse(url)
+    if parsed.netloc == "online-go.com":
+        ogs_api_url = url.replace("com", "com/api/v1").replace("game", "games")
+        req = urllib.request.Request(ogs_api_url)
+        req.add_header("User-Agent", "python/urllib")
+        resp = urllib.request.urlopen(req)
+        data = json.loads(resp.read())
+        if not data["ended"]:
+            link_ogs(board_id, url)
+            return
+    request_sgf(board_id, url)
 
 def websocket_send(json_payload, board_id):
     route = f"/b/{board_id}"
@@ -120,6 +137,10 @@ def websocket_send(json_payload, board_id):
 
 def request_sgf(board_id, url):
     json_payload = {"event": "request_sgf", "value": url}
+    websocket_send(json_payload, board_id)
+
+def link_ogs(board_id, url):
+    json_payload = {"event": "link_ogs_game", "value": url}
     websocket_send(json_payload, board_id)
 
 if __name__ == "__main__":
