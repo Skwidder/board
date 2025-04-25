@@ -316,7 +316,6 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 		ws.Write([]byte(data))
 		return
-
 	}
 
     // assign the new connection a new id
@@ -329,6 +328,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
         first = true
 		log.Println("New room:", roomID)
 		r := NewRoom()
+		r.lastUser = id
 		s.rooms[roomID] = r
 		go s.Heartbeat(roomID)
 	}

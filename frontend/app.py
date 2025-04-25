@@ -9,10 +9,12 @@
 from flask import Flask, render_template, make_response, redirect, request, abort
 from websockets.sync.client import connect
 import jinja2
+import json
 import base64
 import uuid
 import os
 import logging
+import struct
 
 app = Flask(__name__)
 
@@ -89,10 +91,35 @@ def new_board():
         board_id = uuid.uuid4().hex
     return redirect(f"/b/{board_id}")
 
+@app.get("/upload")
+def upload_board():
+    url = request.args.get("url")
+    board_id = request.args.get("board_id")
+    if not board_id:
+        board_id = ""
+    board_id = sanitize(board_id)
+    if not board_id.strip():
+        board_id = uuid.uuid4().hex
+    request_sgf(board_id, url)
+    return redirect(f"/b/{board_id}")
+
 @app.errorhandler(404)
 def page404(e):
     app.logger.info("404 - " + request.path)
     return render_template("404.html"), 404
+
+def websocket_send(json_payload, board_id):
+    route = f"/b/{board_id}"
+    ws_url = f"ws://{ws_host}:{ws_port}{route}"
+    payload = json.dumps(json_payload).encode()
+    length = struct.pack("I", len(payload))
+    with connect(ws_url) as websocket:
+        websocket.send(length)
+        websocket.send(payload)
+
+def request_sgf(board_id, url):
+    json_payload = {"event": "request_sgf", "value": url}
+    websocket_send(json_payload, board_id)
 
 if __name__ == "__main__":
     app.run(port=8080)
