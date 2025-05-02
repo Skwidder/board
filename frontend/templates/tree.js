@@ -21,8 +21,17 @@ class Node {
         this.fields = fields;
         this.index = index;
         this.preferred_child = 0;
-        this.fields = fields;
         this.depth = depth;
+    }
+
+    add_field(key, value) {
+        if (this.fields == null) {
+            this.fields = new Map();
+        }
+        if (!this.fields.has(key)) {
+            this.fields.set(key, []);
+        }
+        this.fields.get(key).push(value);
     }
 
     // want to know color of node
@@ -390,6 +399,7 @@ class Tree {
                 }
                 result += key;
                 for (let v of values) {
+                    console.log(v);
                     result += "[";
                     result += v.replaceAll("]", "\\]");
                     result += "]";

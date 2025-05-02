@@ -909,14 +909,27 @@ class State {
         this.tree_graphics.update(this.board.tree, true, true);
     }
 
-    place_mark(x, y, color, mark) {
+    place_mark(x, y, color, mark, letter, number) {
         // if out of bounds, just return
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
 
         if (mark != "") {
+            let coord = new Coord(x, y);
+            let l = coord.to_letters();
             this.board_graphics.draw_mark(x, y, mark);
+            if (mark == "triangle") {
+                this.board.tree.current.add_field("TR", l);
+            } else if (mark == "square") {
+                this.board.tree.current.add_field("SQ", l);
+            } else if (mark == "letter") {
+                let label = l + ":" + letter;
+                this.board.tree.current.add_field("LB", label);
+            } else if (mark == "number") {
+                let label = l + ":" + number.toString();
+                this.board.tree.current.add_field("LB", label);
+            }
             return;
         }
     }

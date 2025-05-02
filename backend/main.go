@@ -70,11 +70,13 @@ type EventJSON struct {
     Value interface{} `json:"value"`
     Color int `json:"color"`
     Mark string `json:"mark"`
+	Number int `json:"number"`
+	Letter string `json:letter"`
 	UserID string `json:"userid"`
 }
 
 func ErrorJSON(msg string) *EventJSON {
-	return &EventJSON{"error", msg, 0, "", ""}
+	return &EventJSON{"error", msg, 0, "", 0, "", ""}
 }
 
 type Room struct {
@@ -126,6 +128,8 @@ func (r *Room) PushHead(x, y, col int) *EventJSON {
 		Value: []int{x, y},
 		Color: col,
 		Mark: "",
+		Number: 0,
+		Letter: "",
 		UserID: "",
 	}
 	return evt

@@ -17,6 +17,8 @@ import (
     "encoding/base64"
 )
 
+const Letters = "ABCDEFGHIJKLNMOPQRSTUVWXYZ"
+
 type Settings struct {
 	Buffer int64
 	Size int
@@ -54,6 +56,13 @@ type TreeNode struct {
 func NewTreeNode(coord *Coord, col, index int, up *TreeNode, erase bool, fields map[string][]string) *TreeNode {
     down := []*TreeNode{}
     return &TreeNode{coord, col, down, up, index, 0, erase, fields}
+}
+
+func (n *TreeNode) AddField(key, value string) {
+	if _, ok := n.Fields[key]; !ok {
+		n.Fields[key] = []string{}
+	}
+	n.Fields[key] = append(n.Fields[key], value)
 }
 
 // as a rule, anything that would need to get sent to new connections
@@ -257,6 +266,9 @@ func (s *State) PushHead(x, y, col int) {
 }
 
 func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int) {
+	if fields == nil {
+		fields = make(map[string][]string)
+	}
     coord := &Coord{x, y}
 	// check to see if it's already there
 	for i,node := range(s.Current.Down) {
@@ -428,9 +440,22 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
+		c := &Coord{x, y}
+		l := c.ToLetters()
+
         if evt.Mark == "eraser" {
             s.AddNode(x, y, 0, true, nil, -1)
-        }
+		} else if evt.Mark == "triangle" {
+			s.Current.AddField("TR", l)
+		} else if evt.Mark == "square" {
+			s.Current.AddField("SQ", l)
+        } else if evt.Mark == "letter" {
+			lb := fmt.Sprintf("%s:%s", l, evt.Letter)
+			s.Current.AddField("LB", lb)
+		} else if evt.Mark == "number" {
+			lb := fmt.Sprintf("%s:%d", l, evt.Number)
+			s.Current.AddField("LB", lb)
+		}
 
 	} else if evt.Event == "scissors" {
         index := int(evt.Value.(float64))
@@ -620,7 +645,7 @@ func (s *State) InitData(event string) *EventJSON {
     loc := s.Locate()
     prefs := s.Prefs()
 	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", sgf, loc, prefs, s.InputBuffer, s.NextIndex)
-	evt := &EventJSON{event, value, 0, "", ""}
+	evt := &EventJSON{event, value, 0, "", 0, "", ""}
 	return evt
     
     //return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))

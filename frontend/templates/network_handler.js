@@ -13,6 +13,8 @@ export {
     NetworkHandler
 }
 
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 // specifically into 4 bytes
 function pack_int(n) {
     let byte_array = new Uint8Array([0, 0, 0, 0]);
@@ -129,7 +131,13 @@ class NetworkHandler {
             this.state.pass(payload["color"]);
         } else if (evt == "mark") {
             let coords = payload["value"];
-            this.state.place_mark(coords[0], coords[1], payload["color"], payload["mark"]);
+            this.state.place_mark(
+                coords[0],
+                coords[1],
+                payload["color"],
+                payload["mark"],
+                payload["letter"],
+                payload["number"]);
         } else if (evt == "handshake") {
             let value = payload["value"];
             this.state.handshake(JSON.parse(value));
@@ -298,7 +306,7 @@ class NetworkHandler {
     }
 
     send(payload) {
-        //console.log("sending:", payload);
+        console.log("sending:", payload);
         
         // first create the json payload
         let json_payload = JSON.stringify(payload);
@@ -490,7 +498,20 @@ class NetworkHandler {
         let payload = {};
 
         if (this.state.mark != "") {
-            payload = {"event": "mark", "value": coords, "color": this.state.color, "mark": this.state.mark};
+            let letter_index = this.state.board_graphics.get_letter();
+            let letter = "";
+            if (letter_index != null) {
+                letter = letters[letter_index%26];
+            }
+
+            payload = {
+                "event": "mark",
+                "value": coords,
+                "color": this.state.color,
+                "mark": this.state.mark,
+                "number": this.state.board_graphics.get_number(),
+                "letter": letter
+            };
         } else if (this.state.toggling) {
             if (this.state.keys_down.has("Shift")) {
                 payload = {"event": "goto_coord", "value": coords};
