@@ -42,3 +42,21 @@ $ go run *.go
 ```
 
 6. Visit `http://localhost:8080` in your browser.
+
+### Running locally with docker
+
+1. Install docker
+2. Build the docker container
+
+```bash
+$ docker build . -t board
+```
+
+3. Run the docker container, binding the container ports to your host ports
+
+```bash
+$ docker run -p 8080:8080 -p 9000:9000 board
+```
+
+4. Visit `http://localhost:8080' in your browser
+
