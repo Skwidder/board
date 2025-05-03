@@ -69,14 +69,11 @@ type EventJSON struct {
     Event string `json:"event"`
     Value interface{} `json:"value"`
     Color int `json:"color"`
-    Mark string `json:"mark"`
-	Number int `json:"number"`
-	Letter string `json:letter"`
 	UserID string `json:"userid"`
 }
 
 func ErrorJSON(msg string) *EventJSON {
-	return &EventJSON{"error", msg, 0, "", 0, "", ""}
+	return &EventJSON{"error", msg, 0, ""}
 }
 
 type Room struct {
@@ -127,9 +124,6 @@ func (r *Room) PushHead(x, y, col int) *EventJSON {
 		Event: "push_head",
 		Value: []int{x, y},
 		Color: col,
-		Mark: "",
-		Number: 0,
-		Letter: "",
 		UserID: "",
 	}
 	return evt
@@ -411,7 +405,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 
 		// handle fast users
-		if evt.Event == "stone-toggle" || evt.Event == "stone-manual" {
+		if evt.Event == "add_stone" {
 			now := time.Now()
 			if last,ok := room.lastMessages[id]; !ok {
 				room.lastMessages[id] = &now

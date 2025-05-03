@@ -251,6 +251,7 @@ export function create_modals(_state) {
 
         span.appendChild(anchor1);
 
+        /*
         span.appendChild(document.createElement("br"));
         span.innerHTML += "If relevant, download and attach the current ";
 
@@ -260,6 +261,7 @@ export function create_modals(_state) {
         anchor2.innerHTML = "indexed sgf";
 
         span.appendChild(anchor2);
+        */
 
         let m = bootstrap.Modal.getInstance("#error-modal");
         m.show();

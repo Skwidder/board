@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import { letters2coord } from './common.js';
+import { letterstocoord } from './common.js';
 export {
     Tree
 }
@@ -32,6 +32,33 @@ class Node {
             this.fields.set(key, []);
         }
         this.fields.get(key).push(value);
+    }
+
+    remove_field(key, value) {
+        if (this.fields == null) {
+            this.fields = new Map();
+            return;
+        }
+        if (!this.fields.has(key)) {
+            return;
+        }
+
+        let index = -1;
+        let values = this.fields.get(key);
+        let i = 0;
+        for (let v of values) {
+            if (v == value) {
+                index = i;
+            }
+            i++;
+        }
+        if (index == -1) {
+            return;
+        }
+
+        if (values.length == 0) {
+            this.fields.delete(key);
+        }
     }
 
     // want to know color of node
@@ -72,10 +99,10 @@ class Node {
             return null;
         }
         if (this.fields.has("B")) {
-            return letters2coord(this.fields.get("B")[0]);
+            return letterstocoord(this.fields.get("B")[0]);
         }
         if (this.fields.has("W")) {
-            return letters2coord(this.fields.get("W")[0]);
+            return letterstocoord(this.fields.get("W")[0]);
         }
     }
 
@@ -399,7 +426,6 @@ class Tree {
                 }
                 result += key;
                 for (let v of values) {
-                    console.log(v);
                     result += "[";
                     result += v.replaceAll("]", "\\]");
                     result += "]";

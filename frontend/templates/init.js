@@ -10,7 +10,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 import { State } from './state.js'
 import { NetworkHandler } from './network_handler.js'
-import { letters2coord, opposite, Coord } from './common.js';
 import * as config from './config.js';
 
 

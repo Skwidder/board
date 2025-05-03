@@ -13,7 +13,7 @@ export {
     opposite,
     ObjectSet,
     Result,
-    letters2coord,
+    letterstocoord,
     new_icon_button,
     add_tooltip,
     get_viewport,
@@ -42,7 +42,7 @@ function opposite(color) {
     return 1;
 }
 
-function letters2coord(s) {
+function letterstocoord(s) {
     if (s == null || s.length != 2) {
         return null;
     }

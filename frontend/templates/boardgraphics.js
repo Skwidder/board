@@ -847,6 +847,43 @@ class BoardGraphics {
         }
     }
 
+    draw_manual_letter(x, y, letter) {
+        this.saved_color = this.color;
+        let hexcolor = "#000000";
+        if (this.state.board.points[x][y] == 1) {
+            hexcolor = "#FFFFFF";
+        }
+        let canvas_id = "marks-0";
+        if ((x+y)%2 == 1) {
+            canvas_id = "marks-1";
+        }
+        let id = x.toString() + "-" + y.toString();
+
+        let letter_index = letter.charCodeAt(0)-65;
+        this.use_letter(letter_index);
+        this.marks.set(id, "letter:" + letter_index.toString());
+        this.draw_backdrop(x, y);
+        this.draw_letter(x, y, letter, hexcolor, canvas_id);
+    }
+
+    draw_manual_number(x, y, number) {
+        this.saved_color = this.color;
+        let hexcolor = "#000000";
+        if (this.state.board.points[x][y] == 1) {
+            hexcolor = "#FFFFFF";
+        }
+        let canvas_id = "marks-0";
+        if ((x+y)%2 == 1) {
+            canvas_id = "marks-1";
+        }
+        let id = x.toString() + "-" + y.toString();
+
+        this.use_number(number);
+        this.marks.set(id, "number:" + number.toString());
+        this.draw_backdrop(x, y);
+        this.draw_number(x, y, number, hexcolor, canvas_id);
+    }
+
     clear_mark(x, y) {
         let id = "marks-0";
         if ((x+y)%2 == 1) {

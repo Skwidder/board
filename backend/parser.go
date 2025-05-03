@@ -12,7 +12,6 @@ package main
 
 import (
     "fmt"
-    "strings"
 )
 
 type Expr struct {
@@ -27,15 +26,13 @@ func IsWhitespace(c byte) bool {
 type SGFNode struct {
     Value *Coord
     Color int
-    Labels map[string]string
-    Triangles []string
     Fields map[string][]string
     Down []*SGFNode
     Index int
 }
 
-func NewSGFNode(v *Coord, color int, labels map[string]string, triangles []string, fields map[string][]string, index int) *SGFNode {
-    return &SGFNode{v, color, labels, triangles, fields, []*SGFNode{}, index}
+func NewSGFNode(v *Coord, color int, fields map[string][]string, index int) *SGFNode {
+    return &SGFNode{v, color, fields, []*SGFNode{}, index}
 }
 
 type Parser struct {
@@ -124,8 +121,6 @@ func (p *Parser) ParseNodes() ([]*SGFNode, error) {
 
 func (p *Parser) ParseNode() (*SGFNode, error) {
     fields := make(map[string][]string)
-    labels := make(map[string]string)
-    triangles := []string{}
     color := 0
     move := ""
     index := 0
@@ -169,18 +164,6 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
 
         p.SkipWhitespace()
         switch key {
-        case "TR":
-            for _,f := range(multifield) {
-                triangles = append(triangles, f)
-            }
-        case "LB":
-            for _,f := range(multifield) {
-                spl := strings.Split(f, ":")
-                if len(spl) != 2 {
-                    continue
-                }
-                labels[spl[0]] = spl[1]
-            }
         case "B":
             color = 1
             move = multifield[0]
@@ -192,8 +175,8 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
         }
     }
 
-    v := Letters2Coord(move)
-    n := NewSGFNode(v, color, labels, triangles, fields, index)
+    v := LettersToCoord(move)
+    n := NewSGFNode(v, color, fields, index)
     return n, nil
 }
 

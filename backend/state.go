@@ -34,12 +34,32 @@ func (c *Coord) ToLetters() string {
     return string([]byte{alphabet[c.X], alphabet[c.Y]})
 }
 
-func Letters2Coord(s string) *Coord {
+func LettersToCoord(s string) *Coord {
     if len(s) != 2 {
         return nil
     }
     t := strings.ToLower(s)
     return &Coord{int(t[0]-97), int(t[1]-97)}
+}
+
+func InterfaceToCoord(ifc interface{}) (*Coord, error) {
+    coords := make([]int, 0)
+
+    // coerce the value to an array
+    val, ok := ifc.([]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("error coercing to coord")
+	}
+
+    for _,v := range val {
+        i := int(v.(float64))
+        coords = append(coords, i)
+    }
+    x := coords[0]
+    y := coords[1]
+	return &Coord{x, y}, nil
+
 }
 
 type TreeNode struct {
@@ -63,6 +83,25 @@ func (n *TreeNode) AddField(key, value string) {
 		n.Fields[key] = []string{}
 	}
 	n.Fields[key] = append(n.Fields[key], value)
+}
+
+func (n *TreeNode) RemoveField(key, value string) {
+	if _, ok := n.Fields[key]; !ok {
+		return
+	}
+	index := -1
+	for i, v := range n.Fields[key] {
+		if v == value {
+			index = i
+		}
+	}
+	if index == - 1 {
+		return
+	}
+	n.Fields[key] = append(n.Fields[key][:index], n.Fields[key][index+1:]...)
+	if len(n.Fields[key]) == 0 {
+		delete(n.Fields, key)
+	}
 }
 
 // as a rule, anything that would need to get sent to new connections
@@ -378,7 +417,13 @@ func (s *State) GotoCoord(x, y int) {
 }
 
 func (s *State) Add(evt *EventJSON) error {
-	if evt.Event == "stone-toggle" {
+	switch evt.Event {
+	case "add_stone":
+		c, err := InterfaceToCoord(evt.Value)
+		if err != nil {
+			return err
+		}
+		/*
         coords := make([]int, 0)
         // coerce the value to an array
         val := evt.Value.([]interface{})
@@ -386,85 +431,121 @@ func (s *State) Add(evt *EventJSON) error {
             i := int(v.(float64))
             coords = append(coords, i)
         }
-        x := coords[0]
-        y := coords[1]
+		*/
+        x := c.X
+        y := c.Y
         if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
             return nil
         }
 
         s.AddNode(x, y, evt.Color, false, nil, -1)
-
-	} else if evt.Event == "stone-manual" {
-        coords := make([]int, 0)
-        // coerce the value to an array
-        val := evt.Value.([]interface{})
-        for _,v := range val {
-            i := int(v.(float64))
-            coords = append(coords, i)
-        }
-        x := coords[0]
-        y := coords[1]
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
-
-		// i suppose this is kind of opinionated
-		// but for now manual stone placements are going to
-		// be interpreted the same as toggled placements
-		s.AddNode(x, y, evt.Color, false, nil, -1)
-
-		/*
-		fields := make(map[string][]string)
-		key := "AB"
-		if evt.Color == 2 {
-			key = "AW"
-		}
-    	coord := &Coord{x, y}
-		fields[key] = []string{coord.ToLetters()}
-		s.AddFieldNode(fields)
-		*/
-	} else if evt.Event == "pass" {
+	case "pass":
 		fields := make(map[string][]string)
 		s.AddPassNode(evt.Color, fields, -1)
-	} else if evt.Event == "mark" {
-        coords := make([]int, 0)
-        // coerce the value to an array
-        val := evt.Value.([]interface{})
-        for _,v := range val {
-            i := int(v.(float64))
-            coords = append(coords, i)
-        }
-        x := coords[0]
-        y := coords[1]
+	case "remove_stone":
+		c, err := InterfaceToCoord(evt.Value)
+		if err != nil {
+			return err
+		}
+
+        x := c.X
+        y := c.Y
         if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
             return nil
         }
 
-		c := &Coord{x, y}
-		l := c.ToLetters()
-
-        if evt.Mark == "eraser" {
-            s.AddNode(x, y, 0, true, nil, -1)
-		} else if evt.Mark == "triangle" {
-			s.Current.AddField("TR", l)
-		} else if evt.Mark == "square" {
-			s.Current.AddField("SQ", l)
-        } else if evt.Mark == "letter" {
-			lb := fmt.Sprintf("%s:%s", l, evt.Letter)
-			s.Current.AddField("LB", lb)
-		} else if evt.Mark == "number" {
-			lb := fmt.Sprintf("%s:%d", l, evt.Number)
-			s.Current.AddField("LB", lb)
+        s.AddNode(x, y, 0, true, nil, -1)
+	case "triangle":
+		c, err := InterfaceToCoord(evt.Value)
+		if err != nil {
+			return err
 		}
 
-	} else if evt.Event == "scissors" {
+        x := c.X
+        y := c.Y
+        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+            return nil
+        }
+		l := c.ToLetters()
+		s.Current.AddField("TR", l)
+
+	case "square":
+		c, err := InterfaceToCoord(evt.Value)
+		if err != nil {
+			return err
+		}
+
+	    x := c.X
+        y := c.Y
+        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+            return nil
+        }
+		l := c.ToLetters()
+		s.Current.AddField("SQ", l)
+
+	case "letter":
+		val := evt.Value.(map[string]interface{})
+		c, err := InterfaceToCoord(val["coords"])
+		if err != nil {
+			return err
+		}
+
+	    x := c.X
+        y := c.Y
+        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+            return nil
+        }
+
+		l := c.ToLetters()
+		letter := val["letter"].(string)
+		lb := fmt.Sprintf("%s:%s", l, letter)
+		s.Current.AddField("LB", lb)
+
+	case "number":
+		val := evt.Value.(map[string]interface{})
+		c, err := InterfaceToCoord(val["coords"])
+		if err != nil {
+			return err
+		}
+
+	    x := c.X
+        y := c.Y
+        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+            return nil
+        }
+
+		l := c.ToLetters()
+		number := int(val["number"].(float64))
+		lb := fmt.Sprintf("%s:%d", l, number)
+		s.Current.AddField("LB", lb)
+	
+	case "remove_mark":
+		c, err := InterfaceToCoord(evt.Value)
+		if err != nil {
+			return err
+		}
+
+		l := c.ToLetters()
+		for key, values := range s.Current.Fields {
+			for _, value := range values {
+				if key == "LB" && value[:2] == l {
+					s.Current.RemoveField("LB", value)
+				} else if key == "SQ" && value == l {
+					s.Current.RemoveField("SQ", l)
+				} else if key == "TR" && value == l {
+					s.Current.RemoveField("TR", l)
+				}
+			}
+		}
+	
+	case "scissors":
         index := int(evt.Value.(float64))
 		if index == 0 {
 			return nil
 		}
 		s.Cut(index)
 
-    } else if evt.Event == "keydown" {
+	case "keydown":
         // coerce the value to a string
         val := evt.Value.(string)
         if val == "ArrowLeft" {
@@ -476,7 +557,7 @@ func (s *State) Add(evt *EventJSON) error {
         } else if val == "ArrowDown" {
             s.Down()
         }
-    } else if evt.Event == "button" {
+	case "button":
         val := evt.Value.(string)
         if val == "Rewind" {
             s.Current = s.Root
@@ -489,14 +570,14 @@ func (s *State) Add(evt *EventJSON) error {
                 s.Current = s.Current.Down[index]
             }
         }
-    } else if evt.Event == "goto_grid" {
+	case "goto_grid":
         index := int(evt.Value.(float64))
 		err := s.SetPreferred(index)
 		if err != nil {
 			return err
 		}
         s.Current = s.Nodes[index]
-	} else if evt.Event == "goto_coord" {
+	case "goto_coord":
         coords := make([]int, 0)
         // coerce the value to an array
         val := evt.Value.([]interface{})
@@ -507,7 +588,7 @@ func (s *State) Add(evt *EventJSON) error {
         x := coords[0]
         y := coords[1]
 		s.GotoCoord(x, y)
-    } else if evt.Event == "update_buffer" {
+	case "update_buffer":
 		// if there's an update to input buffer, save it
     	val := int64(evt.Value.(float64))
 		s.InputBuffer = val
@@ -645,7 +726,7 @@ func (s *State) InitData(event string) *EventJSON {
     loc := s.Locate()
     prefs := s.Prefs()
 	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", sgf, loc, prefs, s.InputBuffer, s.NextIndex)
-	evt := &EventJSON{event, value, 0, "", 0, "", ""}
+	evt := &EventJSON{event, value, 0, ""}
 	return evt
     
     //return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))

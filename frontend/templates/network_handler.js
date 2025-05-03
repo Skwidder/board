@@ -57,6 +57,7 @@ class NetworkHandler {
     }
 
     onopen(event) {
+        console.log("connected!");
         this.state.modals.hide_modal("info-modal");
     }
 
@@ -111,74 +112,100 @@ class NetworkHandler {
 
     fromserver(payload) {
         let evt = payload["event"];
-        if (evt == "keydown") {
-            if (payload["value"] == "ArrowLeft") {
-                this.state.left();
-            } else if (payload["value"] == "ArrowRight") {
-                this.state.right();
-            } else if (payload["value"] == "ArrowUp") {
-                this.state.up();
-            } else if (payload["value"] == "ArrowDown") {
-                this.state.down();
-            }
-        } else if (evt == "stone-toggle") {
-            let coords = payload["value"];
-            this.state.place_stone_toggle(coords[0], coords[1], payload["color"]);
-        } else if (evt == "stone-manual") {
-            let coords = payload["value"];
-            this.state.place_stone_manual(coords[0], coords[1], payload["color"]);
-        } else if (evt == "pass") {
-            this.state.pass(payload["color"]);
-        } else if (evt == "mark") {
-            let coords = payload["value"];
-            this.state.place_mark(
-                coords[0],
-                coords[1],
-                payload["color"],
-                payload["mark"],
-                payload["letter"],
-                payload["number"]);
-        } else if (evt == "handshake") {
-            let value = payload["value"];
-            this.state.handshake(JSON.parse(value));
-        } else if (evt == "upload_sgf") {
-            let value = payload["value"];
-            // just reset the board and reuse the handshake function
-            this.state.reset();
-            this.state.handshake(JSON.parse(value));
-        } else if (evt == "button") {
-            if (payload["value"] == "Rewind") {
-                this.state.rewind();
-
-            } else if (payload["value"] = "FastForward") {
-                this.state.fastforward();
-            }
-        } else if (evt == "goto_grid") {
-            let index = payload["value"];
-            this.state.goto_index(index);
-        } else if (evt == "goto_coord") {
-            let coords = payload["value"];
-            this.state.goto_coord(coords[0], coords[1]);
-        } else if (evt == "trash") {
-            this.state.reset();
-        } else if (evt == "scissors") {
-            let index = payload["value"];
-            this.state.cut(index);
-        } else if (evt == "update_buffer") {
-            let value = payload["value"];
-            this.state.update_buffer(value);
-        } else if (evt == "update_settings") {
-            let value = payload["value"];
-            this.state.update_settings(value);
-        } else if (evt == "draw" && payload["mark"] == "pen") {
-            let [x0,y0,x1,y1, pen_color] = payload["value"];
-            this.state.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
-        } else if (evt == "erase_pen") {
-            this.state.board_graphics.clear_canvas("pen");
-        } else if (evt == "error") {
-            let value = payload["value"];
-            this.state.modals.show_error_modal(value);
-            console.log(this.state.board.tree.to_sgf());
+        var coords;
+        var index;
+        var value;
+        switch (evt) {
+            case "keydown":
+                if (payload["value"] == "ArrowLeft") {
+                    this.state.left();
+                } else if (payload["value"] == "ArrowRight") {
+                    this.state.right();
+                } else if (payload["value"] == "ArrowUp") {
+                    this.state.up();
+                } else if (payload["value"] == "ArrowDown") {
+                    this.state.down();
+                }
+                break;
+            case "add_stone":
+                coords = payload["value"];
+                this.state.place_stone(coords[0], coords[1], payload["color"]);
+                break;
+            case "pass":
+                this.state.pass(payload["color"]);
+                break;
+            case "triangle":
+                coords = payload["value"];
+                this.state.place_triangle(coords[0], coords[1]);
+                break;
+            case "square":
+                coords = payload["value"];
+                this.state.place_square(coords[0], coords[1]);
+                break;
+            case "letter":
+                coords = payload["value"]["coords"];
+                this.state.place_letter(coords[0], coords[1], payload["value"]["letter"]);
+                break;
+            case "number":
+                coords = payload["value"]["coords"];
+                this.state.place_number(coords[0], coords[1], payload["value"]["number"]);
+                break;
+            case "remove_mark":
+                coords = payload["value"];
+                this.state.remove_mark(coords[0], coords[1]);
+                break;
+            case "handshake":
+                value = payload["value"];
+                this.state.handshake(JSON.parse(value));
+                break;
+            case "upload_sgf":
+                value = payload["value"];
+                // just reset the board and reuse the handshake function
+                this.state.reset();
+                this.state.handshake(JSON.parse(value));
+                break;
+            case "button":
+                if (payload["value"] == "Rewind") {
+                    this.state.rewind();
+                } else if (payload["value"] = "FastForward") {
+                    this.state.fastforward();
+                }
+                break;
+            case "goto_grid":
+                index = payload["value"];
+                this.state.goto_index(index);
+                break;
+            case "goto_coord":
+                coords = payload["value"];
+                this.state.goto_coord(coords[0], coords[1]);
+                break;
+            case "trash":
+                this.state.reset();
+                break;
+            case "scissors":
+                index = payload["value"];
+                this.state.cut(index);
+                break;
+            case "update_buffer":
+                value = payload["value"];
+                this.state.update_buffer(value);
+                break;
+            case "update_settings":
+                value = payload["value"];
+                this.state.update_settings(value);
+                break;
+            case "draw":
+                let [x0,y0,x1,y1, pen_color] = payload["value"];
+                this.state.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
+                break;
+            case "erase_pen":
+                this.state.board_graphics.clear_canvas("pen");
+                break;
+            case "error":
+                value = payload["value"];
+                this.state.modals.show_error_modal(value);
+                console.log(this.state.board.tree.to_sgf());
+                break;
         }
     }
 
@@ -306,7 +333,7 @@ class NetworkHandler {
     }
 
     send(payload) {
-        console.log("sending:", payload);
+        //console.log("sending:", payload);
         
         // first create the json payload
         let json_payload = JSON.stringify(payload);
@@ -333,7 +360,7 @@ class NetworkHandler {
         let jump = this.state.branch_jump != flip
 
 
-        switch(event.key){
+        switch(event.key) {
             case "ArrowUp":
                 if (jump){
                     let index = this.state.get_index_up();
@@ -430,10 +457,9 @@ class NetworkHandler {
         if (event.pointerType == "mouse") {
             if (this.state.mark == "pen" && this.state.ispointerdown) {
                 let [x,y,inside] = this.state.board_graphics.board_relative_coords(event.clientX, event.clientY);
-                let payload = {"event": "draw", "value": [this.state.penx, this.state.peny, x, y, this.state.pen_color], "mark": this.state.mark};
+                let payload = {"event": "draw", "value": [this.state.penx, this.state.peny, x, y, this.state.pen_color]};
                 this.state.penx = x;
                 this.state.peny = y;
-                //let payload = {"event": "pointermove", "value": [x,y], "mark": this.mark};
                 this.prepare(payload);
             } else {
                 let coords = this.state.board_graphics.pos_to_coord(event.clientX, event.clientY);
@@ -463,7 +489,7 @@ class NetworkHandler {
                 // for example, disables "pull refresh" on android
                 event.preventDefault();
             }
-            let payload = {"event": "draw", "value": [this.state.penx, this.state.peny, x,y, this.state.pen_color], "mark": this.state.mark};
+            let payload = {"event": "draw", "value": [this.state.penx, this.state.peny, x,y, this.state.pen_color]};
             this.state.penx = x;
             this.state.peny = y;
 
@@ -498,20 +524,33 @@ class NetworkHandler {
         let payload = {};
 
         if (this.state.mark != "") {
-            let letter_index = this.state.board_graphics.get_letter();
-            let letter = "";
-            if (letter_index != null) {
-                letter = letters[letter_index%26];
+            let id = coords[0].toString() + "-" + coords[1].toString();
+            if (this.state.board_graphics.marks.has(id)) {
+                payload = {"event": "remove_mark", value: coords};
+            } else {
+                payload = {"event": this.state.mark};
+                switch(this.state.mark) {
+                    case "triangle":
+                        payload["value"] = coords;
+                        break;
+                    case "square":
+                        payload["value"] = coords;
+                        break;
+                    case "letter":
+                        let letter_index = this.state.board_graphics.get_letter();
+                        let letter = "";
+                        if (letter_index != null) {
+                            letter = letters[letter_index%26];
+                        }
+    
+                        payload["value"] = {"coords": coords, "letter": letter};
+                        break;
+                    case "number":
+                        let number = this.state.board_graphics.get_number();
+                        payload["value"] = {"coords": coords, "number": number};
+                        break;
+                }
             }
-
-            payload = {
-                "event": "mark",
-                "value": coords,
-                "color": this.state.color,
-                "mark": this.state.mark,
-                "number": this.state.board_graphics.get_number(),
-                "letter": letter
-            };
         } else if (this.state.toggling) {
             if (this.state.keys_down.has("Shift")) {
                 payload = {"event": "goto_coord", "value": coords};
@@ -519,19 +558,21 @@ class NetworkHandler {
                 if (stone_there) {
                     return;
                 }
-                payload = {"event": "stone-toggle", "value": coords, "color": this.state.color};
+                //payload = {"event": "stone-toggle", "value": coords, "color": this.state.color};
+                payload = {"event": "add_stone", "value": coords, "color": this.state.color};
             }
         } else {
             if (stone_there) {
                 // if there is a stone there already and we are in manual mode
                 // then remove the stone
-                payload = {"event": "mark", "mark": "eraser", "value": coords};
+                payload = {"event": "remove_stone", "value": coords};
             } else {
                 let color = this.state.color;
                 if (flip) {
                     color = opposite(color);
                 }
-                payload = {"event": "stone-manual", "value": coords, "color": color};
+                //payload = {"event": "stone-manual", "value": coords, "color": color};
+                payload = {"event": "add_stone", "value": coords, "color": color};
             }
         }
         this.prepare(payload);

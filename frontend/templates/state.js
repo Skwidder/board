@@ -15,7 +15,7 @@ import { TreeGraphics } from './treegraphics.js';
 import { create_buttons } from './buttons.js';
 import { create_modals } from './modals.js';
 
-import { letters2coord, opposite, Coord } from './common.js';
+import { letterstocoord, opposite, Coord } from './common.js';
 
 export {
     State
@@ -133,6 +133,10 @@ class State {
 
         // only update graphics once
         this.update_move_number();
+
+        //apply marks
+        this.apply_marks();
+
         this.tree_graphics.update(this.board.tree, true, true);
         this.board_graphics.draw_stones();
     }
@@ -247,6 +251,10 @@ class State {
         this.board_graphics.draw_stones();
 
         this.update_move_number();
+
+        // apply marks
+        this.apply_marks();
+
         // wait to update the tree until the end
         this.tree_graphics.update(this.board.tree, true);
 
@@ -308,7 +316,7 @@ class State {
         let a_stones = node.a_stones();
         for (let col of [1,2]) {
             for (let c of a_stones[col]) {
-                let a_coord = letters2coord(c);
+                let a_coord = letterstocoord(c);
                 this.board_graphics.clear_stone(a_coord.x, a_coord.y, col);
                 this.board.set(a_coord, 0);
             }
@@ -342,6 +350,9 @@ class State {
         // update move number
         this.update_move_number();
 
+        // apply marks
+        this.apply_marks();
+
         // update explorer
         this.tree_graphics.update(this.board.tree);
     }
@@ -365,7 +376,7 @@ class State {
             let add = node.a_stones();
             for (let c of [1,2]) {
                 for (let xy of add[c]) {
-                    let a_coord = letters2coord(xy);
+                    let a_coord = letterstocoord(xy);
                     this.board.set(a_coord, c);
                     if (update) {
                         this.board_graphics.draw_stone(a_coord.x, a_coord.y, c);
@@ -404,6 +415,11 @@ class State {
         // clear marks
         if (update) {
             this.board_graphics.clear_and_remove_marks();
+        }
+
+        // apply marks
+        if (update) {
+            this.apply_marks();
         }
 
         // update explorer
@@ -448,6 +464,9 @@ class State {
         // update move number
         this.update_move_number();
 
+        // apply marks
+        this.apply_marks();
+
         // update explorer
         this.tree_graphics.update(this.board.tree);
 
@@ -471,6 +490,9 @@ class State {
 
         // update move number
         this.update_move_number();
+
+        // apply marks
+        this.apply_marks();
 
         // wait to update the tree until the end
         this.tree_graphics.update(this.board.tree);
@@ -833,12 +855,12 @@ class State {
         let w = this.board.get_field("AW");
     
         for (let s of b) {
-            let c = letters2coord(s);
+            let c = letterstocoord(s);
             this.board.set(c, 1);
             this.board_graphics.draw_stone(c.x, c.y, 1);
         }
         for (let s of w) {
-            let c = letters2coord(s);
+            let c = letterstocoord(s);
             this.board.set(c, 2);
             this.board_graphics.draw_stone(c.x, c.y, 2);
         }
@@ -855,7 +877,7 @@ class State {
         this.tree_graphics.update(this.board.tree, true, true);
     }
 
-    place_stone_toggle(x, y, color) {
+    place_stone(x, y, color) {
         // if out of bounds, just return
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
@@ -882,55 +904,97 @@ class State {
         this.tree_graphics.update(this.board.tree, true, true);
     }
 
-    place_stone_manual(x, y, color) {
-        // if out of bounds, just return
+    place_triangle(x, y) {
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
 
-        // returns list of dead stones
         let coord = new Coord(x, y);
-        let result = this.board.place(coord, color);
-        if (!result.ok) {
-            return;
-        }
+        let l = coord.to_letters();
 
-        for (let v of result.values[opposite(color)]) {
-            this.board_graphics.clear_stone(v.x, v.y);
-        }
-
-        this.board_graphics.remove_marks();
-        this.board_graphics.draw_stone(x, y, color);
-        this.board_graphics.draw_current();
-        if (this.toggling) {
-            this.toggle_color();
-        }
-        this.update_move_number();
-        this.tree_graphics.update(this.board.tree, true, true);
+        this.board_graphics.draw_mark(x, y, "triangle");
+        this.board.tree.current.add_field("TR", l);
     }
 
-    place_mark(x, y, color, mark, letter, number) {
-        // if out of bounds, just return
+    place_square(x, y) {
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
 
-        if (mark != "") {
-            let coord = new Coord(x, y);
-            let l = coord.to_letters();
-            this.board_graphics.draw_mark(x, y, mark);
-            if (mark == "triangle") {
-                this.board.tree.current.add_field("TR", l);
-            } else if (mark == "square") {
-                this.board.tree.current.add_field("SQ", l);
-            } else if (mark == "letter") {
-                let label = l + ":" + letter;
-                this.board.tree.current.add_field("LB", label);
-            } else if (mark == "number") {
-                let label = l + ":" + number.toString();
-                this.board.tree.current.add_field("LB", label);
+        let coord = new Coord(x, y);
+        let l = coord.to_letters();
+
+        this.board_graphics.draw_mark(x, y, "square");
+        this.board.tree.current.add_field("SQ", l);
+    }
+
+    place_letter(x, y, letter) {
+        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
+            return;
+        }
+
+        let coord = new Coord(x, y);
+        let l = coord.to_letters();
+        
+        this.board_graphics.draw_mark(x, y, "letter");
+        let label = l + ":" + letter;
+        this.board.tree.current.add_field("LB", label);
+    }
+
+    place_number(x, y, number) {
+        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
+            return;
+        }
+
+        let coord = new Coord(x, y);
+        let l = coord.to_letters();
+ 
+        this.board_graphics.draw_mark(x, y, "number");
+        let label = l + ":" + number.toString();
+        this.board.tree.current.add_field("LB", label);
+
+    }
+
+    apply_marks() {
+        for (let [key, values] of this.board.tree.current.fields) {
+            if (key == "TR") {
+                for (let v of values) {
+                    let c = letterstocoord(v);
+                    this.board_graphics.draw_mark(c.x, c.y, "triangle");
+                }
+            } else if (key == "SQ") {
+                for (let v of values) {
+                    let c = letterstocoord(v);
+                    this.board_graphics.draw_mark(c.x, c.y, "square");
+                }
+            } else if (key == "LB") {
+                for (let v of values) {
+                    let c = letterstocoord(v.slice(0, 2));
+                    let mark = v.slice(3);
+                    if (mark >= "A" && mark <= "Z") {
+                        this.board_graphics.draw_manual_letter(c.x, c.y, mark);
+                    } else {
+                        this.board_graphics.draw_manual_number(c.x, c.y, parseInt(mark));
+                    }
+                }
             }
-            return;
         }
+    }
+
+    remove_mark(x, y) {
+        let c = new Coord(x,y);
+        let l = c.to_letters();
+        for (let [key, values] of this.board.tree.current.fields) {
+            for (let value of values) {
+                if (key == "LB" && value.slice(0, 2) == l) {
+                    this.board.tree.current.remove_field("LB", value);
+                } else if (key == "SQ" && value == l) {
+                    this.board.tree.current.remove_field("SQ", l);
+                } else if (key == "TR" && value == l) {
+                    this.board.tree.current.remove_field("TR", l);
+                }
+            }
+        }
+        this.board_graphics.remove_mark(x, y);
     }
 }

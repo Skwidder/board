@@ -10,7 +10,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 import { Tree } from './tree.js';
 import { Parser } from './sgf.js';
-import { opposite, Coord, ObjectSet, Result, letters2coord } from './common.js';
+import { opposite, Coord, ObjectSet, Result, letterstocoord } from './common.js';
 
 export {
     Board,
@@ -19,6 +19,7 @@ export {
 
 function from_sgf(b64_data) {
     let data = atob(b64_data);
+    console.log(data);
 
     let p = new Parser(data);
     let result = p.parse();
@@ -193,12 +194,12 @@ class Board {
         }
 
         if (fields.has("B")) {
-            let coord = letters2coord(fields.get("B")[0]);
+            let coord = letterstocoord(fields.get("B")[0]);
             // coord may be null, but that's ok
             this.place(coord, 1, index, fields);
             return;
         } else if (fields.has("W")) {
-            let coord = letters2coord(fields.get("W")[0]);
+            let coord = letterstocoord(fields.get("W")[0]);
             // coord may be null, but that's ok
             this.place(coord, 2, index, fields);
             return;
@@ -227,7 +228,7 @@ class Board {
         removed[1] = [];
         removed[2] = [];
         for (let c of ae) {
-            let coord = letters2coord(c);
+            let coord = letterstocoord(c);
             let color = this.get(coord);
             if (color != 0) {
                 removed[color].push(coord);
@@ -236,12 +237,12 @@ class Board {
         }
 
         for (let c of ab) {
-            let coord = letters2coord(c);
+            let coord = letterstocoord(c);
             this.set(coord, 1);
         }
 
         for (let c of aw) {
-            let coord = letters2coord(c);
+            let coord = letterstocoord(c);
             this.set(coord, 2);
         }
 
