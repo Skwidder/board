@@ -58,5 +58,5 @@ $ docker build . -t board
 $ docker run -p 8080:8080 -p 9000:9000 board
 ```
 
-4. Visit `http://localhost:8080' in your browser
+4. Visit `http://localhost:8080` in your browser
 
