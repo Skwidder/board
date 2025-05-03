@@ -131,6 +131,10 @@ class NetworkHandler {
                 coords = payload["value"];
                 this.state.place_stone(coords[0], coords[1], payload["color"]);
                 break;
+            case "remove_stone":
+                coords = payload["value"];
+                this.state.remove_stone(coords[0], coords[1]);
+                break;
             case "pass":
                 this.state.pass(payload["color"]);
                 break;

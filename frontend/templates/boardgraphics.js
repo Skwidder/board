@@ -928,12 +928,6 @@ class BoardGraphics {
     }
 
     erase_stone(x, y) {
-        let coord = this.state.board.tree.current.value;
-        let erased = this.state.board.remove(x, y);
-        // if there was no stone there, do nothing
-        if (!erased) {
-            return;
-        }
         // clear the stone from the canvas
         this.clear_stone(x, y);
 
@@ -942,8 +936,6 @@ class BoardGraphics {
 
         // clearing "current" no matter what
         this.clear_canvas("current");
-        this.state.update_move_number();
-        this.state.tree_graphics.update(this.state.board.tree, true, true);
     }
 
     draw_ghost_mark(x, y) {

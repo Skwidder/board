@@ -19,7 +19,6 @@ export {
 
 function from_sgf(b64_data) {
     let data = atob(b64_data);
-    console.log(data);
 
     let p = new Parser(data);
     let result = p.parse();

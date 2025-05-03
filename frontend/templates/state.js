@@ -996,5 +996,18 @@ class State {
             }
         }
         this.board_graphics.remove_mark(x, y);
+
+    }
+
+    remove_stone(x, y) {
+        let erased = this.board.remove(x, y);
+        // if there was no stone there, do nothing
+        if (!erased) {
+            return;
+        }
+
+        this.board_graphics.erase_stone(x, y);
+        this.update_move_number();
+        this.tree_graphics.update(this.board.tree, true, true);
     }
 }
