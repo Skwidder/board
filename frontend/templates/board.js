@@ -85,7 +85,6 @@ function from_sgf(b64_data) {
     board.tree.current = board.tree.root;
     board.tree.reset_prefs();
     board.clear();
-    console.log(board.tree.root);
     
     return board;
 }
