@@ -1015,11 +1015,6 @@ class BoardGraphics {
         this.remove_marks();
     }
 
-    clear_and_remove_marks() {
-        this.clear_marks();
-        this.remove_marks();
-    }
-
     clear_all() {
         this.clear_canvas("current");
         this.clear_marks();
