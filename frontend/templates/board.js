@@ -55,26 +55,21 @@ function from_sgf(b64_data) {
                 if (node == null) {
                     continue;
                 }
-                let coord = node.coord();
 
                 let captured = node.captured;
-                let color = node.color();
 
-                if (coord == null) {
-                    continue;
-                }
-        
-                // clear previous move
-                board.set(coord, 0);
-        
-                // find current move
-                let cur = board.tree.current;
-        
                 // redraw captured stones
                 for (let c of [1,2]) {
                     for (let xy of captured[c]) {
                         board.set(xy, c);
                     }
+                }
+
+                let coord = node.coord();
+
+                if (coord != null) {
+                    // clear previous move
+                    board.set(coord, 0);
                 }
             }
             continue;
@@ -90,6 +85,7 @@ function from_sgf(b64_data) {
     board.tree.current = board.tree.root;
     board.tree.reset_prefs();
     board.clear();
+    console.log(board.tree.root);
     
     return board;
 }
@@ -244,6 +240,7 @@ class Board {
             let coord = letterstocoord(c);
             this.set(coord, 2);
         }
+
 
         this.tree.push(removed, index, fields);
     }
