@@ -74,6 +74,9 @@ type TreeNode struct {
 }
 
 func NewTreeNode(coord *Coord, col, index int, up *TreeNode, erase bool, fields map[string][]string) *TreeNode {
+	if fields == nil {
+		fields = make(map[string][]string)
+	}
     down := []*TreeNode{}
     return &TreeNode{coord, col, down, up, index, 0, erase, fields}
 }
