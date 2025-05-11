@@ -142,10 +142,15 @@ export function create_buttons(_state) {
     //info_button.setAttribute("data-bs-target", "#info-modal");
     button_row3.appendChild(info_button);
 
+    // comments
+    let comments_button = new_icon_button("bi-chat-left-text", () => state.comments_toggle());
+    add_tooltip(comments_button, "Toggle comments");
+    button_row3.appendChild(comments_button);
+
     // dark mode
-    let dark_mode_button = new_icon_button("bi-moon-fill", () => state.dark_mode_toggle());
-    add_tooltip(dark_mode_button, "Toggle dark mode");
-    button_row3.appendChild(dark_mode_button);
+    //let dark_mode_button = new_icon_button("bi-moon-fill", () => state.dark_mode_toggle());
+    //add_tooltip(dark_mode_button, "Toggle dark mode");
+    //button_row3.appendChild(dark_mode_button);
 
     // settings button
     let settings_button = new_icon_button("bi-gear", () => state.modals.show_modal("settings-modal"));

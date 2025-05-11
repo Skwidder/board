@@ -12,10 +12,11 @@ import { Board, from_sgf } from './board.js';
 import { BoardGraphics } from './boardgraphics.js';
 import { TreeGraphics } from './treegraphics.js';
 
+import { create_comments } from './comments.js';
 import { create_buttons } from './buttons.js';
 import { create_modals } from './modals.js';
 
-import { letterstocoord, opposite, Coord } from './common.js';
+import { letterstocoord, opposite, Coord, prefer_dark_mode } from './common.js';
 
 export {
     State
@@ -26,15 +27,6 @@ function b64_encode_unicode(str) {
     const encoded_data = text_encoder.encode(str);
     return btoa(String.fromCharCode(...encoded_data));
 }
-
-function prefer_dark_mode() {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-/* if i want to monitor for dark mode changes:
- window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-    const newColorScheme = event.matches ? "dark" : "light";
-});
-*/
 
 class State {
     constructor() {
@@ -61,6 +53,8 @@ class State {
 
         this.board_graphics = new BoardGraphics(this);
         this.tree_graphics = new TreeGraphics();
+
+        this.comments = create_comments(this);
 
         this.board_graphics.draw_board();
         this.tree_graphics.update(this.board.tree);
@@ -134,6 +128,9 @@ class State {
         // only update graphics once
         this.update_move_number();
 
+        // update comments
+        this.update_comments();
+
         //apply marks
         this.apply_marks();
 
@@ -164,6 +161,7 @@ class State {
         this.recompute_consts();
         this.board_graphics.resize();
         this.tree_graphics.resize();
+        this.comments.resize();
     }
 
     cut(index) {
@@ -179,6 +177,7 @@ class State {
         this.board.tree.cut(index);
 
         // then do regular update stuff
+        this.update_comments();
         this.update_move_number();
         this.tree_graphics.update(this.board.tree, true, true);
         this.update_toggle_color();
@@ -251,6 +250,9 @@ class State {
         this.board_graphics.draw_stones();
 
         this.update_move_number();
+
+        // update comments
+        this.update_comments();
 
         // apply marks
         this.apply_marks();
@@ -347,6 +349,9 @@ class State {
         // clear marks
         this.board_graphics.remove_marks();
 
+        // update comments
+        this.update_comments();
+
         // update move number
         this.update_move_number();
 
@@ -412,6 +417,10 @@ class State {
 
         this.update_toggle_color();
 
+        if (update) {
+            this.update_comments();
+        }
+
         // clear marks
         if (update) {
             this.board_graphics.remove_marks();
@@ -461,6 +470,10 @@ class State {
             this.color = 2;
         }
 
+        // update comments
+        this.update_comments();
+
+
         // update move number
         this.update_move_number();
 
@@ -487,6 +500,9 @@ class State {
 
         // wait to update the stones until the end
         this.board_graphics.draw_stones();
+
+        // update comments
+        this.update_comments();
 
         // update move number
         this.update_move_number();
@@ -515,6 +531,9 @@ class State {
         this.tree_graphics.clear_all();
         // update move number
         this.update_move_number();
+
+        // update comments
+        this.update_comments();
 
         this.modals.update_modals();
         this.tree_graphics.update(this.board.tree, true, true);
@@ -655,8 +674,8 @@ class State {
         }
 
         // change the dark mode button
-        let dark_mode_icon = document.getElementsByClassName(old_icon)[0];
-        dark_mode_icon.setAttribute("class", new_icon);
+        //let dark_mode_icon = document.getElementsByClassName(old_icon)[0];
+        //dark_mode_icon.setAttribute("class", new_icon);
 
         // change the black and white stone icons
         let black_stone_icon = document.getElementsByClassName(old_black_stone)[0];
@@ -664,6 +683,26 @@ class State {
         black_stone_icon.setAttribute("class", new_black_stone);
         white_stone_icon.setAttribute("class", old_black_stone);
 
+    }
+
+    update_comments() {
+        this.comments.clear();
+        if (!this.board.tree.current.fields.has("C")) {
+            return;
+        }
+        let cmts = this.board.tree.current.fields.get("C");
+        for (let cmt of cmts) {
+            cmt = cmt.trim();
+            this.comments.update(cmt.replaceAll("\n", "<br>"));
+        }
+    }
+
+    comments_toggle() {
+        if (this.comments.hidden()) {
+            this.comments.show();
+        } else {
+            this.comments.hide();
+        }
     }
 
     update_move_number() {
@@ -876,6 +915,7 @@ class State {
         if (this.toggling) {
             this.toggle_color();
         }
+        this.update_comments();
         this.update_move_number();
         this.tree_graphics.update(this.board.tree, true, true);
     }
@@ -903,6 +943,7 @@ class State {
         if (this.toggling) {
             this.toggle_color();
         }
+        this.update_comments();
         this.update_move_number();
         this.tree_graphics.update(this.board.tree, true, true);
     }
@@ -1010,6 +1051,7 @@ class State {
         }
 
         this.board_graphics.erase_stone(x, y);
+        this.update_comments();
         this.update_move_number();
         this.tree_graphics.update(this.board.tree, true, true);
     }

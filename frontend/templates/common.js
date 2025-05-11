@@ -17,6 +17,7 @@ export {
     new_icon_button,
     add_tooltip,
     get_viewport,
+    prefer_dark_mode,
 }
 
 class Coord {
@@ -108,5 +109,14 @@ function get_viewport () {
   if (width <= 1400) return 'xl';
   return 'xxl';
 }
+
+function prefer_dark_mode() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+/* if i want to monitor for dark mode changes:
+ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+    const newColorScheme = event.matches ? "dark" : "light";
+});
+*/
 
 

@@ -205,6 +205,10 @@ class NetworkHandler {
             case "erase_pen":
                 this.state.board_graphics.clear_canvas("pen");
                 break;
+            case "comment":
+                this.state.comments.update(payload["value"]);
+                this.state.comments.store(payload["value"]);
+                break;
             case "error":
                 value = payload["value"];
                 this.state.modals.show_error_modal(value);
@@ -285,6 +289,11 @@ class NetworkHandler {
 
     prepare_erase_pen() {
         let payload = {"event":"erase_pen"};
+        this.prepare(payload);
+    }
+
+    prepare_comment(text) {
+        let payload = {"event": "comment", "value": text};
         this.prepare(payload);
     }
 

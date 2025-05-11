@@ -595,6 +595,10 @@ func (s *State) Add(evt *EventJSON) error {
 		// if there's an update to input buffer, save it
     	val := int64(evt.Value.(float64))
 		s.InputBuffer = val
+	case "comment":
+		val := evt.Value.(string)
+		s.Current.AddField("C", val + "\n")
+
 	}
 	return nil
 }

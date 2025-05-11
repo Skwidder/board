@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import { new_icon_button, add_tooltip } from './common.js';
+import { new_icon_button, add_tooltip, prefer_dark_mode } from './common.js';
 
 function make_settings() {
     let id = "settings-modal";
@@ -97,7 +97,7 @@ export function create_modals(_state) {
         inp.setAttribute("class", "form-check-input");
         inp.setAttribute("type", "checkbox");
         inp.setAttribute("role", "switch");
-        inp.setAttribute("checked", true);
+        inp.checked = true;
         inp.setAttribute("id", "updown-switch");
 
         let label = document.createElement("label");
@@ -121,6 +121,47 @@ export function create_modals(_state) {
 
         body.appendChild(updown_element);
         body.appendChild(document.createElement("br"));
+
+        // lightmode/darkmode toggle
+        let darkmode_element = document.createElement("div");
+        darkmode_element.innerHTML = "Darkmode"
+
+        let d2 = document.createElement("div");
+        d2.setAttribute("class", "form-check form-switch");
+
+        let inp2 = document.createElement("input");
+        inp2.setAttribute("class", "form-check-input");
+        inp2.setAttribute("type", "checkbox");
+        inp2.setAttribute("role", "switch");
+        inp2.checked = prefer_dark_mode();
+        inp2.setAttribute("id", "darkmode-switch");
+
+        let label2 = document.createElement("label");
+        label2.setAttribute("class", "form-check-label");
+        label2.setAttribute("for", "darkmode-switch");
+        let darkmode_icon = document.createElement("i");
+        darkmode_icon.setAttribute("class", "bi-moon-fill");
+        let lightmode_icon = document.createElement("i");
+        lightmode_icon.setAttribute("class", "bi-sun-fill");
+        label2.appendChild(darkmode_icon);
+
+        inp2.onchange = function() {
+            label2.innerHTML = "";
+            if (this.checked) {
+                label2.appendChild(darkmode_icon);
+            } else {
+                label2.appendChild(lightmode_icon);
+            }
+            state.dark_mode_toggle();
+        };
+
+        d2.appendChild(inp2);
+        d2.appendChild(label2)
+        darkmode_element.append(d2);
+
+        body.appendChild(darkmode_element);
+        body.appendChild(document.createElement("br"));
+
 
         // input buffer
 
