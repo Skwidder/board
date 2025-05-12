@@ -35,7 +35,10 @@ export function create_comments(_state) {
     resize();
 
     function update(text) {
-        comments.innerHTML += text + "<br>";
+        let temp = document.createElement("div");
+        temp.textContent = text;
+        comments.innerHTML += temp.innerHTML + "<br>";
+        temp.remove();
     }
 
     function store(text) {
