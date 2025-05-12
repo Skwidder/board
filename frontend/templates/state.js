@@ -693,7 +693,9 @@ class State {
         let cmts = this.board.tree.current.fields.get("C");
         for (let cmt of cmts) {
             cmt = cmt.trim();
-            this.comments.update(cmt.replaceAll("\n", "<br>"));
+            for (let cmt_line of cmt.split("\n")) {
+                this.comments.update(cmt_line);
+            }
         }
     }
 
