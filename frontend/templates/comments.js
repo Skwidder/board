@@ -67,20 +67,9 @@ export function create_comments(_state) {
         if (vp == "xs" || vp == "sm" || vp == "md") {
             let content = document.getElementById("content");
             new_width = content.offsetWidth;
-
-            let review = document.getElementById("review");
-            let arrows = document.getElementById("arrows");
-            let h = review.offsetHeight + arrows.offsetHeight*4.5;
-            let new_height = window.innerHeight - h;
-            // TODO:
-            // still annoying that this '100' is hardcoded
-            container.style.height = Math.max(new_height, 100) + "px";
-            comments.style.height = Math.max(new_height, 100) + "px";
         } else {
             let review = document.getElementById("review")
             new_width = window.innerWidth - review.offsetWidth - 100;
-            //container.style.height = saved_height + "px";
-            //comments.style.height = saved_height + "px";
         }
 
         container.style.width = new_width + "px";
