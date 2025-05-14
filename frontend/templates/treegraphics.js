@@ -30,7 +30,7 @@ class TreeGraphics {
 
         // TODO: the fact that this is a fixed number
         // is a little bothersome
-        this.saved_height = review.offsetHeight/2;
+        this.saved_height = review.offsetHeight/3;
         container.style.height = this.saved_height + "px";
         container.style.background = this.bgcolor;
 

@@ -368,10 +368,11 @@ class NetworkHandler {
 
     keydown(event) {
         let payload = {"event": "keydown", "value": event.key};
-        let flip = this.state.keys_down.has("Shift");
+        let shift = this.state.keys_down.has("Shift");
+        let ctrl = this.state.keys_down.has("Control");
+        let alt = this.state.keys_down.has("Alt");
         // logical xor
-        let jump = this.state.branch_jump != flip
-
+        let jump = this.state.branch_jump != shift
 
         switch(event.key) {
             case "ArrowUp":
@@ -406,36 +407,45 @@ class NetworkHandler {
                 break;
             
             case "1":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_toggle();
                 break;
             case "2":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_black();
                 break;
             case "3":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_white();
                 break;
             case "4":
+                if (shift || ctrl || alt) {break;}
                 this.prepare_pass();
                 break;
             case "5":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_triangle();
                 break;
             case "6":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_square();
                 break;
             case "7":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_letter();
                 break;
             case "8":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_number();
                 break;
             case "9":
+                if (shift || ctrl || alt) {break;}
                 this.state.set_pen();
                 break;
             case "0":
+                if (shift || ctrl || alt) {break;}
                 this.state.erase_pen();
                 break;
-
             default:
                 this.state.keys_down.set(event.key, true);
         }
