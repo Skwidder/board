@@ -19,20 +19,20 @@ import (
 	"strings"
 )
 
-func OGSCheckEnded(ogsUrl string) bool {
+func OGSCheckEnded(ogsUrl string) (bool, error) {
 	ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
 	ogsUrl = strings.Replace(ogsUrl, "game", "games", 1)
 	s, err := Fetch(ogsUrl)
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	resp := struct {ended bool `json:"ended"`}{}
+	resp := struct {Ended string `json:"ended"`}{}
 	err = json.Unmarshal([]byte(s), &resp)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return resp.ended
+	return resp.Ended != "", nil
 }
 
 func FetchOGS(ogsUrl string) (string, error) {
