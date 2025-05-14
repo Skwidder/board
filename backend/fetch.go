@@ -11,12 +11,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"io"
 	"strings"
 )
+
+func OGSCheckEnded(ogsUrl string) bool {
+	ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
+	ogsUrl = strings.Replace(ogsUrl, "game", "games", 1)
+	s, err := Fetch(ogsUrl)
+	if err != nil {
+		return false
+	}
+
+	resp := struct {ended bool `json:"ended"`}{}
+	err = json.Unmarshal([]byte(s), &resp)
+	if err != nil {
+		return false
+	}
+	return resp.ended
+}
 
 func FetchOGS(ogsUrl string) (string, error) {
 	ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
@@ -38,6 +55,17 @@ func Fetch(urlStr string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func IsOGS(urlStr string) bool {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	if u.Hostname() == "online-go.com" {
+		return true
+	}
+	return false
 }
 
 func ApprovedFetch(urlStr string) (string, error) {

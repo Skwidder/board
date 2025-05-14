@@ -435,6 +435,30 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.OGSLink.End()
 			}
 
+			url := evt.Value.(string)
+			if IsOGS(url) && !OGSCheckEnded(url) {
+				spl := strings.Split(url, "/")
+				if len(spl) < 2 {
+					continue
+				}
+				idStr := spl[len(spl)-1]
+				id64, err := strconv.ParseInt(idStr, 10, 64)
+				if err != nil {
+					continue
+				}
+				id := int(id64)
+	
+				o, err := NewOGSConnector(room)
+				if err != nil {
+					continue
+				}
+				go o.GameLoop(id)
+				room.OGSLink = o
+	
+				// no need to broadcast this
+				continue
+			}
+
 			data, err := ApprovedFetch(evt.Value.(string))
 			if err != nil {
 				log.Println(err)
@@ -489,6 +513,8 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.State = NewState(settings.Size, true)
 				room.State.InputBuffer = buffer
 			}
+		// this functionality has been absorbed into the regular url paste
+		/* 
 		} else if evt.Event == "link_ogs_game" {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
@@ -515,6 +541,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 			// no need to broadcast this
 			continue
+		*/
 
 		} else {
             err = room.State.Add(evt)
