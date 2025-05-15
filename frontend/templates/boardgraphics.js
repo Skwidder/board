@@ -456,6 +456,10 @@ class BoardGraphics {
 
     //draw_raw_svg_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
     draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
+        // for kicks and giggles
+        //r = 0.5*r;
+        //return this.draw_raw_square(x, y, r, hexColor, id, filled, stroke);
+        
         let svg = this.svgs.get(id);
         let circle = document.createElementNS(this.svgns, "circle");
         circle.setAttributeNS(null, 'cx', x);
@@ -473,18 +477,24 @@ class BoardGraphics {
         return circle;
     }
 
-    draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
+    draw_raw_square(x, y, r, hexColor, id, filled=true, stroke=3) {
         let svg = this.svgs.get(id);
-        let circle = document.createElementNS(this.svgns, "circle");
-        circle.setAttributeNS(null, 'cx', x);
-        circle.setAttributeNS(null, 'cy', y);
-        circle.setAttributeNS(null, 'r', r);
-        circle.setAttributeNS(null, "fill", "url(#" + grad_id + ")");
+        let square = document.createElementNS(this.svgns, "rect");
 
-        circle.style.stroke = "#000000";
-        circle.style.strokeWidth = stroke;
-        svg.appendChild(circle);
-        return circle;
+        square.setAttributeNS(null, "width", 2*r);
+        square.setAttributeNS(null, "height", 2*r);
+        square.setAttributeNS(null, "x", x-r);
+        square.setAttributeNS(null, "y", y-r);
+        square.setAttributeNS(null, "rx", 0);
+        square.setAttributeNS(null, "ry", 0);
+        square.setAttributeNS(null, "fill", hexColor);
+        svg.appendChild(square);
+        return square
+    }
+
+    draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
+        let color = "url(#" + grad_id + ")";
+        return this.draw_raw_circle(x, y, r, color, id, true, stroke);
     }
 
     draw_current() {
@@ -679,7 +689,6 @@ class BoardGraphics {
         // cast shadow
         let shadow = this.draw_cast_shadow(x, y);
         shadow.setAttribute("id", "shadow-"+id);
-
 
     }
 
