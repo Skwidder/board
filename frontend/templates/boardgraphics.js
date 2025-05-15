@@ -15,6 +15,35 @@ export {
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+function make_linear_gradient(svgns, color1, color2, id) {
+    let grad = document.createElementNS(svgns, "linearGradient");
+    grad.id = id;
+    grad.setAttributeNS(null, "x1", "0%");
+    grad.setAttributeNS(null, "y1", "0%");
+    grad.setAttributeNS(null, "x2", "100%");
+    grad.setAttributeNS(null, "y2", "100%");
+
+    let stop1 = document.createElementNS(svgns, "stop");
+    stop1.setAttributeNS(null, "offset", "25%");
+    stop1.setAttributeNS(null, "stop-color", color1);
+
+    let stop2 = document.createElementNS(svgns, "stop");
+    stop2.setAttributeNS(null, "offset", "100%");
+    stop2.setAttributeNS(null, "stop-color", color2);
+
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    return grad;
+}
+
+function make_white_gradient(svgns) {
+    return make_linear_gradient(svgns, "#FFFFFF", "#BBBBBB", "white_grad");
+}
+
+function make_black_gradient(svgns) {
+    return make_linear_gradient(svgns, "#444444", "#000000", "black_grad");
+}
+
 class BoardGraphics {
     constructor(state) {
         this.state = state;
@@ -24,41 +53,22 @@ class BoardGraphics {
         this.side = this.state.side;
         this.pad = this.state.pad;
 
+        this.svgs = new Map();
+        this.svgns = "http://www.w3.org/2000/svg";
         this.canvases = new Map();
 
         this.bgcolor = "#f2bc74"
 
-        this.bg_canvases = new Map();
-        this.new_canvas("board", 0);
-        this.new_canvas("lines", 10);
-        this.new_canvas("coords", 20);
-
-        this.new_canvas("backdrop-0", 30);
-        this.new_canvas("backdrop-1", 30);
-
-        this.new_canvas("ghost", 50);
-
-        this.new_canvas("shadows-0", 800);
-        this.new_canvas("shadows-1", 800);
-
-        // first i tried to have each stone on its own canvas
-        // that was way too slow
-        // then i tried all the stones on the same canvas
-        // this made clearing stones a bit annoying as i had to ensure
-        // there was enough padding around the stone so they didn't clear
-        // bits of the surrounding stones
-        // then it occurred to me just have two canvases and have stones
-        // that are touching on different canvases
-        this.new_canvas("stones-0", 900);
-        this.new_canvas("stones-1", 900);
-
-        this.new_canvas("current", 950);
-
-        this.new_canvas("marks-0", 1000);
-        this.new_canvas("marks-1", 1000);
-
-        this.new_canvas("ghost-marks", 1000);
-        this.new_canvas("eraser", 1000);
+        this.new_svg("board", 0);
+        this.new_svg("lines", 10);
+        this.new_svg("coords", 20);
+        this.new_svg("backdrop", 30);
+        this.new_svg("ghost", 50);
+        this.new_svg("shadows", 800);
+        this.new_svg("stones", 900);
+        this.new_svg("current", 950);
+        this.new_svg("marks", 1000);
+        this.new_svg("ghost-marks", 1000);
 
         this.new_canvas("pen", 1050);
 
@@ -88,8 +98,6 @@ class BoardGraphics {
         canvas.width = w*ratio;
         canvas.height = w*ratio;
 
-        //canvas.setAttribute("style", "z-index: " + z_index + ";");
-
         canvas.style.position = "absolute";
         canvas.style.margin = "auto";
         canvas.style.display = "flex";
@@ -103,6 +111,46 @@ class BoardGraphics {
         return canvas;
     }
 
+    new_svg(id, z_index) {
+        // derp
+        if (this.svgs.has(id)) {
+            return;
+        }
+        let review = document.getElementById("review");
+        let svg = document.createElementNS(this.svgns, "svg");
+        let ratio = window.devicePixelRatio;
+        let w = (this.width + this.pad*2);
+
+        svg.id = id;
+        svg.style.position = "absolute";
+        svg.style.margin = "auto";
+        svg.style.display = "flex";
+        svg.style.width = w*ratio + "px";
+        svg.style.height = w*ratio + "px";
+        svg.style.zIndex = z_index;
+
+        this.svgs.set(id, svg);
+
+        review.appendChild(svg);
+    }
+
+    add_def(id, elt) {
+        if (!this.svgs.has(id)) {
+            return;
+        }
+        let svg = this.svgs.get(id);
+        let defs = svg.querySelector("defs")
+            || document.createElementNS(this.svgns, "defs");
+        defs.appendChild(elt);
+        if (!svg.querySelector("defs")) {
+            svg.appendChild(defs);
+        }
+    }
+
+    clear_svg(id) {
+        this.svgs.get(id).innerHTML = "";
+    }
+
     recompute_consts() {
         this.size = this.state.size;
         this.width = this.state.width;
@@ -113,6 +161,9 @@ class BoardGraphics {
     resize_all() {
         for (let [id, canvas] of this.canvases) {
             this.resize_canvas(id);
+        }
+        for (let [id, _] of this.svgs) {
+            this.resize_svg(id);
         }
     }
 
@@ -133,6 +184,25 @@ class BoardGraphics {
         canvas.getContext("2d").scale(ratio, ratio);
         review.appendChild(canvas);
         this.canvases.set(id, canvas);
+    }
+
+    resize_svg(id) {
+        let review = document.getElementById("review");
+        let svg = this.svgs.get(id);
+        if (svg == null) {
+            return;
+        }
+        let ratio = window.devicePixelRatio;
+        let w = (this.width + this.pad*2);
+
+        svg.style.position = "absolute";
+        svg.style.margin = "auto";
+        svg.style.display = "flex";
+        svg.style.width = w*ratio + "px";
+        svg.style.height = w*ratio + "px";
+
+        //review.appendChild(svg);
+        //this.svgs.set(id, svg);
     }
 
     draw_board() {
@@ -161,10 +231,8 @@ class BoardGraphics {
     }
 
     draw_marks() {
-        this.clear_canvas("marks-0");
-        this.clear_canvas("marks-1");
-        this.clear_canvas("backdrop-0");
-        this.clear_canvas("backdrop-1");
+        this.clear_svg("marks");
+        this.clear_svg("backdrop");
         for (let [key, value] of this.marks) {
             let spl = key.split("-");
             if (spl.length != 2) {
@@ -177,35 +245,29 @@ class BoardGraphics {
             if (this.state.board.points[x][y] == 1) {
                 hexcolor = "#FFFFFF";
             }
-            let canvas_id = "marks-0";
-            if ((x+y)%2 == 1) {
-                canvas_id = "marks-1";
-            }
+            let svg_id = "marks";
 
             if (value == "square") {
-                this.draw_square(x, y, hexcolor, canvas_id);
+                this.draw_square(x, y, hexcolor, svg_id);
             } else if (value == "triangle") {
-                this.draw_triangle(x, y, hexcolor, canvas_id);
+                this.draw_triangle(x, y, hexcolor, svg_id);
             } else if (value.startsWith("letter")) {
                 spl = value.split(":");
                 let letter_index = parseInt(spl[1]);
                 let letter = letters[letter_index%26];
                 this.draw_backdrop(x,y);
-                this.draw_letter(x, y, letter, hexcolor, canvas_id);
+                this.draw_letter(x, y, letter, hexcolor, svg_id);
             } else if (value.startsWith("number")) {
                 spl = value.split(":");
                 let number = parseInt(spl[1]);
                 this.draw_backdrop(x,y);
-                this.draw_number(x, y, number, hexcolor, canvas_id);
+                this.draw_number(x, y, number, hexcolor, svg_id);
             }
         }
     }
 
     draw_stones() {
-        this.clear_canvas("stones-0");
-        this.clear_canvas("stones-1");
-        this.clear_canvas("shadows-0");
-        this.clear_canvas("shadows-1");
+        this.clear_stones();
         for (let i=0; i<this.size; i++) {
             for (let j=0; j<this.size; j++) {
                 if (this.state.board.points[i][j] == 0) {
@@ -223,12 +285,17 @@ class BoardGraphics {
         if (hex_color == "") {
             hex_color = this.bgcolor;
         }
-        let canvas = this.canvases.get("board");
-        let ctx = canvas.getContext("2d");
-        ctx.beginPath();
-        ctx.fillStyle = hex_color;
-        //ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillRect(0, 0, this.width+this.pad*2, this.width+this.pad*2);
+        let svg = this.svgs.get("board");
+        let rect = document.createElementNS(this.svgns, "rect");
+        rect.setAttributeNS(null, "width", this.width+this.pad*2);
+        rect.setAttributeNS(null, "height", this.width+this.pad*2);
+        rect.setAttributeNS(null, "x", 0);
+        rect.setAttributeNS(null, "y", 0);
+        rect.setAttributeNS(null, "rx", 0);
+        rect.setAttributeNS(null, "ry", 0);
+        rect.setAttributeNS(null, "fill", hex_color);
+        svg.appendChild(rect);
+
         this.bgcolor = hex_color;
 
         // very low on the priority list for fixing some day
@@ -237,45 +304,112 @@ class BoardGraphics {
 
     draw_lines() {
         var i;
-        let canvas = this.canvases.get("lines");
-        let ctx = canvas.getContext("2d");
+
+        let coord_pairs = [];
 
         for (i=0; i<this.size; i++) {
-            ctx.beginPath();
-            ctx.moveTo(this.side*i + this.pad, this.pad);
-            ctx.lineTo(this.side*i + this.pad, this.width + this.pad);
-            ctx.stroke();
+            let x0 = this.side*i + this.pad;
+            let y0 = this.pad;
+            let x1 = this.side*i + this.pad;
+            let y1 = this.width + this.pad;
 
-            ctx.beginPath();
-            ctx.moveTo(this.pad, this.side*i + this.pad);
-            ctx.lineTo(this.width + this.pad, this.side*i + this.pad);
-            ctx.stroke();
+            coord_pairs.push([[x0, y0], [x1, y1]]);
+            coord_pairs.push([[y0, x0], [y1, x1]]);
         }
+        this.svg_draw_polyline(coord_pairs, "#000000", "lines");
+    }
+
+    svg_draw_polyline(coord_pairs, hexColor, id, stroke=1) {
+        let svg = this.svgs.get(id);
+        let d = "";
+
+        let path = document.createElementNS(this.svgns, "path");
+        for (let [[x0, y0], [x1, y1]]  of coord_pairs) {
+            d += "M";
+            d += x0.toString() + " ";
+            d += y0.toString() + " ";
+            d += "L";
+            d += x1.toString() + " ";
+            d += y1.toString() + " ";
+        }
+
+        path.style.stroke = hexColor;
+        path.style.strokeWidth = stroke;
+
+        path.setAttribute("d", d);
+        
+        svg.appendChild(path);
+        return path;
+    }
+
+    svg_draw_text(x, y, txt, color, id, font_size, bold=true) {
+        //let font_size = this.width/36;
+        let text = document.createElementNS(this.svgns, "text");
+        let svg = this.svgs.get(id);
+
+        text.setAttribute("x", x);
+        text.setAttribute("y", y);
+        text.setAttribute("font-family", "Arial");
+        if (bold) {
+            text.setAttribute("font-weight", "bold");
+        }
+        text.style.fontSize = font_size + "px";
+        text.style.fill = color;
+        text.innerHTML = txt;
+        //text.setAttributeNS(null, "id", text_id);
+        text.style.cursor = "default";
+        text.style.userSelect = "none";
+        svg.appendChild(text);
+        return text;
     }
 
     draw_coords() {
         var i;
-        let canvas = this.canvases.get("coords");
-        let ctx = canvas.getContext("2d");
 
         let font_size = this.width/50;
-        ctx.font = font_size.toString() + "px Arial";
-        ctx.fillStyle = "#000000";
         let letters = "ABCDEFGHJKLMNOPQRST";
 
         for (i=0; i<this.size; i++) {
 
             // letters along the top
-            ctx.fillText(letters[i], this.side*i+this.pad*7/8, this.pad/2);
+            this.svg_draw_text(
+                this.side*i+this.pad*7/8,
+                this.pad/2,
+                letters[i],
+                "#000000",
+                "coords",
+                font_size,
+                false);
 
             // letters along the bottom
-            ctx.fillText(letters[i], this.side*i+this.pad*7/8, this.width + this.pad*7/4);
+            this.svg_draw_text(
+                this.side*i+this.pad*7/8,
+                this.width+this.pad*7/4,
+                letters[i],
+                "#000000",
+                "coords",
+                font_size,
+                false);
 
             // numbers along the left
-            ctx.fillText((this.size-i).toString(), this.pad/8, this.side*i+this.pad*9/8);
+            this.svg_draw_text(
+                this.pad/8,
+                this.side*i+this.pad*9/8,
+                (this.size-i).toString(),
+                "#000000",
+                "coords",
+                font_size,
+                false);
 
             // numbers along the right
-            ctx.fillText((this.size-i).toString(), this.width + this.pad*12/8, this.side*i+this.pad*9/8);
+            this.svg_draw_text(
+                this.width + this.pad*12/8,
+                this.side*i+this.pad*9/8,
+                (this.size-i).toString(),
+                "#000000",
+                "coords",
+                font_size,
+                false);
         }
     }
 
@@ -283,31 +417,19 @@ class BoardGraphics {
     draw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        this.draw_raw_circle(real_x, real_y, r, hexColor, id, filled, stroke);
+        return this.draw_raw_circle(real_x, real_y, r, hexColor, id, filled, stroke);
     }
 
     // board graphics
-    draw_gradient_circle(x, y, r, colors, id, filled=true, stroke=3) {
+    draw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        this.draw_raw_gradient_circle(real_x, real_y, r, colors, id, filled, stroke);
+        return this.draw_raw_gradient_circle(real_x, real_y, r, grad_id, id, stroke);
     }
 
 
     draw_highlight(x, y, r, id) {
         this.draw_crescent(x, y, r, 3*Math.PI/4, 7*Math.PI/4, "#FFFFFF", id);
-
-        //let ratio = window.devicePixelRatio;
-        //let color = "#FFFFFF";
-        //let real_x = x*this.side + this.pad - 8/ratio;
-        //let real_y = y*this.side + this.pad - 8/ratio;
-        //let ctx = this.canvases.get(id).getContext("2d");
-        //ctx.beginPath();
-        //ctx.strokeStyle = color;
-        //ctx.arc(real_x, real_y, r/4, 0, 2*Math.PI);
-        //ctx.fillStyle = color;
-        //ctx.fill();
-        //ctx.stroke();
     }
 
     draw_shadow(x, y, r, id) {
@@ -332,60 +454,41 @@ class BoardGraphics {
         ctx.stroke();
     }
 
+    //draw_raw_svg_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
     draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
-        let ctx = this.canvases.get(id).getContext("2d");
-        let ratio = window.devicePixelRatio;
-        ctx.beginPath();
+        let svg = this.svgs.get(id);
+        let circle = document.createElementNS(this.svgns, "circle");
+        circle.setAttributeNS(null, 'cx', x);
+        circle.setAttributeNS(null, 'cy', y);
+        circle.setAttributeNS(null, 'r', r);
+        circle.style.stroke = "#000000";
         if (filled) {
-            ctx.strokeStyle = "#00000000";
+            circle.style.fill = hexColor;
         } else {
-            ctx.lineWidth = stroke/ratio;
-            ctx.strokeStyle = hexColor;
+            circle.style.stroke = hexColor;
+            circle.style.fillOpacity = "0%";
         }
-        ctx.arc(x, y, r, 0, 2*Math.PI);
-        if (filled) {
-            ctx.fillStyle = hexColor;
-            ctx.fill();
-        }
-        ctx.stroke();
+        circle.style.strokeWidth = stroke;
+        svg.appendChild(circle);
+        return circle;
     }
 
-    draw_raw_gradient_circle(x, y, r, colors, id, filled=true, stroke=3) {
-        if (colors.length == 1) {
-            return;
-        }
-        
-        let ctx = this.canvases.get(id).getContext("2d");
+    draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
+        let svg = this.svgs.get(id);
+        let circle = document.createElementNS(this.svgns, "circle");
+        circle.setAttributeNS(null, 'cx', x);
+        circle.setAttributeNS(null, 'cy', y);
+        circle.setAttributeNS(null, 'r', r);
+        circle.setAttributeNS(null, "fill", "url(#" + grad_id + ")");
 
-        // Create linear gradient
-        const grad=ctx.createLinearGradient(x-r,y-r,x+r,y+r);
-        let step = 1/(colors.length-1);
-        for (let i=0; i<colors.length; i++) {
-            grad.addColorStop(step*i, colors[i]);
-
-        }
-        //grad.addColorStop(0, "lightblue");
-        //grad.addColorStop(1, "darkblue");
-        
-        let ratio = window.devicePixelRatio;
-        ctx.beginPath();
-        if (filled) {
-            ctx.strokeStyle = "#00000000";
-        } else {
-            ctx.lineWidth = stroke/ratio;
-            ctx.strokeStyle = hexColor;
-        }
-        ctx.arc(x, y, r, 0, 2*Math.PI);
-        if (filled) {
-            ctx.fillStyle = grad;
-            ctx.fill();
-        }
-        ctx.stroke();
+        circle.style.stroke = "#000000";
+        circle.style.strokeWidth = stroke;
+        svg.appendChild(circle);
+        return circle;
     }
-
 
     draw_current() {
-        this.clear_canvas("current");
+        this.clear_svg("current");
         let cur = this.state.board.tree.current;
         if (cur.has_move() && !cur.is_pass()) {
             let coord = cur.coord();
@@ -409,23 +512,24 @@ class BoardGraphics {
         }
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let ctx = this.canvases.get(id).getContext("2d");
         let r = (this.side/3);
         let s = 2*r*Math.cos(Math.PI/6);
         let a = r/2;
 
-        ctx.lineWidth = 3/ratio;
-        ctx.strokeStyle = hexColor;
-        ctx.beginPath();
-        ctx.moveTo(real_x, real_y-r);
-        ctx.lineTo(real_x+s/2, real_y+a);
-        ctx.lineTo(real_x-s/2, real_y+a);
-        ctx.closePath();
-        ctx.stroke();
+        let coord_pairs = [];
+        let A = [real_x, real_y-r];
+        let B = [real_x+s/2, real_y+a];
+        let C = [real_x-s/2, real_y+a];
+        coord_pairs.push([A, B]);
+        coord_pairs.push([B, C]);
+        coord_pairs.push([C, A]);
+        let t = this.svg_draw_polyline(coord_pairs, hexColor, id, 3);
+        t.id = "mark-" + x.toString() + "-" + y.toString();
+
     }
 
     draw_ghost_triangle(x, y) {
-        this.clear_canvas("ghost-marks");
+        this.clear_svg("ghost-marks");
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -443,26 +547,21 @@ class BoardGraphics {
         }
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let ctx = this.canvases.get(id).getContext("2d");
         let r = (this.side/3);
         let h = 3*r/2;
         let b = h/2;
 
-        ctx.lineWidth = 3/ratio;
-        ctx.strokeStyle = hexColor;
-        ctx.beginPath();
-
-        ctx.moveTo(real_x+b, real_y-b);
-        ctx.lineTo(real_x+b, real_y+b);
-        ctx.lineTo(real_x-b, real_y+b);
-        ctx.lineTo(real_x-b, real_y-b);
-
-        ctx.closePath();
-        ctx.stroke();
+        let A = [real_x+b, real_y-b];
+        let B = [real_x+b, real_y+b];
+        let C = [real_x-b, real_y+b];
+        let D = [real_x-b, real_y-b];
+        let coord_pairs = [[A, B], [B, C], [C, D], [D, A]];
+        let s = this.svg_draw_polyline(coord_pairs, hexColor, id, 3);
+        s.id = "mark-" + x.toString() + "-" + y.toString();
     }
 
     draw_ghost_square(x, y) {
-        this.clear_canvas("ghost-marks");
+        this.clear_svg("ghost-marks");
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -475,7 +574,7 @@ class BoardGraphics {
 
     draw_star(x, y) {
         let radius = this.side/12;
-        this.draw_circle(x, y, radius, "#000000", "lines");
+        this.draw_circle(x, y, radius, "#000000", "lines", true, 0);
     }
 
     draw_stars() {
@@ -506,21 +605,12 @@ class BoardGraphics {
     }
 
     clear_stone(x, y) {
-        let id = "stones-0";
-        if ((x+y)%2 == 1) {
-            id = "stones-1";
-        }
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
+        let id = "stone-" + x.toString() + "-" + y.toString();
+        let stone = document.getElementById(id);
+        if (stone == null) {
             return;
         }
-        let ctx = canvas.getContext("2d");
-
-        let real_x = x*this.side + this.pad;
-        let real_y = y*this.side + this.pad;
-        // TODO: this is not very idiomatic
-        let r = this.side/1.9;
-        ctx.clearRect(real_x-r, real_y-r, 2*r, 2*r);
+        stone.remove();
 
         // clear cast shadow
         this.clear_cast_shadow(x, y);
@@ -554,76 +644,42 @@ class BoardGraphics {
         // this could be more idiomatic and universal
         let id = x.toString() + "-" + y.toString();
 
-        let canvas_id = "stones-0";
-        if ((x+y) % 2 == 1) {
-            canvas_id = "stones-1";
-        }
+        let svg_id = "stones";
 
         // stone
 
+        let stone;
         if (color == 2) {
             // special stuff to do for white stones
 
             // regular fill
-            this.draw_circle(x, y, radius, hexcolor, canvas_id);
+            //this.draw_circle(x, y, radius, hexcolor, svg_id);
 
             // gradient fill
-            //this.draw_gradient_circle(x, y, radius, ["#FFFFFF", "#C5C5C5"], canvas_id);
+            stone = this.draw_gradient_circle(x, y, radius, "white_grad", svg_id, 1.25);
             
             // shadow
-            this.draw_shadow(x, y, radius, canvas_id);
+            //this.draw_shadow(x, y, radius, svg_id);
 
             // highlight
             //this.draw_highlight(x, y, radius, "stones");
 
-            //outline
-            this.draw_circle(x, y, radius, "#000000", canvas_id, false, 1);
         } else if (color == 1) {
             // regular fill
-            //this.draw_circle(x, y, radius, hexcolor, canvas_id);
+            //this.draw_circle(x, y, radius, hexcolor, svg_id);
             
             // gradient fill
-            this.draw_gradient_circle(x, y, radius, ["#555555", "#000000"], canvas_id);
+            stone = this.draw_gradient_circle(x, y, radius, "black_grad", svg_id, 1.25);
 
             // outline
-            this.draw_circle(x, y, radius, "#000000", canvas_id, false, 1);
+            //this.draw_circle(x, y, radius, "#000000", svg_id, false, 1);
         }
+        stone.setAttribute("id", "stone-"+id);
 
         // cast shadow
-        this.draw_cast_shadow(x, y);
+        let shadow = this.draw_cast_shadow(x, y);
+        shadow.setAttribute("id", "shadow-"+id);
 
-        /*
-        // check if there's a letter or triangle here too
-        let t_id = "triangle-" + id;
-        let sq_id = "square-" + id;
-        let letter_id = "letter-" + id;
-        let number_id = "number-" + id;
-
-        if (color == 1) {
-            hexcolor = "#FFFFFF";
-        } else {
-            hexcolor = "#000000";
-        }
-        if (this.canvases.has(t_id)) {
-            // redraw triangle in appropriate color
-            this.draw_triangle(x, y, hexcolor, t_id);
-        }
-        if (this.canvases.has(sq_id)) {
-            this.draw_square(x, y, hexcolor, sq_id);
-        }
-        if (this.canvases.has(letter_id)) {
-            // redraw letter in appropriate color
-            let c = this.canvases.get(letter_id);
-            let letter = c.getAttribute("value");
-            this.draw_letter(x, y, letter, hexcolor, letter_id);
-        }
-        if (this.canvases.has(number_id)) {
-            // redraw number in appropriate color
-            let c = this.canvases.get(number_id);
-            let number = c.getAttribute("value");
-            this.draw_number(x, y, number, hexcolor, number_id);
-        }
-        */
 
     }
 
@@ -633,35 +689,23 @@ class BoardGraphics {
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
         let offset = 2/ratio;
-        let id = "shadows-0";
-        if ((x+y)%2 == 1) {
-            id = "shadows-1";
-        }
+        let id = "shadows";
 
-        this.draw_raw_circle(real_x+offset, real_y+offset, radius, "#00000055", id);
+        return this.draw_raw_circle(real_x+offset, real_y+offset, radius, "#00000055", id, true, 0);
     }
 
     clear_cast_shadow(x, y) {
-        let ratio = window.devicePixelRatio;
-        let offset = 2/ratio;
-        let id = "shadows-0";
-        if ((x+y)%2 == 1) {
-            id = "shadows-1";
-        }
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
+        let id = "shadow-" + x.toString() + "-" + y.toString();
+        let shadow = document.getElementById(id);
+        if (shadow == null) {
             return;
         }
-        let ctx = canvas.getContext("2d");
+        shadow.remove();
 
-        let real_x = x*this.side + this.pad;
-        let real_y = y*this.side + this.pad;
-        let r = this.side/1.9;
-        ctx.clearRect(real_x-r + offset, real_y-r + offset, 2*r, 2*r);
     }
 
     draw_ghost_stone(x, y, color) {
-        this.clear_canvas("ghost");
+        this.clear_svg("ghost");
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -673,7 +717,7 @@ class BoardGraphics {
         if (color == 2) {
             hexcolor = "#FFFFFF77";
         }
-        this.draw_circle(x, y, radius, hexcolor, "ghost");
+        this.draw_circle(x, y, radius, hexcolor, "ghost", true, 0);
     }
 
     // this goes through used letters until we find the first unused
@@ -713,25 +757,23 @@ class BoardGraphics {
     }
 
     draw_letter(x, y, letter, color, id) {
-        let ctx = this.canvases.get(id).getContext("2d");
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
 
         let font_size = this.width/36;
 
-        ctx.font = "bold " + font_size.toString() + "px Arial";
-        ctx.fillStyle = color;
-        ctx.lineWidth = 2;
         let x_offset = font_size/3;
         if (letter == "I") {
             x_offset = font_size/8;
         }
         let y_offset = font_size/3;
-        ctx.fillText(letter, real_x-x_offset, real_y+y_offset);
+
+        return this.svg_draw_text(
+            real_x-x_offset, real_y+y_offset, letter, color, id, font_size);
     }
 
     draw_ghost_letter(x, y, color) {
-        this.clear_canvas("ghost-marks");
+        this.clear_svg("ghost-marks");
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -749,15 +791,11 @@ class BoardGraphics {
     }
 
     draw_number(x, y, number, color, id) {
-        let ctx = this.canvases.get(id).getContext("2d");
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
 
         let font_size = this.width/36;
 
-        ctx.font = "bold " + font_size.toString() + "px Arial";
-        ctx.fillStyle = color;
-        ctx.lineWidth = 2;
         let x_offset = font_size/3;
         if (number >= 10) {
             x_offset = font_size/2;
@@ -765,11 +803,12 @@ class BoardGraphics {
             x_offset = font_size;
         }
         let y_offset = font_size/3;
-        ctx.fillText(number, real_x-x_offset, real_y+y_offset);
+        return this.svg_draw_text(
+            real_x-x_offset, real_y+y_offset, number, color, id, font_size);
     }
 
     draw_ghost_number(x, y, color) {
-        this.clear_canvas("ghost-marks");
+        this.clear_svg("ghost-marks");
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -807,10 +846,7 @@ class BoardGraphics {
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";
         }
-        let canvas_id = "marks-0";
-        if ((x+y)%2 == 1) {
-            canvas_id = "marks-1";
-        }
+        let svg_id = "marks";
         let id = x.toString() + "-" + y.toString();
 
         if (this.marks.has(id)) {
@@ -821,11 +857,11 @@ class BoardGraphics {
         if (mark == "triangle") {
             this.triangles.set(id, 1);
             this.marks.set(id, "triangle");
-            this.draw_triangle(x, y, hexcolor, canvas_id);
+            this.draw_triangle(x, y, hexcolor, svg_id);
         } else if (mark == "square") {
             this.squares.set(id, 1);
             this.marks.set(id, "square");
-            this.draw_square(x, y, hexcolor, canvas_id);
+            this.draw_square(x, y, hexcolor, svg_id);
         } else if (mark == "letter") {
             let letter_index = this.get_letter();
             if (letter_index == null) {
@@ -835,13 +871,15 @@ class BoardGraphics {
             this.use_letter(letter_index);
             this.marks.set(id, "letter:" + letter_index.toString());
             this.draw_backdrop(x,y);
-            this.draw_letter(x, y, letter, hexcolor, canvas_id);
+            let l = this.draw_letter(x, y, letter, hexcolor, svg_id);
+            l.id = "mark-" + id;
         } else if (mark == "number") {
             let number = this.get_number();
             this.use_number(number);
             this.marks.set(id, "number:" + number.toString());
             this.draw_backdrop(x, y);
-            this.draw_number(x, y, number, hexcolor, canvas_id);
+            let n = this.draw_number(x, y, number, hexcolor, svg_id);
+            n.id = "mark-" + id;
         } else if (mark == "eraser") {
             this.erase_stone(x, y);
         }
@@ -853,17 +891,17 @@ class BoardGraphics {
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";
         }
-        let canvas_id = "marks-0";
-        if ((x+y)%2 == 1) {
-            canvas_id = "marks-1";
-        }
+        let svg_id = "marks";
         let id = x.toString() + "-" + y.toString();
 
         let letter_index = letter.charCodeAt(0)-65;
         this.use_letter(letter_index);
         this.marks.set(id, "letter:" + letter_index.toString());
         this.draw_backdrop(x, y);
-        this.draw_letter(x, y, letter, hexcolor, canvas_id);
+        let l = this.draw_letter(x, y, letter, hexcolor, svg_id);
+
+        let _id = "mark-" + x.toString() + "-" + y.toString();
+        l.id = _id;
     }
 
     draw_manual_number(x, y, number) {
@@ -872,70 +910,51 @@ class BoardGraphics {
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";
         }
-        let canvas_id = "marks-0";
-        if ((x+y)%2 == 1) {
-            canvas_id = "marks-1";
-        }
+        let svg_id = "marks";
         let id = x.toString() + "-" + y.toString();
 
         this.use_number(number);
         this.marks.set(id, "number:" + number.toString());
         this.draw_backdrop(x, y);
-        this.draw_number(x, y, number, hexcolor, canvas_id);
+        let n = this.draw_number(x, y, number, hexcolor, svg_id);
+
+        let _id = "mark-" + x.toString() + "-" + y.toString();
+        n.id = _id;
     }
 
     clear_mark(x, y) {
-        let id = "marks-0";
-        if ((x+y)%2 == 1) {
-            id = "marks-1";
-        }
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
+        let id = "mark-" + x.toString() + "-" + y.toString();
+        let mark = document.getElementById(id);
+        if (mark == null) {
             return;
         }
-        let ctx = canvas.getContext("2d");
-
-        let real_x = x*this.side + this.pad;
-        let real_y = y*this.side + this.pad;
-        let r = this.side/2;
-        ctx.clearRect(real_x-r, real_y-r, 2*r, 2*r);
+        mark.remove();
     }
 
     draw_backdrop(x, y) {
-        let id = "backdrop-0";
-        if ((x+y)%2 == 1) {
-            id = "backdrop-1";
-        }
-        this.draw_circle(x, y, this.side/3, this.bgcolor, id);
+        let id = "backdrop";
+        let backdrop = this.draw_circle(x, y, this.side/3, this.bgcolor, id, true, 0);
+        backdrop.id = "backdrop-" + x.toString() + "-" + y.toString();
     }
 
     clear_backdrop(x, y) {
-        let id = "backdrop-0";
-        if ((x+y)%2 == 1) {
-            id = "backdrop-1";
-        }
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
+        let id = "backdrop-" + x.toString() + "-" + y.toString();
+        let backdrop = document.getElementById(id);
+        if (backdrop == null) {
             return;
         }
-        let ctx = canvas.getContext("2d");
-
-        let real_x = x*this.side + this.pad;
-        let real_y = y*this.side + this.pad;
-        // TODO: this is not very idiomatic
-        let r = this.side/2;
-        ctx.clearRect(real_x-r, real_y-r, 2*r, 2*r);
+        backdrop.remove();
     }
 
     erase_stone(x, y) {
-        // clear the stone from the canvas
+        // clear the stone (and shadow)
         this.clear_stone(x, y);
 
         // clear marks
         this.clear_marks();
 
         // clearing "current" no matter what
-        this.clear_canvas("current");
+        this.clear_svg("current");
     }
 
     draw_ghost_mark(x, y) {
@@ -947,35 +966,7 @@ class BoardGraphics {
             this.draw_ghost_letter(x, y);
         } else if (this.state.mark == "number") {
             this.draw_ghost_number(x, y);
-        } else if (this.state.mark == "eraser") {
-            this.draw_ghost_eraser(x, y);
         }
-    }
-
-    draw_ghost_eraser(x, y) {
-        let ratio = window.devicePixelRatio;
-        this.clear_canvas("eraser");
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
-        }
-        //let radius = this.side/2.1;
-        let hexColor = "#AA0000AA";
-        let center_x = this.side*x + this.side;
-        let center_y = this.side*y + this.side;
-        let l = this.side/4;
-
-        let ctx = this.canvases.get("eraser").getContext("2d");
-        ctx.lineWidth = 5/ratio;
-        ctx.strokeStyle = hexColor;
-
-        ctx.beginPath();
-        ctx.moveTo(center_x - l, center_y - l);
-        ctx.lineTo(center_x + l, center_y + l);
-        ctx.stroke();
-
-        ctx.moveTo(center_x + l, center_y - l);
-        ctx.lineTo(center_x - l, center_y + l);
-        ctx.stroke();
     }
 
     clear_canvas(id) {
@@ -989,20 +980,16 @@ class BoardGraphics {
     }
 
     pos_to_coord(x, y) {
-        let canvas = this.canvases.get("board");
+        let canvas = this.canvases.get("pen");
         let rect = canvas.getBoundingClientRect();
 
-        //let rel_x = x - canvas.offsetLeft - this.pad - rect.left;
-        //let rel_y = y - canvas.offsetTop - this.pad - rect.top;
-        //let x_coord = rel_x / this.side;
-        //let y_coord = rel_y / this.side;
         let x_coord = (x-rect.left - this.pad)/this.side;
         let y_coord = (y-rect.top - this.pad)/this.side;
         return [Math.floor(x_coord+0.5), Math.floor(y_coord+0.5)];
     }
 
     board_relative_coords(x, y) {
-        let canvas = this.canvases.get("board");
+        let canvas = this.canvases.get("pen");
         let rect = canvas.getBoundingClientRect();
         let x_coord = x-rect.left;
         let y_coord = y-rect.top;
@@ -1015,24 +1002,28 @@ class BoardGraphics {
         this.remove_marks();
     }
 
+    clear_current() {
+        this.clear_svg("current");
+    }
+
     clear_all() {
-        this.clear_canvas("current");
+        this.clear_svg("current");
         this.clear_marks();
         this.clear_stones();
     }
 
     clear_stones() {
-        this.clear_canvas("stones-0");
-        this.clear_canvas("stones-1");
-        this.clear_canvas("shadows-0");
-        this.clear_canvas("shadows-1");
+        this.clear_svg("stones");
+        this.add_def("stones", make_black_gradient(this.svgns));
+        this.add_def("stones", make_white_gradient(this.svgns));
+
+        this.clear_svg("shadows");
     }
 
     clear_board() {
-        this.clear_canvas("board");
-        this.clear_canvas("lines");
-        this.clear_canvas("coords");
-        this.clear_canvas("stars");
+        this.clear_svg("board");
+        this.clear_svg("lines");
+        this.clear_svg("coords");
     }
 
     remove_marks() {
@@ -1046,15 +1037,15 @@ class BoardGraphics {
     }
 
     clear_marks() {
-        this.clear_canvas("marks-0");
-        this.clear_canvas("marks-1");
-        this.clear_canvas("backdrop-0");
-        this.clear_canvas("backdrop-1");
+        this.clear_svg("marks");
+        this.clear_svg("backdrop");
         this.clear_canvas("pen");
     }
 
-    clear_ghosts(){
-        this.clear_canvas("ghost");
-        this.clear_canvas("ghost-marks");
+    clear_ghosts() {
+        this.clear_svg("ghost");
+        this.clear_svg("ghost-marks");
+
     }
+
 }

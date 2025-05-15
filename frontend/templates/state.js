@@ -306,7 +306,7 @@ class State {
         let captured = node.captured;
         let color = node.color();
 
-        this.board_graphics.clear_canvas("current");
+        this.board_graphics.clear_current();
 
         // clear previous move
         if (coord != null) {
@@ -371,7 +371,7 @@ class State {
         let captured = node.captured;
         let color = node.color();
         if (update) {
-            this.board_graphics.clear_canvas("current");
+            this.board_graphics.clear_svg("current");
         }
 
         // so, if the coord is null, it could be a pass
@@ -913,7 +913,7 @@ class State {
     pass(color) {
         this.board.tree.push_pass(color);
         this.board_graphics.clear_marks();
-        this.board_graphics.clear_canvas("current");
+        this.board_graphics.clear_current();
         if (this.toggling) {
             this.toggle_color();
         }
