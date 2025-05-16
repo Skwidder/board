@@ -575,7 +575,7 @@ class BoardGraphics {
                 [x1*rect.width, y1*rect.height]
             ]
         );
-        this.svg_draw_polyline(coord_pairs, pen_color, "pen", 4/this.ratio);
+        this.svg_draw_polyline(coord_pairs, pen_color, "pen", 4);
     }
 
     draw_stone(x, y, color) {
