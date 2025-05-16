@@ -48,10 +48,13 @@ class BoardGraphics {
     constructor(state) {
         this.state = state;
 
-        this.width = this.state.width;
+        let review = document.getElementById("review");
+        this.ratio = window.devicePixelRatio;
+
         this.size = this.state.size;
-        this.side = this.state.side;
-        this.pad = this.state.pad;
+        this.width = parseInt(review.offsetHeight)*(this.size-1)/(this.size+1);
+        this.side = this.width/(this.size-1);
+        this.pad = this.side;
 
         this.svgs = new Map();
         this.svgns = "http://www.w3.org/2000/svg";
@@ -70,7 +73,7 @@ class BoardGraphics {
         this.new_svg("marks", 1000);
         this.new_svg("ghost-marks", 1000);
 
-        this.new_canvas("pen", 1050);
+        //this.new_canvas("pen", 1050);
 
         this.used_letters = new Array(26).fill(0);
         this.letter_map = new Map();
@@ -118,15 +121,15 @@ class BoardGraphics {
         }
         let review = document.getElementById("review");
         let svg = document.createElementNS(this.svgns, "svg");
-        let ratio = window.devicePixelRatio;
         let w = (this.width + this.pad*2);
 
         svg.id = id;
         svg.style.position = "absolute";
         svg.style.margin = "auto";
         svg.style.display = "flex";
-        svg.style.width = w*ratio + "px";
-        svg.style.height = w*ratio + "px";
+        svg.style.width = review.offsetHeight + "px";
+        svg.style.height = review.offsetHeight + "px";
+
         svg.style.zIndex = z_index;
 
         this.svgs.set(id, svg);
@@ -148,14 +151,19 @@ class BoardGraphics {
     }
 
     clear_svg(id) {
+        if (!this.svgs.has(id)) {
+            return;
+        }
         this.svgs.get(id).innerHTML = "";
     }
 
     recompute_consts() {
+        let review = document.getElementById("review");
+
         this.size = this.state.size;
-        this.width = this.state.width;
-        this.side = this.state.side;
-        this.pad = this.state.pad;
+        this.width = parseInt(review.offsetHeight)*(this.size-1)/(this.size+1);
+        this.side = this.width/(this.size-1);
+        this.pad = this.side;
     }
 
     resize_all() {
@@ -192,17 +200,14 @@ class BoardGraphics {
         if (svg == null) {
             return;
         }
-        let ratio = window.devicePixelRatio;
         let w = (this.width + this.pad*2);
 
         svg.style.position = "absolute";
         svg.style.margin = "auto";
         svg.style.display = "flex";
-        svg.style.width = w*ratio + "px";
-        svg.style.height = w*ratio + "px";
 
-        //review.appendChild(svg);
-        //this.svgs.set(id, svg);
+        svg.style.width = review.offsetHeight + "px";
+        svg.style.height = review.offsetHeight + "px";
     }
 
     draw_board() {
@@ -320,6 +325,7 @@ class BoardGraphics {
     }
 
     svg_draw_polyline(coord_pairs, hexColor, id, stroke=1) {
+        stroke = stroke/this.ratio;
         let svg = this.svgs.get(id);
         let d = "";
 
@@ -368,6 +374,7 @@ class BoardGraphics {
 
         let font_size = this.width/50;
         let letters = "ABCDEFGHJKLMNOPQRST";
+        let review = document.getElementById("review");
 
         for (i=0; i<this.size; i++) {
 
@@ -456,6 +463,8 @@ class BoardGraphics {
 
     //draw_raw_svg_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
     draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
+        stroke = stroke/this.ratio;
+
         // for kicks and giggles
         //r = 0.5*r;
         //return this.draw_raw_square(x, y, r, hexColor, id, filled, stroke);
@@ -478,6 +487,7 @@ class BoardGraphics {
     }
 
     draw_raw_square(x, y, r, hexColor, id, filled=true, stroke=3) {
+        stroke = stroke/this.ratio;
         let svg = this.svgs.get(id);
         let square = document.createElementNS(this.svgns, "rect");
 
@@ -493,6 +503,7 @@ class BoardGraphics {
     }
 
     draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
+        stroke = stroke/this.ratio;
         let color = "url(#" + grad_id + ")";
         return this.draw_raw_circle(x, y, r, color, id, true, stroke);
     }
@@ -693,11 +704,10 @@ class BoardGraphics {
     }
 
     draw_cast_shadow(x, y) {
-        let ratio = window.devicePixelRatio;
         let radius = this.side/2;
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let offset = 2/ratio;
+        let offset = 2/this.ratio;
         let id = "shadows";
 
         return this.draw_raw_circle(real_x+offset, real_y+offset, radius, "#00000055", id, true, 0);
@@ -989,8 +999,8 @@ class BoardGraphics {
     }
 
     pos_to_coord(x, y) {
-        let canvas = this.canvases.get("pen");
-        let rect = canvas.getBoundingClientRect();
+        let board = this.svgs.get("board");
+        let rect = board.getBoundingClientRect();
 
         let x_coord = (x-rect.left - this.pad)/this.side;
         let y_coord = (y-rect.top - this.pad)/this.side;
@@ -998,8 +1008,8 @@ class BoardGraphics {
     }
 
     board_relative_coords(x, y) {
-        let canvas = this.canvases.get("pen");
-        let rect = canvas.getBoundingClientRect();
+        let board = this.svgs.get("board");
+        let rect = board.getBoundingClientRect();
         let x_coord = x-rect.left;
         let y_coord = y-rect.top;
         let inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;

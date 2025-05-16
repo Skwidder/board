@@ -16,7 +16,6 @@ export {
 
 class TreeGraphics {
     constructor() {
-        this.ratio = window.devicePixelRatio;
         let review = document.getElementById("review");
         let container = document.getElementById("explorer_container");
         let explorer = document.getElementById("explorer");
