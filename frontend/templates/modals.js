@@ -8,13 +8,14 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import { new_icon_button, add_tooltip, prefer_dark_mode } from './common.js';
+import { new_text_button, new_icon_button, add_tooltip, prefer_dark_mode } from './common.js';
 
 function make_settings() {
     let id = "settings-modal";
     let buffer = parseInt(document.getElementById(id + "-bufferrange").value);
     let size = parseInt(document.getElementById(id + "-size-select").value);
-    return {"buffer": buffer, "size": size};
+    let password = document.getElementById(id + "-password-bar").value;
+    return {"buffer": buffer, "size": size, "password": password};
 }
 
 export function create_modals(_state) {
@@ -34,6 +35,47 @@ export function create_modals(_state) {
     add_info_modal();
     add_settings_modal();
     enable_tooltips();
+
+    function set_password(password) {
+        let id = "settings-modal";
+
+        let password_anchor = document.getElementById(id + "-password-anchor");
+        password_anchor.hidden = true;
+
+        let stars = document.getElementById(id + "-stars");
+        stars.innerHTML = "Password: " + "*".repeat(password.length);
+        stars.hidden = false;
+
+        let show_button = document.getElementById(id + "-show");
+        show_button.hidden = false;
+
+        let remove_button = document.getElementById(id + "-remove");
+        remove_button.hidden = false;
+
+        let password_bar = document.getElementById(id + "-password-bar");
+        password_bar.hidden = true;
+        password_bar.value = password;
+    }
+
+    function remove_password() {
+        let id = "settings-modal";
+
+        let show_button = document.getElementById(id + "-show");
+        show_button.hidden = true;
+
+        let remove_button = document.getElementById(id + "-remove");
+        remove_button.hidden = true;
+
+        let stars = document.getElementById(id + "-stars");
+        stars.hidden = true;
+
+        let password_bar = document.getElementById(id + "-password-bar");
+        password_bar.value = "";
+
+        let password_anchor = document.getElementById(id + "-password-anchor");
+        password_anchor.hidden = false;
+    }
+
 
     function enable_tooltips() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -162,6 +204,70 @@ export function create_modals(_state) {
         body.appendChild(darkmode_element);
         body.appendChild(document.createElement("br"));
 
+        // password
+        let password_anchor = document.createElement("a");
+        let password_bar = document.createElement("input");
+
+        password_anchor.style.cursor = "pointer";
+        password_anchor.id = id + "-password-anchor";
+        password_anchor.innerHTML = "Add password";
+        password_anchor.onclick = () => {
+            password_bar.hidden = false;
+            password_anchor.hidden = true;
+        };
+
+        let stars = document.createElement("div");
+        stars.hidden = true;
+        stars.id = id + "-stars";
+
+        password_bar.hidden = true;
+        password_bar.id = id + "-password-bar";
+        password_bar.addEventListener("keypress", (event) => {
+            if (event.key == "Enter") {
+                let value = password_bar.value;
+                if (value == "") {
+                    password_bar.hidden = true;
+                    password_anchor.hidden = false;
+                } else {
+                    set_password(value);
+                    state.network_handler.prepare_settings(make_settings());
+                }
+            }
+        });
+
+        let remove_button = new_text_button(
+            "Remove",
+            () => {
+                remove_password();
+                state.network_handler.prepare_settings(make_settings());
+            }
+        );
+
+        remove_button.setAttribute("class", "btn btn-primary");
+        remove_button.hidden = true;
+        remove_button.id = id + "-remove";
+
+        let show_button = new_text_button(
+            "Show",
+            () => {
+                stars.textContent = "Password: " + password_bar.value;
+            }
+        );
+
+        show_button.setAttribute("class", "btn btn-primary");
+        show_button.hidden = true;
+        show_button.id = id + "-show";
+
+        body.appendChild(password_anchor);
+        body.appendChild(password_bar);
+        body.appendChild(stars);
+        body.appendChild(show_button);
+        let nbsp = document.createElement("span");
+        nbsp.innerHTML = "&nbsp;";
+        body.appendChild(nbsp);
+        body.appendChild(remove_button);
+        body.appendChild(document.createElement("br"));
+        body.appendChild(document.createElement("br"));
 
         // input buffer
 
@@ -198,8 +304,13 @@ export function create_modals(_state) {
 
         body.appendChild(buffer_element);
  
-        //let settings_modal = add_modal(id, title, body, true, () => state.network_handler.prepare_buffer(parseInt(range.value)));
-        let settings_modal = add_modal(id, title, body, true, () => state.network_handler.prepare_settings(make_settings()));
+        let settings_modal = add_modal(
+            id,
+            title,
+            body,
+            true,
+            () => state.network_handler.prepare_settings(make_settings())
+        );
         settings_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
         modal_ids.push(id);
         let m = new bootstrap.Modal(settings_modal);
@@ -216,6 +327,12 @@ export function create_modals(_state) {
         let select = document.getElementById(id + "-size-select");
         select.value = state.size;
 
+        let password = state.password;
+        if (password == "") {
+            remove_password();
+        } else {
+            set_password(password);
+        }
     }
 
     function add_error_modal() {
@@ -454,35 +571,6 @@ export function create_modals(_state) {
 
         line2.appendChild(input_text);
         body_element.appendChild(line2);
-
-        // upload via link to live ogs game
-        // this now works via the above url bar
-
-        /*
-        let clock_button = new_icon_button("bi-clock", () => state.link_ogs_game());
-        clock_button.setAttribute("type", "button");
-        clock_button.setAttribute("class", "btn btn-primary");
-
-        let line3 = document.createElement("p");
-        line3.appendChild(clock_button);
-        let span3 = document.createElement("span");
-        span3.innerHTML = "&nbsp;";
-        line3.appendChild(span3);
-
-        let input_text2 = document.createElement("input");
-        input_text2.setAttribute("type", "text");
-        input_text2.setAttribute("id", "ogs-textarea");
-        input_text2.setAttribute("placeholder", "URL to live OGS game");
-
-        input_text2.addEventListener("keypress", (event) => {
-            if (event.key == "Enter") {
-                state.link_ogs_game();
-            }
-        });
-
-        line3.appendChild(input_text2);
-        body_element.appendChild(line3);
-        */
 
         // finish
 

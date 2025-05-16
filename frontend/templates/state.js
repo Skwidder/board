@@ -37,6 +37,7 @@ class State {
         this.toggling = true;
         this.mark = "";
         this.input_buffer = 250;
+        this.password = "";
 
         // pen variables
         this.pen_color = "#0000FF";
@@ -67,7 +68,6 @@ class State {
         }
 
         this.resize();
-
     }
 
     set_network_handler(handler) {
@@ -138,6 +138,11 @@ class State {
         this.board_graphics.draw_stones();
     }
 
+    update_password(password) {
+        this.password = password;
+        this.modals.update_settings_modal();
+    }
+
     update_settings(settings) {
         this.input_buffer = settings["buffer"];
         if (settings["size"] != this.size) {
@@ -148,6 +153,7 @@ class State {
             this.board_graphics.reset_board();
             this.reset();
         }
+        this.password = settings["password"];
         this.modals.update_settings_modal();
     }
 

@@ -22,6 +22,7 @@ const Letters = "ABCDEFGHIJKLNMOPQRSTUVWXYZ"
 type Settings struct {
 	Buffer int64
 	Size int
+	Password string
 }
 
 type Coord struct {
