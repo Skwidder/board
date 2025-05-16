@@ -203,7 +203,7 @@ class NetworkHandler {
                 this.state.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
                 break;
             case "erase_pen":
-                this.state.board_graphics.clear_canvas("pen");
+                this.state.board_graphics.clear_pen();
                 break;
             case "comment":
                 this.state.comments.update(payload["value"]);
@@ -508,7 +508,7 @@ class NetworkHandler {
             let touch = event.touches[0];
             let [x,y,inside] = this.state.board_graphics.board_relative_coords(touch.clientX, touch.clientY);
             if (inside) {
-                // necessary for capturing touch inside canvas
+                // necessary for capturing touch inside svg
                 // for example, disables "pull refresh" on android
                 event.preventDefault();
             }

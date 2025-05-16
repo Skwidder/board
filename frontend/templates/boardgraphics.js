@@ -58,7 +58,6 @@ class BoardGraphics {
 
         this.svgs = new Map();
         this.svgns = "http://www.w3.org/2000/svg";
-        this.canvases = new Map();
 
         this.bgcolor = "#f2bc74"
 
@@ -73,7 +72,7 @@ class BoardGraphics {
         this.new_svg("marks", 1000);
         this.new_svg("ghost-marks", 1000);
 
-        //this.new_canvas("pen", 1050);
+        this.new_svg("pen", 1050);
 
         this.used_letters = new Array(26).fill(0);
         this.letter_map = new Map();
@@ -86,32 +85,6 @@ class BoardGraphics {
         this.letters = new Map();
         this.numbers = new Map();
         this.marks = new Map();
-    }
-
-    new_canvas(id, z_index) {
-        // derp
-        if (this.canvases.has(id)) {
-            return;
-        }
-        let review = document.getElementById("review");
-        let canvas = document.createElement("canvas");
-        let ratio = window.devicePixelRatio;
-        canvas.setAttribute("id", id);
-        let w = (this.width + this.pad*2);
-        canvas.width = w*ratio;
-        canvas.height = w*ratio;
-
-        canvas.style.position = "absolute";
-        canvas.style.margin = "auto";
-        canvas.style.display = "flex";
-        canvas.style.zIndex = z_index;
-        canvas.style.width = w + "px";
-        canvas.style.height = w + "px";
-
-        canvas.getContext("2d").scale(ratio, ratio);
-        review.appendChild(canvas);
-        this.canvases.set(id, canvas);
-        return canvas;
     }
 
     new_svg(id, z_index) {
@@ -167,31 +140,9 @@ class BoardGraphics {
     }
 
     resize_all() {
-        for (let [id, canvas] of this.canvases) {
-            this.resize_canvas(id);
-        }
         for (let [id, _] of this.svgs) {
             this.resize_svg(id);
         }
-    }
-
-    resize_canvas(id) {
-        let review = document.getElementById("review");
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
-            return;
-        }
-        let ratio = window.devicePixelRatio;
-        let w = (this.width + this.pad*2);
-        canvas.width = w*ratio;
-        canvas.height = w*ratio;
-
-        canvas.style.width = w + "px";
-        canvas.style.height = w + "px";
-
-        canvas.getContext("2d").scale(ratio, ratio);
-        review.appendChild(canvas);
-        this.canvases.set(id, canvas);
     }
 
     resize_svg(id) {
@@ -435,38 +386,11 @@ class BoardGraphics {
     }
 
 
-    draw_highlight(x, y, r, id) {
-        this.draw_crescent(x, y, r, 3*Math.PI/4, 7*Math.PI/4, "#FFFFFF", id);
-    }
-
-    draw_shadow(x, y, r, id) {
-        this.draw_crescent(x, y, r, -Math.PI/4, 3*Math.PI/4, "#00000011", id);
-    }
-
-    draw_crescent(x, y, r, theta_0, theta_1, color, id) {
-        let frac = 1/4;
-        let ctx = this.canvases.get(id).getContext("2d");
-        let real_x = x*this.side + this.pad;
-        let real_y = y*this.side + this.pad;
-
-        let center_theta = (theta_0 + theta_1)/2;
-        let new_x = real_x - Math.cos(center_theta)*r*frac;
-        let new_y = real_y - Math.sin(center_theta)*r*frac;
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.arc(real_x, real_y, r, theta_0, theta_1);
-        ctx.arc(new_x, new_y, r, theta_1, theta_0, true);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.stroke();
-    }
-
-    //draw_raw_svg_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
     draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
         stroke = stroke/this.ratio;
 
         // for kicks and giggles
-        //r = 0.5*r;
+        //r = 0.8*r;
         //return this.draw_raw_square(x, y, r, hexColor, id, filled, stroke);
         
         let svg = this.svgs.get(id);
@@ -527,7 +451,6 @@ class BoardGraphics {
     }
 
     draw_triangle(x, y, hexColor, id) {
-        let ratio = window.devicePixelRatio;
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -562,7 +485,6 @@ class BoardGraphics {
     }
 
     draw_square(x, y, hexColor, id) {
-        let ratio = window.devicePixelRatio;
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -643,20 +565,20 @@ class BoardGraphics {
             // interestingly, OGS doesn't draw anything in this case either
             return;
         }
-        let ratio = window.devicePixelRatio;
-        let canvas = this.canvases.get("pen");
-        let rect = canvas.getBoundingClientRect();
-        let ctx = canvas.getContext("2d");
-        ctx.lineWidth = 4/ratio;
-        ctx.strokeStyle = pen_color;
-        ctx.beginPath();
-        ctx.moveTo(x0*rect.width, y0*rect.height);
-        ctx.lineTo(x1*rect.width, y1*rect.height);
-        ctx.stroke();
+
+        let svg = this.svgs.get("pen");
+        let rect = svg.getBoundingClientRect();
+        let coord_pairs = [];
+        coord_pairs.push(
+            [
+                [x0*rect.width, y0*rect.height],
+                [x1*rect.width, y1*rect.height]
+            ]
+        );
+        this.svg_draw_polyline(coord_pairs, pen_color, "pen", 4/this.ratio);
     }
 
     draw_stone(x, y, color) {
-        let ratio = window.devicePixelRatio;
         let radius = this.side/2;
         let hexcolor = "#000000";
         if (color == 2) {
@@ -671,20 +593,12 @@ class BoardGraphics {
 
         let stone;
         if (color == 2) {
-            // special stuff to do for white stones
-
             // regular fill
             //this.draw_circle(x, y, radius, hexcolor, svg_id);
 
             // gradient fill
             stone = this.draw_gradient_circle(x, y, radius, "white_grad", svg_id, 1.25);
             
-            // shadow
-            //this.draw_shadow(x, y, radius, svg_id);
-
-            // highlight
-            //this.draw_highlight(x, y, radius, "stones");
-
         } else if (color == 1) {
             // regular fill
             //this.draw_circle(x, y, radius, hexcolor, svg_id);
@@ -692,8 +606,6 @@ class BoardGraphics {
             // gradient fill
             stone = this.draw_gradient_circle(x, y, radius, "black_grad", svg_id, 1.25);
 
-            // outline
-            //this.draw_circle(x, y, radius, "#000000", svg_id, false, 1);
         }
         stone.setAttribute("id", "stone-"+id);
 
@@ -988,16 +900,6 @@ class BoardGraphics {
         }
     }
 
-    clear_canvas(id) {
-        let canvas = this.canvases.get(id);
-        if (canvas == null) {
-            return;
-        }
-        let ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.width + 2*this.pad, this.width+2*this.pad);
-        //ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
     pos_to_coord(x, y) {
         let board = this.svgs.get("board");
         let rect = board.getBoundingClientRect();
@@ -1045,6 +947,11 @@ class BoardGraphics {
         this.clear_svg("coords");
     }
 
+    clear_pen() {
+        this.clear_svg("pen");
+        console.log("clear pen");
+    }
+
     remove_marks() {
         this.letter_map = new Map();
         this.used_letters = new Array(26).fill(0);
@@ -1058,7 +965,7 @@ class BoardGraphics {
     clear_marks() {
         this.clear_svg("marks");
         this.clear_svg("backdrop");
-        this.clear_canvas("pen");
+        this.clear_pen();
     }
 
     clear_ghosts() {
