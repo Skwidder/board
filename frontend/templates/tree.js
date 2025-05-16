@@ -56,6 +56,8 @@ class Node {
             return;
         }
 
+        values.splice(index, 1);
+
         if (values.length == 0) {
             this.fields.delete(key);
         }

@@ -949,7 +949,6 @@ class BoardGraphics {
 
     clear_pen() {
         this.clear_svg("pen");
-        console.log("clear pen");
     }
 
     remove_marks() {
