@@ -598,7 +598,30 @@ func (s *State) Add(evt *EventJSON) error {
 	case "comment":
 		val := evt.Value.(string)
 		s.Current.AddField("C", val + "\n")
+	case "draw":
+		vals := evt.Value.([]interface{})
+		var x0 float64
+		var y0 float64
+		if vals[0] == nil {
+			x0 = -1.0
+		} else {
+			x0 = vals[0].(float64)
+		}
+	
+		if vals[1] == nil {
+			y0 = -1.0
+		} else {
+			y0 = vals[1].(float64)
+		}
 
+		x1 := vals[2].(float64)
+		y1 := vals[3].(float64)
+		color := vals[4].(string)
+
+		value := fmt.Sprintf("%.4f:%.4f:%.4f:%.4f:%s", x0, y0, x1, y1, color)
+		s.Current.AddField("PX", value)
+	case "erase_pen":
+		delete(s.Current.Fields, "PX")
 	}
 	return nil
 }

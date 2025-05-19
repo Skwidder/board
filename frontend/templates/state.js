@@ -131,8 +131,11 @@ class State {
         // update comments
         this.update_comments();
 
-        //apply marks
+        // apply marks
         this.apply_marks();
+
+        // apply pen
+        this.apply_pen();
 
         this.tree_graphics.update(this.board.tree, true, true);
         this.board_graphics.draw_stones();
@@ -162,6 +165,7 @@ class State {
         this.board_graphics.resize();
         this.tree_graphics.resize();
         this.comments.resize();
+        this.apply_pen();
     }
 
     cut(index) {
@@ -256,6 +260,9 @@ class State {
 
         // apply marks
         this.apply_marks();
+
+        // apply pen
+        this.apply_pen();
 
         // wait to update the tree until the end
         this.tree_graphics.update(this.board.tree, true);
@@ -358,6 +365,9 @@ class State {
         // apply marks
         this.apply_marks();
 
+        // apply pen
+        this.apply_pen();
+
         // update explorer
         this.tree_graphics.update(this.board.tree);
     }
@@ -429,6 +439,9 @@ class State {
         // apply marks
         if (update) {
             this.apply_marks();
+            // apply pen
+            this.apply_pen();
+
         }
 
         // update explorer
@@ -480,6 +493,9 @@ class State {
         // apply marks
         this.apply_marks();
 
+        // apply pen
+        this.apply_pen();
+
         // update explorer
         this.tree_graphics.update(this.board.tree);
 
@@ -512,6 +528,9 @@ class State {
 
         // apply marks
         this.apply_marks();
+
+        // apply pen
+        this.apply_pen();
 
         // wait to update the tree until the end
         this.tree_graphics.update(this.board.tree);
@@ -754,8 +773,55 @@ class State {
         this.board_graphics.clear_ghosts();
     }
 
+    draw_pen(x0, y0, x1, y1, pen_color) {
+        // draw it
+        this.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
+
+        // save in the sgf
+
+        if (x0 == null) {
+            x0 = -1.0;
+        }
+        if (y0 == null) {
+            y0 = -1.0;
+        }
+        let digs = 4;
+        let s = x0.toFixed(digs) + ":" + y0.toFixed(digs) + ":" +
+            x1.toFixed(digs) + ":" + y1.toFixed(digs) + ":" + pen_color;
+        this.board.tree.current.add_field("PX", s);
+    }
+
+    apply_pen() {
+        for (let [key, values] of this.board.tree.current.fields) {
+            if (key == "PX") {
+                for (let v of values) {
+                    let tokens = v.split(":");
+                    if (tokens.length != 5) {
+                        continue;
+                    }
+                    let x0 = parseFloat(tokens[0]);
+                    let y0 = parseFloat(tokens[1]);
+                    let x1 = parseFloat(tokens[2]);
+                    let y1 = parseFloat(tokens[3]);
+                    let pen_color = tokens[4];
+                    if (x0 == -1.0) {
+                        x0 = null;
+                    }
+                    if (y0 == -1.0) {
+                        y0 = null;
+                    }
+
+                    this.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
+                }
+
+            }
+        }
+
+    }
+
     erase_pen() {
-        this.network_handler.prepare_erase_pen();
+        this.board_graphics.clear_pen();
+        this.board.tree.current.fields.delete("PX");
     }
 
     update_toggle_color() {

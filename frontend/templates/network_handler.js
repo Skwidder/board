@@ -200,10 +200,10 @@ class NetworkHandler {
                 break;
             case "draw":
                 let [x0,y0,x1,y1, pen_color] = payload["value"];
-                this.state.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
+                this.state.draw_pen(x0, y0, x1, y1, pen_color);
                 break;
             case "erase_pen":
-                this.state.board_graphics.clear_pen();
+                this.state.erase_pen();
                 break;
             case "comment":
                 this.state.comments.update(payload["value"]);
@@ -444,7 +444,7 @@ class NetworkHandler {
                 break;
             case "0":
                 if (shift || ctrl || alt) {break;}
-                this.state.erase_pen();
+                this.prepare_erase_pen();
                 break;
             default:
                 this.state.keys_down.set(event.key, true);
