@@ -28,7 +28,23 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/net/websocket"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func Hash(input string) string {
+	hashedBytes, _ := bcrypt.GenerateFromPassword(
+		[]byte(input),
+		bcrypt.DefaultCost)
+	return string(hashedBytes)
+}
+
+func Authorized(input, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
+	if err != nil {
+		return false
+	}
+	return true
+}
 
 func CreateDir(dir string) bool {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -416,7 +432,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if (evt.Event == "checkpassword") {
 			p := evt.Value.(string)
 			
-			if p != room.password {
+			if !Authorized(p, room.password) {
 				evt.Value = ""
 			} else {
 				room.auth[id] = true
@@ -428,6 +444,8 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			continue
 		}
 
+		// if the connection id isn't in the auth dictionary
+		// don't accept input
 		if _,ok := room.auth[id]; !ok {
 			if room.password != "" {
 				continue
@@ -564,7 +582,8 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			buffer := int64(sMap["buffer"].(float64))
 			size := int(sMap["size"].(float64))
 			password := sMap["password"].(string)
-			settings := &Settings{buffer, size, password}
+			hashed := Hash(password)
+			settings := &Settings{buffer, size, hashed}
 
 			room.State.InputBuffer = settings.Buffer
 			if settings.Size != room.State.Size {
@@ -579,7 +598,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			for connID, _ := range room.conns {
 				room.auth[connID] = true
 			}
-			room.password = password
+			room.password = hashed
 
 		// this functionality has been absorbed into the regular url paste
 		/* 
