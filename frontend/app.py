@@ -105,7 +105,7 @@ def upload_board():
     if not board_id.strip():
         board_id = uuid.uuid4().hex
     if url is not None:
-        handle_url(board_id, url)
+        request_sgf(board_id, url)
     return redirect(f"/b/{board_id}")
 
 @app.errorhandler(404)
