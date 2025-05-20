@@ -579,7 +579,7 @@ class BoardGraphics {
     }
 
     draw_stone(x, y, color) {
-        let radius = this.side/2;
+        let radius = this.side/2 - 0.5/this.ratio;
         let hexcolor = "#000000";
         if (color == 2) {
             hexcolor = "#F0F0F0";
@@ -616,10 +616,10 @@ class BoardGraphics {
     }
 
     draw_cast_shadow(x, y) {
-        let radius = this.side/2;
+        let radius = this.side/2 - 0.5/this.ratio;
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let offset = 2/this.ratio;
+        let offset = 2.5/this.ratio;
         let id = "shadows";
 
         return this.draw_raw_circle(real_x+offset, real_y+offset, radius, "#00000055", id, true, 0);
