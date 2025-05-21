@@ -16,32 +16,21 @@ If you make a pull request, please use `test` as the target branch. The test dom
 
 ### Running locally
 
-1. Install python
-2. Install golang
+1. Install golang
 
-3. Make python virtual environment for the frontend
-
+2. Run the frontend
 ```bash
 $ cd frontend/
-$ python -m venv env
-$ . env/bin/activate
-$ pip install -r requirements.txt
+$ go run *.go
 ```
 
-4. Run the frontend
-```bash
-$ cd frontend/
-$ . env/bin/activate
-$ python app.py
-```
-
-5. Run the backend
+3. Run the backend
 ```bash
 $ cd backend/
 $ go run *.go
 ```
 
-6. Visit `http://localhost:8080` in your browser.
+4. Visit `http://localhost:8080` in your browser.
 
 ### Running locally with docker
 

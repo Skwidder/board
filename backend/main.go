@@ -304,6 +304,12 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if room, ok := s.rooms[roomID]; ok {
 			data = room.State.ToSGF(false)
 		}
+
+		length := uint32(len(data))
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, length)
+
+		ws.Write(buf)
 		ws.Write([]byte(data))
 		return
 	} else if op == "sgfix" {
@@ -312,6 +318,11 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if room, ok := s.rooms[roomID]; ok {
 			data = room.State.ToSGF(true)
 		}
+		length := uint32(len(data))
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, length)
+
+		ws.Write(buf)
 		ws.Write([]byte(data))
 		return
 	}
