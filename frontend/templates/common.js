@@ -14,6 +14,7 @@ export {
     ObjectSet,
     Result,
     letterstocoord,
+    new_text_button,
     new_icon_button,
     add_tooltip,
     get_viewport,
@@ -68,6 +69,14 @@ class Result {
         this.ok = ok;
         this.values = values;
     }
+}
+
+function new_text_button(text, handler) {
+    let button = document.createElement("button");
+    button.setAttribute("class", "btn btn-light wide-button");
+    button.onclick = handler;
+    button.innerHTML += text;
+    return button;
 }
 
 function new_icon_button(cls, handler) {

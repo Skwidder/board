@@ -28,7 +28,23 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/net/websocket"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func Hash(input string) string {
+	hashedBytes, _ := bcrypt.GenerateFromPassword(
+		[]byte(input),
+		bcrypt.DefaultCost)
+	return string(hashedBytes)
+}
+
+func Authorized(input, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(input))
+	if err != nil {
+		return false
+	}
+	return true
+}
 
 func CreateDir(dir string) bool {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -63,6 +79,7 @@ type LoadJSON struct {
 	Prefs map[string]int `json:"prefs"`
 	Buffer int64 `json:"buffer"`
 	NextIndex int `json:"next_index"`
+	Password string `json:"password"`
 }
 
 type EventJSON struct {
@@ -84,6 +101,8 @@ type Room struct {
 	lastMessages map[string]*time.Time
 	open bool
 	OGSLink *OGSConnector
+	password string
+	auth map[string]bool
 }
 
 func NewRoom() *Room {
@@ -91,7 +110,12 @@ func NewRoom() *Room {
     state := NewState(19, true)
 	now := time.Now()
 	msgs := make(map[string]*time.Time)
-    return &Room{conns, state, &now, "", msgs, true, nil}
+	auth := make(map[string]bool)
+    return &Room{conns, state, &now, "", msgs, true, nil, "", auth}
+}
+
+func (r *Room) HasPassword() bool {
+	return r.password != ""
 }
 
 func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
@@ -156,9 +180,20 @@ func (s *Server) Save() {
 
 		// the same process as a client handshake
         evt := room.State.InitData("handshake")
-		data := []byte(evt.Value.(string))
+		dataStruct := &LoadJSON{}
+		s,_ := evt.Value.(string)
+		err := json.Unmarshal([]byte(s), dataStruct)
+		if err != nil {
+			continue
+		}
 
-		err := ioutil.WriteFile(path, data, 0644)
+		dataStruct.Password = room.password
+		data, err := json.Marshal(dataStruct)
+		if err != nil {
+			continue
+		}
+
+		err = ioutil.WriteFile(path, data, 0644)
 		if err != nil {
 			log.Println(err)
 		}
@@ -211,6 +246,7 @@ func (s *Server) Load() {
 		log.Printf("Loading %s", path)
 
 		r := NewRoom()
+		r.password = load.Password
 		r.State = state
 		s.rooms[id] = r
 		go s.Heartbeat(id)
@@ -381,6 +417,41 @@ func (s *Server) Handler(ws *websocket.Conn) {
             continue
         }
 
+		// first check auth
+		if evt.Event == "isprotected" {
+			evt.Value = false
+			if room.HasPassword() {
+				evt.Value = true
+			}
+			data, _ := json.Marshal(evt)
+			ws.Write([]byte(data))
+			// don't broadcast this
+			continue
+		}
+
+		if (evt.Event == "checkpassword") {
+			p := evt.Value.(string)
+			
+			if !Authorized(p, room.password) {
+				evt.Value = ""
+			} else {
+				room.auth[id] = true
+			}
+			data, _ := json.Marshal(evt)
+			ws.Write([]byte(data))
+			// don't broadcast this
+
+			continue
+		}
+
+		// if the connection id isn't in the auth dictionary
+		// don't accept input
+		if _,ok := room.auth[id]; !ok {
+			if room.password != "" {
+				continue
+			}
+		}
+
 		if evt.Event == "debug" {
 			log.Println(id, evt)
 			continue
@@ -419,7 +490,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 
 		// handle event
-        if (evt.Event == "upload_sgf") {
+		if (evt.Event == "upload_sgf") {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
 			}
@@ -510,7 +581,9 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			sMap := evt.Value.(map[string]interface{})
 			buffer := int64(sMap["buffer"].(float64))
 			size := int(sMap["size"].(float64))
-			settings := &Settings{buffer, size}
+			password := sMap["password"].(string)
+			hashed := Hash(password)
+			settings := &Settings{buffer, size, hashed}
 
 			room.State.InputBuffer = settings.Buffer
 			if settings.Size != room.State.Size {
@@ -518,6 +591,15 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.State = NewState(settings.Size, true)
 				room.State.InputBuffer = buffer
 			}
+
+			// can be changed
+			// anyone already in the room is added
+			// person who set password automatically gets added
+			for connID, _ := range room.conns {
+				room.auth[connID] = true
+			}
+			room.password = hashed
+
 		// this functionality has been absorbed into the regular url paste
 		/* 
 		} else if evt.Event == "link_ogs_game" {

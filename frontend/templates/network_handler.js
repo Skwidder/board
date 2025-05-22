@@ -59,6 +59,7 @@ class NetworkHandler {
     onopen(event) {
         console.log("connected!");
         this.state.modals.hide_modal("info-modal");
+        this.prepare_isprotected();
     }
 
     reconnect(event) {
@@ -214,6 +215,22 @@ class NetworkHandler {
                 this.state.modals.show_error_modal(value);
                 console.log(this.state.board.tree.to_sgf());
                 break;
+            case "isprotected":
+                if (payload["value"]) {
+                    let password = prompt("This room is password protected:");
+                    if (password == null) {
+                        password = "";
+                    }
+                    this.prepare_checkpassword(password);
+                }
+                break;
+            case "checkpassword":
+                if (payload["value"] != "") {
+                    this.state.update_password(payload["value"]);
+                } else {
+                    alert("Wrong password. You can observe, but not edit");
+                }
+                break;
         }
     }
 
@@ -294,6 +311,16 @@ class NetworkHandler {
 
     prepare_comment(text) {
         let payload = {"event": "comment", "value": text};
+        this.prepare(payload);
+    }
+
+    prepare_isprotected() {
+        let payload = {"event": "isprotected"};
+        this.prepare(payload);
+    }
+
+    prepare_checkpassword(text) {
+        let payload = {"event": "checkpassword", "value": text};
         this.prepare(payload);
     }
 
