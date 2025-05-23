@@ -36,11 +36,78 @@ export function create_modals(_state) {
     add_info_modal();
     add_settings_modal();
     enable_tooltips();
+    add_toast();
+
+    function add_toast() {
+        let toast_div = document.createElement("div");
+        toast_div.id = "toasts";
+        toast_div.setAttribute(
+            "class",
+            "toast-container position-fixed top-0 end-0 p-3"
+        );
+        document.body.appendChild(toast_div);
+    }
+
+    function show_toast(body_text) {
+        let container = document.getElementById("toasts");
+    
+        let toast = document.createElement("div");
+        toast.setAttribute("class", "toast d-flex");
+        toast.setAttribute("data-bs-autohide", false);
+        toast.role = "alert";
+    
+        //let header = document.createElement("div");
+        //header.setAttribute("class", "toast-header");
+    
+        //let text = document.createElement("span");
+        //text.setAttribute("class", "me-auto")    
+        //text.innerHTML = header_text;
+        //header.appendChild(text);
+        
+        let body = document.createElement("div");
+        body.setAttribute("class", "toast-body");
+        body.innerHTML = body_text;
+        toast.appendChild(body);
+
+        let close = document.createElement("button");
+        close.setAttribute("class", "btn-close me-2 m-auto");
+        close.setAttribute("data-bs-dismiss", "toast");
+        close.setAttribute("aria-label", "Close");
+        toast.appendChild(close);
+    
+        container.appendChild(toast);
+    
+        let t = bootstrap.Toast.getOrCreateInstance(toast);
+        t.show();
+    }
 
     function get_prompt_bar() {
         let id = "prompt-modal-input";
         let bar = document.getElementById(id);
         return bar.value;
+    }
+
+    function cancel_password() {
+        let id = "settings-modal";
+        let password_bar = document.getElementById(id + "-password-bar");
+        let setcancel_div = document.getElementById(id + "-setcancel-div");
+        let password_anchor = document.getElementById(id + "-password-anchor");
+
+        password_bar.hidden = true;
+        setcancel_div.hidden = true;
+        password_anchor.hidden = false;
+
+    }
+
+    function enter_password(password) {
+        let id = "settings-modal";
+
+        if (password == "") {
+            cancel_password();
+        } else {
+            //set_password(password);
+            state.network_handler.prepare_settings(make_settings());
+        }
     }
 
     function set_password(password) {
@@ -53,14 +120,11 @@ export function create_modals(_state) {
         stars.innerHTML = "Password: " + "*".repeat(password.length);
         stars.hidden = false;
 
-        let show_button = document.getElementById(id + "-show");
-        show_button.hidden = false;
+        let showremove_div = document.getElementById(id + "-showremove-div");
+        showremove_div.hidden = false;
 
-        let remove_button = document.getElementById(id + "-remove");
-        remove_button.hidden = false;
-
-        let cancel_button = document.getElementById(id + "-cancel");
-        cancel_button.hidden = true;
+        let setcancel_div = document.getElementById(id + "-setcancel-div");
+        setcancel_div.hidden = true;
 
         let password_bar = document.getElementById(id + "-password-bar");
         password_bar.hidden = true;
@@ -70,11 +134,8 @@ export function create_modals(_state) {
     function remove_password() {
         let id = "settings-modal";
 
-        let show_button = document.getElementById(id + "-show");
-        show_button.hidden = true;
-
-        let remove_button = document.getElementById(id + "-remove");
-        remove_button.hidden = true;
+        let showremove_div = document.getElementById(id + "-showremove-div");
+        showremove_div.hidden = true;
 
         let stars = document.getElementById(id + "-stars");
         stars.hidden = true;
@@ -85,7 +146,6 @@ export function create_modals(_state) {
         let password_anchor = document.getElementById(id + "-password-anchor");
         password_anchor.hidden = false;
     }
-
 
     function enable_tooltips() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -217,24 +277,44 @@ export function create_modals(_state) {
         // password
         let password_anchor = document.createElement("a");
         let password_bar = document.createElement("input");
+        password_bar.setAttribute("class", "form-control");
+
+        let setcancel_div = document.createElement("div");
+        setcancel_div.id = id + "-setcancel-div";
+
+        let set_button = new_text_button(
+            "Set",
+            () => {
+                enter_password(password_bar.value);
+            }
+        );
+
         let cancel_button = new_text_button(
             "Cancel",
             () => {
                 password_bar.hidden = true;
-                cancel_button.hidden = true;
+                setcancel_div.hidden = true;
                 password_anchor.hidden = false;
             }
         );
-        cancel_button.setAttribute("class", "btn btn-primary");
-        cancel_button.hidden = true;
-        cancel_button.id = id + "-cancel";
+
+        cancel_button.setAttribute("class", "btn btn-secondary");
+        set_button.setAttribute("class", "btn btn-primary");
+
+        setcancel_div.appendChild(cancel_button);
+        let nbsp = document.createElement("span");
+        nbsp.innerHTML = "&nbsp;";
+        setcancel_div.appendChild(nbsp);
+        setcancel_div.appendChild(set_button);
+        setcancel_div.hidden = true;
 
         password_anchor.style.cursor = "pointer";
         password_anchor.id = id + "-password-anchor";
         password_anchor.innerHTML = "Add password";
         password_anchor.onclick = () => {
             password_bar.hidden = false;
-            cancel_button.hidden = false;
+            password_bar.focus();
+            setcancel_div.hidden = false;
             password_anchor.hidden = true;
         };
 
@@ -246,17 +326,12 @@ export function create_modals(_state) {
         password_bar.id = id + "-password-bar";
         password_bar.addEventListener("keypress", (event) => {
             if (event.key == "Enter") {
-                let value = password_bar.value;
-                if (value == "") {
-                    password_bar.hidden = true;
-                    cancel_button.hidden = true;
-                    password_anchor.hidden = false;
-                } else {
-                    set_password(value);
-                    state.network_handler.prepare_settings(make_settings());
-                }
+                enter_password(password_bar.value);
             }
         });
+
+        let showremove_div = document.createElement("div");
+        showremove_div.id = id + "-showremove-div";
 
         let remove_button = new_text_button(
             "Remove",
@@ -267,8 +342,6 @@ export function create_modals(_state) {
         );
 
         remove_button.setAttribute("class", "btn btn-primary");
-        remove_button.hidden = true;
-        remove_button.id = id + "-remove";
 
         let show_button = new_text_button(
             "Show",
@@ -278,20 +351,23 @@ export function create_modals(_state) {
         );
 
         show_button.setAttribute("class", "btn btn-primary");
-        show_button.hidden = true;
-        show_button.id = id + "-show";
+
+        showremove_div.appendChild(show_button);
+        nbsp = document.createElement("span");
+        nbsp.innerHTML = "&nbsp;";
+        showremove_div.appendChild(nbsp);
+        showremove_div.appendChild(remove_button);
+        showremove_div.hidden = true;
 
         body.appendChild(password_anchor);
 
         body.appendChild(password_bar);
-        body.appendChild(cancel_button);
+        body.appendChild(setcancel_div);
 
         body.appendChild(stars);
-        body.appendChild(show_button);
-        let nbsp = document.createElement("span");
-        nbsp.innerHTML = "&nbsp;";
-        body.appendChild(nbsp);
-        body.appendChild(remove_button);
+
+        body.appendChild(showremove_div);
+
         body.appendChild(document.createElement("br"));
         body.appendChild(document.createElement("br"));
 
@@ -408,6 +484,7 @@ export function create_modals(_state) {
         paragraph.appendChild(document.createElement("br"));
 
         let prompt_bar = document.createElement("input");
+        prompt_bar.setAttribute("class", "form-control");
         prompt_bar.id = id + "-input";
         prompt_bar.addEventListener("keypress", (event) => {
             if (event.key == "Enter") {
@@ -423,7 +500,13 @@ export function create_modals(_state) {
 
         let prompt_modal = add_modal(id, title, paragraph, true);
         prompt_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
-        prompt_modal.addEventListener('shown.bs.modal', () => modals_up.set(id, true));
+        prompt_modal.addEventListener(
+            'shown.bs.modal',
+            () => {
+                modals_up.set(id, true);
+                prompt_bar.focus();
+            }
+        );
         modal_ids.push(id);
 
         let m = new bootstrap.Modal(prompt_modal);
@@ -810,7 +893,7 @@ export function create_modals(_state) {
         update_settings_modal,
         update_gameinfo_modal,
         hide_modal,
+        show_toast,
     };
-
 
 }

@@ -225,20 +225,20 @@ class NetworkHandler {
                         "Enter password:",
                         handler
                     );
-                    //let password = prompt("This room is password protected:");
-                    //if (password == null) {
-                    //    password = "";
-                    //}
                 }
                 break;
             case "checkpassword":
                 if (payload["value"] != "") {
                     this.state.update_password(payload["value"]);
                 } else {
-                    this.state.modals.show_info_modal(
+                    this.state.modals.show_toast(
                         "Wrong password. You can observe, but not edit"
                     );
                 }
+                break;
+            case "global":
+                value = payload["value"];
+                this.state.modals.show_toast(value);
                 break;
         }
     }
