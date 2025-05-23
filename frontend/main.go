@@ -100,15 +100,18 @@ func suffix_op(w http.ResponseWriter, r *http.Request, suffix string) {
 	ws.Read(dataLen)
 	length := binary.LittleEndian.Uint32(dataLen)
 
-	data := make([]byte, length)
-	ws.Read(data)
+	data, err := readBytes(ws, int(length))
+	//data := make([]byte, length)
+	//ws.Read(data)
 
 	decoded, err := base64.StdEncoding.DecodeString(string(data))
+	fmt.Println(length)
+	fmt.Println(string(data))
+	fmt.Println(len(data))
 	if err != nil {
 		return
 	}
 	w.Write(decoded)
-
 }
 
 func sgf(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +123,7 @@ func sgfix(w http.ResponseWriter, r *http.Request) {
 }
 
 func debug(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	suffix_op(w, r, "debug")
 }
 
@@ -194,6 +198,27 @@ func websocketSend(e *EventJSON, boardID string) {
 	ws.Write(buf)
 	ws.Write(payload)
 	ws.Close()
+}
+
+func readBytes(ws *websocket.Conn, size int) ([]byte, error) {
+	chunkSize := 64
+	message := []byte{}
+	for {
+		if len(message) >= size {
+			break
+		}
+		l := size - len(message)
+		if l > chunkSize {
+			l = chunkSize
+		}
+		temp := make([]byte, l)
+		n, err := ws.Read(temp)
+		if err != nil {
+			return nil, err
+		}
+		message = append(message, temp[:n]...)
+	}
+	return message, nil
 }
 
 func requestSGF(boardID, url string) {
