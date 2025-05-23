@@ -582,7 +582,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			buffer := int64(sMap["buffer"].(float64))
 			size := int(sMap["size"].(float64))
 			password := sMap["password"].(string)
-			hashed := Hash(password)
+			hashed := ""
+			if password != "" {
+				hashed = Hash(password)
+			}
 			settings := &Settings{buffer, size, hashed}
 
 			room.State.InputBuffer = settings.Buffer

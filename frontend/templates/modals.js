@@ -32,9 +32,16 @@ export function create_modals(_state) {
     add_download_modal();
     add_upload_modal();
     add_error_modal();
+    add_prompt_modal();
     add_info_modal();
     add_settings_modal();
     enable_tooltips();
+
+    function get_prompt_bar() {
+        let id = "prompt-modal-input";
+        let bar = document.getElementById(id);
+        return bar.value;
+    }
 
     function set_password(password) {
         let id = "settings-modal";
@@ -51,6 +58,9 @@ export function create_modals(_state) {
 
         let remove_button = document.getElementById(id + "-remove");
         remove_button.hidden = false;
+
+        let cancel_button = document.getElementById(id + "-cancel");
+        cancel_button.hidden = true;
 
         let password_bar = document.getElementById(id + "-password-bar");
         password_bar.hidden = true;
@@ -207,12 +217,24 @@ export function create_modals(_state) {
         // password
         let password_anchor = document.createElement("a");
         let password_bar = document.createElement("input");
+        let cancel_button = new_text_button(
+            "Cancel",
+            () => {
+                password_bar.hidden = true;
+                cancel_button.hidden = true;
+                password_anchor.hidden = false;
+            }
+        );
+        cancel_button.setAttribute("class", "btn btn-primary");
+        cancel_button.hidden = true;
+        cancel_button.id = id + "-cancel";
 
         password_anchor.style.cursor = "pointer";
         password_anchor.id = id + "-password-anchor";
         password_anchor.innerHTML = "Add password";
         password_anchor.onclick = () => {
             password_bar.hidden = false;
+            cancel_button.hidden = false;
             password_anchor.hidden = true;
         };
 
@@ -227,6 +249,7 @@ export function create_modals(_state) {
                 let value = password_bar.value;
                 if (value == "") {
                     password_bar.hidden = true;
+                    cancel_button.hidden = true;
                     password_anchor.hidden = false;
                 } else {
                     set_password(value);
@@ -259,7 +282,10 @@ export function create_modals(_state) {
         show_button.id = id + "-show";
 
         body.appendChild(password_anchor);
+
         body.appendChild(password_bar);
+        body.appendChild(cancel_button);
+
         body.appendChild(stars);
         body.appendChild(show_button);
         let nbsp = document.createElement("span");
@@ -311,7 +337,13 @@ export function create_modals(_state) {
             true,
             () => state.network_handler.prepare_settings(make_settings())
         );
-        settings_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
+        settings_modal.addEventListener(
+            'hidden.bs.modal',
+            () => {
+                modals_up.delete(id);
+                stars.innerHTML = "Password: " + "*".repeat(password_bar.value.length);
+            }
+        );
         modal_ids.push(id);
         let m = new bootstrap.Modal(settings_modal);
     }
@@ -359,6 +391,42 @@ export function create_modals(_state) {
         // its creation (not just the document element error_modal)
         // but later i want to show it
         let m = new bootstrap.Modal(error_modal);
+    }
+
+    function add_prompt_modal() {
+        let id = "prompt-modal";
+        let paragraph = document.createElement("p");
+        paragraph.setAttribute("id", id + "-paragraph");
+        let button = new_icon_button("bi-info-square");
+        button.setAttribute("class", "btn btn-primary");
+        paragraph.appendChild(button);
+        let span1 = document.createElement("span");
+        span1.setAttribute("id", id + "-message");
+        paragraph.appendChild(span1);
+
+        paragraph.appendChild(document.createElement("br"));
+        paragraph.appendChild(document.createElement("br"));
+
+        let prompt_bar = document.createElement("input");
+        prompt_bar.id = id + "-input";
+        prompt_bar.addEventListener("keypress", (event) => {
+            if (event.key == "Enter") {
+                let button = document.getElementById(id + "-ok");
+                button.click();
+            }
+        });
+
+        paragraph.appendChild(prompt_bar);
+
+        let title = document.createElement("h5");
+        title.innerHTML = "Prompt";
+
+        let prompt_modal = add_modal(id, title, paragraph, true);
+        prompt_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
+        prompt_modal.addEventListener('shown.bs.modal', () => modals_up.set(id, true));
+        modal_ids.push(id);
+
+        let m = new bootstrap.Modal(prompt_modal);
     }
 
     function add_info_modal() {
@@ -432,6 +500,16 @@ export function create_modals(_state) {
         let m = bootstrap.Modal.getInstance("#info-modal");
         m.show();
         modals_up.set("info-modal", true);
+    }
+
+    function show_prompt_modal(message, handler) {
+        let span = document.getElementById("prompt-modal-message");
+        span.innerHTML = "&nbsp;" + message;
+        let m = bootstrap.Modal.getInstance("#prompt-modal");
+        let button = document.getElementById("prompt-modal-ok");
+        button.onclick = handler;
+        m.show();
+        modals_up.set("prompt-modal", true);
     }
 
     function add_scissors_modal() {
@@ -706,6 +784,7 @@ export function create_modals(_state) {
             button_ok.setAttribute("data-bs-dismiss", "modal");
             button_ok.onclick = handler;
             button_ok.innerHTML = "Ok";
+            button_ok.id = id + "-ok";
             footer.appendChild(button_ok);
         }
 
@@ -721,11 +800,13 @@ export function create_modals(_state) {
     }
 
     return {
+        get_prompt_bar,
         update_modals,
         modals_up,
         show_modal,
         show_error_modal,
         show_info_modal,
+        show_prompt_modal,
         update_settings_modal,
         update_gameinfo_modal,
         hide_modal,

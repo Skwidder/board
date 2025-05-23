@@ -217,18 +217,27 @@ class NetworkHandler {
                 break;
             case "isprotected":
                 if (payload["value"]) {
-                    let password = prompt("This room is password protected:");
-                    if (password == null) {
-                        password = "";
+                    let handler = () => {
+                        let v = this.state.modals.get_prompt_bar();
+                        this.prepare_checkpassword(v);
                     }
-                    this.prepare_checkpassword(password);
+                    this.state.modals.show_prompt_modal(
+                        "Enter password:",
+                        handler
+                    );
+                    //let password = prompt("This room is password protected:");
+                    //if (password == null) {
+                    //    password = "";
+                    //}
                 }
                 break;
             case "checkpassword":
                 if (payload["value"] != "") {
                     this.state.update_password(payload["value"]);
                 } else {
-                    alert("Wrong password. You can observe, but not edit");
+                    this.state.modals.show_info_modal(
+                        "Wrong password. You can observe, but not edit"
+                    );
                 }
                 break;
         }
@@ -338,7 +347,8 @@ class NetworkHandler {
         // "scissors"
         // "upload_sgf"
         // "request_sgf"
-        // link_ogs_game
+        // "link_ogs_game"
+        // "checkpassword"
         if (
             this.state.modals.modals_up.size > 0 &&
             evt != "trash" &&
@@ -346,7 +356,8 @@ class NetworkHandler {
             evt != "scissors" &&
             evt != "upload_sgf" &&
             evt != "request_sgf" &&
-            evt != "link_ogs_game") {
+            evt != "link_ogs_game" &&
+            evt != "checkpassword") {
             return;
         }
 
