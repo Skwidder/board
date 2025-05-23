@@ -324,6 +324,16 @@ func ParseURL(url string) (string, string, string) {
 	return tokens[1], tokens[2], tokens[3]
 }
 
+func EncodeSend(ws *websocket.Conn, data string) {
+	encoded := base64.StdEncoding.EncodeToString([]byte(data))
+	length := uint32(len(encoded))
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, length)
+
+	ws.Write(buf)
+	ws.Write([]byte(encoded))
+}
+
 // Echo the data received on the WebSocket.
 func (s *Server) Handler(ws *websocket.Conn) {
     // new connection
@@ -340,13 +350,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if room, ok := s.rooms[roomID]; ok {
 			data = room.State.ToSGF(false)
 		}
-
-		length := uint32(len(data))
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, length)
-
-		ws.Write(buf)
-		ws.Write([]byte(data))
+		EncodeSend(ws, data)
 		return
 	} else if op == "sgfix" {
 		// basically do the same thing but include indexes
@@ -354,12 +358,17 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		if room, ok := s.rooms[roomID]; ok {
 			data = room.State.ToSGF(true)
 		}
-		length := uint32(len(data))
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, length)
+		EncodeSend(ws, data)
+		return
+	} else if op == "debug" {
+		// send debug info
+		data := ""
+		if room, ok := s.rooms[roomID]; ok {
+	        evt := room.State.InitData("handshake")
+			data,_ = evt.Value.(string)
+		}
+		EncodeSend(ws, data)
 
-		ws.Write(buf)
-		ws.Write([]byte(data))
 		return
 	}
 

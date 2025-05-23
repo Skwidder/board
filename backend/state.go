@@ -684,8 +684,7 @@ func (s *State) ToSGF(indexes bool) string {
     }
 
     result += ")"
-	encoded := base64.StdEncoding.EncodeToString([]byte(result))
-    return encoded
+	return result
 }
 
 func FromSGF(data string) (*State, error) {
@@ -754,9 +753,10 @@ func FromSGF(data string) (*State, error) {
 
 func (s *State) InitData(event string) *EventJSON {
     sgf := s.ToSGF(true)
+	encoded := base64.StdEncoding.EncodeToString([]byte(sgf))
     loc := s.Locate()
     prefs := s.Prefs()
-	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", sgf, loc, prefs, s.InputBuffer, s.NextIndex)
+	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", encoded, loc, prefs, s.InputBuffer, s.NextIndex)
 	evt := &EventJSON{event, value, 0, ""}
 	return evt
     
