@@ -229,7 +229,7 @@ func main() {
 	r.Get("/b/{boardID}/sgf", sgf)
 	r.Get("/b/{boardID}/sgfix", sgfix)
 
-	r.Handle("/src/*", http.StripPrefix("/src/", http.FileServer(http.Dir("src"))))
+	r.Handle("/js/*", http.StripPrefix("/js/", http.FileServer(http.Dir("js"))))
 
 	r.NotFound(page404)
 
