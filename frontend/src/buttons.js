@@ -102,7 +102,7 @@ export function create_buttons(_state) {
     button_row2.appendChild(color_picker);
 
     // eraser
-    let eraser_button = new_icon_button("bi-eraser-fill", () => state.erase_pen());
+    let eraser_button = new_icon_button("bi-eraser-fill", () => state.network_handler.prepare_erase_pen());
     add_tooltip(eraser_button, "Erase pen marks (0)");
     button_row2.appendChild(eraser_button);
 

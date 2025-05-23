@@ -59,6 +59,7 @@ class NetworkHandler {
     onopen(event) {
         console.log("connected!");
         this.state.modals.hide_modal("info-modal");
+        this.prepare_isprotected();
     }
 
     reconnect(event) {
@@ -200,10 +201,10 @@ class NetworkHandler {
                 break;
             case "draw":
                 let [x0,y0,x1,y1, pen_color] = payload["value"];
-                this.state.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
+                this.state.draw_pen(x0, y0, x1, y1, pen_color);
                 break;
             case "erase_pen":
-                this.state.board_graphics.clear_pen();
+                this.state.erase_pen();
                 break;
             case "comment":
                 this.state.comments.update(payload["value"]);
@@ -213,6 +214,31 @@ class NetworkHandler {
                 value = payload["value"];
                 this.state.modals.show_error_modal(value);
                 console.log(this.state.board.tree.to_sgf());
+                break;
+            case "isprotected":
+                if (payload["value"]) {
+                    let handler = () => {
+                        let v = this.state.modals.get_prompt_bar();
+                        this.prepare_checkpassword(v);
+                    }
+                    this.state.modals.show_prompt_modal(
+                        "Enter password:",
+                        handler
+                    );
+                    //let password = prompt("This room is password protected:");
+                    //if (password == null) {
+                    //    password = "";
+                    //}
+                }
+                break;
+            case "checkpassword":
+                if (payload["value"] != "") {
+                    this.state.update_password(payload["value"]);
+                } else {
+                    this.state.modals.show_info_modal(
+                        "Wrong password. You can observe, but not edit"
+                    );
+                }
                 break;
         }
     }
@@ -297,6 +323,16 @@ class NetworkHandler {
         this.prepare(payload);
     }
 
+    prepare_isprotected() {
+        let payload = {"event": "isprotected"};
+        this.prepare(payload);
+    }
+
+    prepare_checkpassword(text) {
+        let payload = {"event": "checkpassword", "value": text};
+        this.prepare(payload);
+    }
+
     prepare(payload) {
         // before anything check for integrity of socket
         if (this.ready_state() != WebSocket.OPEN) {
@@ -311,7 +347,8 @@ class NetworkHandler {
         // "scissors"
         // "upload_sgf"
         // "request_sgf"
-        // link_ogs_game
+        // "link_ogs_game"
+        // "checkpassword"
         if (
             this.state.modals.modals_up.size > 0 &&
             evt != "trash" &&
@@ -319,7 +356,8 @@ class NetworkHandler {
             evt != "scissors" &&
             evt != "upload_sgf" &&
             evt != "request_sgf" &&
-            evt != "link_ogs_game") {
+            evt != "link_ogs_game" &&
+            evt != "checkpassword") {
             return;
         }
 
@@ -444,7 +482,7 @@ class NetworkHandler {
                 break;
             case "0":
                 if (shift || ctrl || alt) {break;}
-                this.state.erase_pen();
+                this.prepare_erase_pen();
                 break;
             default:
                 this.state.keys_down.set(event.key, true);
