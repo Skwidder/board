@@ -65,9 +65,26 @@ func Path() string {
 	return roomDir
 }
 
+func Subpath(p string) string {
+	return filepath.Join(Path(), p)
+}
+
+func RoomPath() string {
+	return Subpath("rooms")
+}
+
+func MessagePath() string {
+	return Subpath("messages")
+}
+
 func Setup() {
-	roomDir := Path()
+	roomDir := RoomPath()
 	ok := CreateDir(roomDir)
+	if !ok {
+		log.Fatal("error creating room")
+	}
+	messageDir := MessagePath()
+	ok = CreateDir(messageDir)
 	if !ok {
 		log.Fatal("error creating room")
 	}
@@ -116,6 +133,16 @@ func NewRoom() *Room {
 
 func (r *Room) HasPassword() bool {
 	return r.password != ""
+}
+
+func SendEvent(conn *websocket.Conn, evt *EventJSON) {
+	// marshal event back into data
+	data, err := json.Marshal(evt)
+	if err != nil {
+		log.Println(err)
+		return
+    }
+	conn.Write(data)
 }
 
 func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
@@ -167,15 +194,19 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
 
 type Server struct {
     rooms map[string]*Room
+	messages []*Message
 }
 
 func NewServer() *Server {
-	return &Server{make(map[string]*Room)}
+	return &Server{
+		make(map[string]*Room),
+		[]*Message{},
+	}
 }
 
 func (s *Server) Save() {
 	for id,room := range s.rooms {
-		path := filepath.Join(Path(), id)
+		path := filepath.Join(RoomPath(), id)
 		log.Printf("Saving %s", path)
 
 		// the same process as a client handshake
@@ -201,7 +232,7 @@ func (s *Server) Save() {
 }
 
 func (s *Server) Load() {
-	dir := Path()
+	dir := RoomPath()
 	sgfs, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -279,11 +310,114 @@ func (s *Server) Heartbeat(roomID string) {
     delete(s.rooms, roomID)
 
 	// delete the saved file (if it exists)
-	path := filepath.Join(Path(), roomID)
+	path := filepath.Join(RoomPath(), roomID)
 	if _, err := os.Stat(path); err == nil {
 		os.Remove(path)
 	}
+}
 
+type MessageJSON struct {
+	Text string `json:"message"`
+	TTL int `json:"ttl"`
+}
+
+type Message struct {
+	Text string
+	ExpiresAt *time.Time
+	Notified map[string]bool
+}
+
+func (s *Server) ReadMessages() {
+	// iterate through all files in the message path
+	files, err := os.ReadDir(MessagePath())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// check messages
+	for _, file := range files {
+		// might do something someday with nested directories
+		if file.IsDir() {
+			continue
+		}
+
+		// read each file
+		path := filepath.Join(MessagePath(), file.Name())
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		// convert json to struct
+		msg := &MessageJSON{}
+		err = json.Unmarshal(data, msg)
+		if err != nil {
+			continue
+		}
+
+		// remove the file
+		os.Remove(path)
+
+		// calculate the expiration time using TTL
+		now := time.Now()
+		expiresAt := now.Add(time.Duration(msg.TTL) * time.Second)
+
+		// add to server messages
+		m := &Message{msg.Text, &expiresAt, make(map[string]bool)}
+		s.messages = append(s.messages, m)
+	}
+}
+
+func (s *Server) SendMessages() {
+	// go through each server message
+	keep := []*Message{}
+	for _, m := range s.messages {
+		// check time
+		now := time.Now()
+
+		// skip the expired messages
+		if m.ExpiresAt.Before(now) {
+			continue
+		}
+
+		// keep the unexpired messages
+		keep = append(keep, m)
+
+		// make a new event to broadcast
+		evt := &EventJSON{
+			"global",
+			m.Text,
+			0,
+			"",
+		}
+
+		// go through each room
+		for _, room := range s.rooms {
+			// go through each client connection
+			for id, conn := range room.conns {
+				// check to see if we've already sent this message
+				// to this connection
+				if m.Notified[id] {
+					continue
+				}
+				// otherwise, send and record
+				SendEvent(conn, evt)
+				m.Notified[id] = true
+			}
+		}
+	}
+	// save the unexpired messages
+	s.messages = keep
+}
+
+func (s *Server) MessageLoop() {
+	for {
+		// wait 5 seconds
+		time.Sleep(5*time.Second)
+
+		s.ReadMessages()
+		s.SendMessages()
+	}
 }
 
 func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
@@ -399,6 +533,20 @@ func (s *Server) Handler(ws *websocket.Conn) {
 	        ws.Write(initData)
 		}
     }
+
+	// send messages
+	for _, m := range s.messages {
+		// make a new event to send
+		evt := &EventJSON{
+			"global",
+			m.Text,
+			0,
+			"",
+		}
+
+		SendEvent(ws, evt)
+		m.Notified[id] = true
+	}
 
     // main loop
 	for {
@@ -702,6 +850,7 @@ func main() {
     // catch SIGETRM or SIGINTERRUPT
     signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
 
+	go s.MessageLoop()
 	go http.ListenAndServe(url, nil)
 	sig := <-cancelChan
 

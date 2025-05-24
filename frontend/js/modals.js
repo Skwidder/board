@@ -52,32 +52,32 @@ export function create_modals(_state) {
         let container = document.getElementById("toasts");
     
         let toast = document.createElement("div");
-        toast.setAttribute("class", "toast d-flex");
+
+        toast.setAttribute("class", "toast");
         toast.setAttribute("data-bs-autohide", false);
         toast.role = "alert";
-    
-        //let header = document.createElement("div");
-        //header.setAttribute("class", "toast-header");
-    
-        //let text = document.createElement("span");
-        //text.setAttribute("class", "me-auto")    
-        //text.innerHTML = header_text;
-        //header.appendChild(text);
-        
+
+        let flex = document.createElement("div")
+        flex.setAttribute("class", "d-flex");
+
         let body = document.createElement("div");
         body.setAttribute("class", "toast-body");
         body.innerHTML = body_text;
-        toast.appendChild(body);
-
+        flex.appendChild(body);
+    
         let close = document.createElement("button");
         close.setAttribute("class", "btn-close me-2 m-auto");
         close.setAttribute("data-bs-dismiss", "toast");
         close.setAttribute("aria-label", "Close");
-        toast.appendChild(close);
-    
+        flex.appendChild(close);
+
+        toast.appendChild(flex);
+
         container.appendChild(toast);
     
         let t = bootstrap.Toast.getOrCreateInstance(toast);
+        console.log(t);
+
         t.show();
     }
 
