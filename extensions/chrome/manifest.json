@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "Tripleko",
+    "version": "1.0",
+
+    "description": "Adds direct link to tripleko to OGS.",
+
+    "content_scripts": [
+        {
+            "matches": ["*://*.online-go.com/*"],
+            "js": ["tripleko.js"],
+            "run_at": "document_end"
+        }
+    ]
+
+}
+
