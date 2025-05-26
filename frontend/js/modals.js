@@ -15,7 +15,8 @@ function make_settings() {
     let buffer = parseInt(document.getElementById(id + "-bufferrange").value);
     let size = parseInt(document.getElementById(id + "-size-select").value);
     let password = document.getElementById(id + "-password-bar").value;
-    return {"buffer": buffer, "size": size, "password": password};
+    let nickname = document.getElementById(id + "-nickname-bar").value;
+    return {"buffer": buffer, "size": size, "password": password, "nickname": nickname};
 }
 
 export function create_modals(_state) {
@@ -35,6 +36,7 @@ export function create_modals(_state) {
     add_prompt_modal();
     add_info_modal();
     add_settings_modal();
+    add_users_modal();
     enable_tooltips();
     add_toast();
 
@@ -164,6 +166,20 @@ export function create_modals(_state) {
         title.innerHTML = "Settings";
 
         let body = document.createElement("div");
+
+        // nickname
+        let nickname_div = document.createElement("div");
+        let nickname_label = document.createElement("div");
+        nickname_label.innerHTML = "Nickname";
+
+        let nickname_bar = document.createElement("input")
+        nickname_bar.setAttribute("class", "form-control");
+        nickname_bar.id = id + "-nickname-bar";
+        nickname_div.appendChild(nickname_label);
+        nickname_div.appendChild(nickname_bar);
+
+        body.appendChild(nickname_div);
+        body.appendChild(document.createElement("br"));
 
         // board size
         let size_element = document.createElement("div");
@@ -801,6 +817,43 @@ export function create_modals(_state) {
         let m = new bootstrap.Modal(gameinfo_modal);
     }
 
+    function add_users_modal() {
+        let id = "users-modal";
+        let paragraph = document.createElement("p");
+        paragraph.setAttribute("id", id + "-paragraph");
+        /*
+        let button = new_icon_button("bi-info-square");
+        button.setAttribute("class", "btn btn-primary");
+        paragraph.appendChild(button);
+        */
+
+        let span1 = document.createElement("span");
+        span1.setAttribute("id", id + "-message");
+        paragraph.appendChild(span1);
+
+        let title = document.createElement("h5");
+        title.innerHTML = "Users";
+
+        let users_modal = add_modal(id, title, paragraph, false);
+        users_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
+        users_modal.addEventListener('shown.bs.modal', () => modals_up.set(id, true));
+        modal_ids.push(id);
+
+        let m = new bootstrap.Modal(users_modal);
+    }
+
+    function update_users_modal() {
+        let body = document.getElementById("users-modal-message");
+        body.innerHTML = "";
+        body.appendChild(document.createElement("br"));
+        for (let id in state.connected_users) {
+            let nick = state.connected_users[id];
+            let temp = document.createElement("div");
+            temp.textContent = nick;
+            body.innerHTML += temp.innerHTML + "<br>";
+        }
+    }
+
     function update_gameinfo_modal() {
         let body = document.getElementById("info-modal-gameinfo");
         body.innerHTML = "";
@@ -892,6 +945,7 @@ export function create_modals(_state) {
         show_prompt_modal,
         update_settings_modal,
         update_gameinfo_modal,
+        update_users_modal,
         hide_modal,
         show_toast,
     };
