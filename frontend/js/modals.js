@@ -587,17 +587,15 @@ export function create_modals(_state) {
 
         span.appendChild(anchor1);
 
-        /*
         span.appendChild(document.createElement("br"));
-        span.innerHTML += "If relevant, download and attach the current ";
+        span.innerHTML += "It may be useful to attach the current ";
 
         let anchor2 = document.createElement("a");
-        anchor2.setAttribute("href", window.location.href + "/sgfix");
+        anchor2.setAttribute("href", window.location.href + "/debug");
         anchor2.setAttribute("target", "_blank");
-        anchor2.innerHTML = "indexed sgf";
+        anchor2.innerHTML = "server state";
 
         span.appendChild(anchor2);
-        */
 
         let m = bootstrap.Modal.getInstance("#error-modal");
         m.show();
