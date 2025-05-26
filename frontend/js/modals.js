@@ -860,7 +860,9 @@ export function create_modals(_state) {
         let game_info = state.get_game_info();
         let result = "";
         for (let key in game_info) {
-            result += key + ": " + game_info[key] + "<br>";
+            let temp = document.createElement("div");
+            temp.textContent = key + ": " + game_info[key];
+            result += temp.innerHTML + "<br>";
         }
         body.innerHTML = result;
     }
