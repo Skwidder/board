@@ -139,6 +139,7 @@ func newBoard(w http.ResponseWriter, r *http.Request) {
 
 func upload(w http.ResponseWriter, r *http.Request) {
 	url := r.URL.Query().Get("url")
+	sgf := r.URL.Query().Get("sgf")
 	boardID := r.URL.Query().Get("board_id")
 	boardID = sanitize(boardID)
 	if len(strings.TrimSpace(boardID)) == 0 {
@@ -146,7 +147,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 	if url != "" {
 		requestSGF(boardID, url)
+	} else if sgf != "" {
+		uploadSGF(boardID, sgf)
 	}
+
 	redirect := fmt.Sprintf("/b/%s", boardID)
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
@@ -225,6 +229,14 @@ func requestSGF(boardID, url string) {
 	e := &EventJSON {
 		Event: "request_sgf",
 		Value: url}
+	websocketSend(e, boardID)
+}
+
+func uploadSGF(boardID, sgf string) {
+	e := &EventJSON {
+		Event: "upload_sgf",
+		Value: sgf,
+	}
 	websocketSend(e, boardID)
 }
 
