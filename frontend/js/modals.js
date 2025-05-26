@@ -103,6 +103,8 @@ export function create_modals(_state) {
 
     function enter_password(password) {
         let id = "settings-modal";
+        let m = bootstrap.Modal.getInstance("#"+id);
+        m._element.focus();
 
         if (password == "") {
             cancel_password();
@@ -175,6 +177,15 @@ export function create_modals(_state) {
         let nickname_bar = document.createElement("input")
         nickname_bar.setAttribute("class", "form-control");
         nickname_bar.id = id + "-nickname-bar";
+        nickname_bar.addEventListener(
+            "keypress",
+            (event) => {
+                if (event.key == "Enter") {
+                    hide_modal(id);
+                    state.network_handler.prepare_settings(make_settings())
+                }
+            }
+        );
         nickname_div.appendChild(nickname_label);
         nickname_div.appendChild(nickname_bar);
 
