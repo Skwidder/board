@@ -116,6 +116,7 @@ class NetworkHandler {
         var coords;
         var index;
         var value;
+        var userid;
         switch (evt) {
             case "keydown":
                 if (payload["value"] == "ArrowLeft") {
@@ -239,6 +240,18 @@ class NetworkHandler {
             case "global":
                 value = payload["value"];
                 this.state.modals.show_toast(value);
+                break;
+            case "connection":
+                userid = payload["userid"];
+                this.state.handle_connection(userid);
+                break;
+            case "disconnection":
+                userid = payload["userid"];
+                this.state.handle_disconnection(userid);
+                break;
+            case "connected_users":
+                value = payload["value"];
+                this.state.handle_current_users(value);
                 break;
         }
     }

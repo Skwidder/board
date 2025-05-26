@@ -120,6 +120,7 @@ type Room struct {
 	OGSLink *OGSConnector
 	password string
 	auth map[string]bool
+	nicks map[string]string
 }
 
 func NewRoom() *Room {
@@ -128,7 +129,8 @@ func NewRoom() *Room {
 	now := time.Now()
 	msgs := make(map[string]*time.Time)
 	auth := make(map[string]bool)
-    return &Room{conns, state, &now, "", msgs, true, nil, "", auth}
+	nicks := make(map[string]string)
+    return &Room{conns, state, &now, "", msgs, true, nil, "", auth, nicks}
 }
 
 func (r *Room) HasPassword() bool {
@@ -522,6 +524,8 @@ func (s *Server) Handler(ws *websocket.Conn) {
 	}
     room := s.rooms[roomID]
 	room.conns[id] = ws
+    // defer removing the client
+	defer delete(room.conns, id)
 
     // send initial state
     if !first {
@@ -547,6 +551,37 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		SendEvent(ws, evt)
 		m.Notified[id] = true
 	}
+
+	// send list of currently connected users
+	evt := &EventJSON {
+		"connected_users",
+		room.nicks,
+		0,
+		"",
+	}
+	SendEvent(ws, evt)
+
+	// save current user
+	room.nicks[id] = ""
+	defer delete(room.nicks, id)
+
+	// announce connection to the room
+	evt = &EventJSON {
+		Event: "connection",
+		Value: "",
+		Color: 0,
+		UserID: "",
+	}
+	room.Broadcast(evt, id, false)
+
+	// send disconnection notification
+	discEvt := &EventJSON {
+		Event: "disconnection",
+		Value: "",
+		Color: 0,
+		UserID: id,
+	}
+	defer room.Broadcast(discEvt, id, false)
 
     // main loop
 	for {
@@ -749,6 +784,17 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			sMap := evt.Value.(map[string]interface{})
 			buffer := int64(sMap["buffer"].(float64))
 			size := int(sMap["size"].(float64))
+			nickname := sMap["nickname"].(string)
+
+			room.nicks[id] = nickname
+			userEvt := &EventJSON {
+				"connected_users",
+				room.nicks,
+				0,
+				"",
+			}
+			room.Broadcast(userEvt, id, false)
+
 			password := sMap["password"].(string)
 			hashed := ""
 			if password != "" {
@@ -813,14 +859,8 @@ func (s *Server) Handler(ws *websocket.Conn) {
                 continue
 			}
         }
-
 		room.Broadcast(evt, id, true)
-
 	}
-
-    // removes the client
-	delete(room.conns, id)
-   
 }
 
 func main() {
@@ -830,6 +870,7 @@ func main() {
 
 	s := NewServer()
 	s.Load()
+	defer s.Save()
 
 	ws := websocket.Server{
 		cfg,
@@ -856,8 +897,6 @@ func main() {
 
 	log.Printf("Caught signal %v", sig)
 	log.Println("Shutting down gracefully")
-
-	s.Save()
 
 	/*
 	if err != nil {

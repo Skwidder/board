@@ -56,6 +56,7 @@ class State {
         this.tree_graphics = new TreeGraphics();
 
         this.comments = create_comments(this);
+        this.connected_users = {};
 
         this.board_graphics.draw_board();
         this.tree_graphics.update(this.board.tree);
@@ -139,6 +140,31 @@ class State {
 
         this.tree_graphics.update(this.board.tree, true, true);
         this.board_graphics.draw_stones();
+    }
+
+    guest_nick(id) {
+        return "Guest-" + id.substring(0, 4);
+    }
+
+    handle_current_users(users) {
+        for (let id in users) {
+            let nick = users[id];
+            if (nick == "") {
+                nick = this.guest_nick(id);
+            }
+            this.connected_users[id] = nick;
+        }
+        this.modals.update_users_modal();
+    }
+
+    handle_connection(id) {
+        this.connected_users[id] = this.guest_nick(id);
+        this.modals.update_users_modal();
+    }
+
+    handle_disconnection(id) {
+        delete this.connected_users[id];
+        this.modals.update_users_modal();
     }
 
     update_password(password) {

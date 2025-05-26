@@ -147,6 +147,14 @@ export function create_buttons(_state) {
     add_tooltip(comments_button, "Toggle comments");
     button_row3.appendChild(comments_button);
 
+    // users
+    let users_button = new_icon_button(
+        "bi-people-fill",
+        () => state.modals.show_modal("users-modal")
+    );
+    add_tooltip(users_button, "See connected users");
+    button_row3.appendChild(users_button);
+
     // dark mode
     //let dark_mode_button = new_icon_button("bi-moon-fill", () => state.dark_mode_toggle());
     //add_tooltip(dark_mode_button, "Toggle dark mode");
