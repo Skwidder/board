@@ -147,6 +147,7 @@ class State {
     }
 
     handle_current_users(users) {
+        this.connected_users = {};
         for (let id in users) {
             let nick = users[id];
             if (nick == "") {
@@ -154,16 +155,6 @@ class State {
             }
             this.connected_users[id] = nick;
         }
-        this.modals.update_users_modal();
-    }
-
-    handle_connection(id) {
-        this.connected_users[id] = this.guest_nick(id);
-        this.modals.update_users_modal();
-    }
-
-    handle_disconnection(id) {
-        delete this.connected_users[id];
         this.modals.update_users_modal();
     }
 

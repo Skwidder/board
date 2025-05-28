@@ -194,6 +194,18 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
 	return r.State.InitData("upload_sgf")
 }
 
+func (r *Room) SendUserList() {
+	// send list of currently connected users
+	evt := &EventJSON {
+		"connected_users",
+		r.nicks,
+		0,
+		"",
+	}
+
+	r.Broadcast(evt, "", false)
+}
+
 type Server struct {
     rooms map[string]*Room
 	messages []*Message
@@ -552,36 +564,16 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		m.Notified[id] = true
 	}
 
-	// send list of currently connected users
-	evt := &EventJSON {
-		"connected_users",
-		room.nicks,
-		0,
-		"",
-	}
-	SendEvent(ws, evt)
-
 	// save current user
 	room.nicks[id] = ""
-	defer delete(room.nicks, id)
-
-	// announce connection to the room
-	evt = &EventJSON {
-		Event: "connection",
-		Value: "",
-		Color: 0,
-		UserID: "",
-	}
-	room.Broadcast(evt, id, false)
 
 	// send disconnection notification
-	discEvt := &EventJSON {
-		Event: "disconnection",
-		Value: "",
-		Color: 0,
-		UserID: id,
-	}
-	defer room.Broadcast(discEvt, id, false)
+	// golang deferrals are called in LIFO order
+	defer room.SendUserList()
+	defer delete(room.nicks, id)
+
+	// send list of currently connected users
+	room.SendUserList()
 
     // main loop
 	for {

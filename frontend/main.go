@@ -105,9 +105,6 @@ func suffix_op(w http.ResponseWriter, r *http.Request, suffix string) {
 	//ws.Read(data)
 
 	decoded, err := base64.StdEncoding.DecodeString(string(data))
-	fmt.Println(length)
-	fmt.Println(string(data))
-	fmt.Println(len(data))
 	if err != nil {
 		return
 	}

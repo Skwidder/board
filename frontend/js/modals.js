@@ -78,7 +78,6 @@ export function create_modals(_state) {
         container.appendChild(toast);
     
         let t = bootstrap.Toast.getOrCreateInstance(toast);
-        console.log(t);
 
         t.show();
     }
@@ -99,6 +98,8 @@ export function create_modals(_state) {
         setcancel_div.hidden = true;
         password_anchor.hidden = false;
 
+        let m = bootstrap.Modal.getInstance("#"+id);
+        m._element.focus();
     }
 
     function enter_password(password) {
@@ -319,9 +320,7 @@ export function create_modals(_state) {
         let cancel_button = new_text_button(
             "Cancel",
             () => {
-                password_bar.hidden = true;
-                setcancel_div.hidden = true;
-                password_anchor.hidden = false;
+                cancel_password();
             }
         );
 
