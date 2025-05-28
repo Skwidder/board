@@ -414,6 +414,7 @@ class NetworkHandler {
         let shift = this.state.keys_down.has("Shift");
         let ctrl = this.state.keys_down.has("Control");
         let alt = this.state.keys_down.has("Alt");
+        let meta = this.state.keys_down.has("Meta");
         // logical xor
         let jump = this.state.branch_jump != shift
 
@@ -450,43 +451,43 @@ class NetworkHandler {
                 break;
             
             case "1":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_toggle();
                 break;
             case "2":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_black();
                 break;
             case "3":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_white();
                 break;
             case "4":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.prepare_pass();
                 break;
             case "5":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_triangle();
                 break;
             case "6":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_square();
                 break;
             case "7":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_letter();
                 break;
             case "8":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_number();
                 break;
             case "9":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.state.set_pen();
                 break;
             case "0":
-                if (shift || ctrl || alt) {break;}
+                if (shift || ctrl || alt || meta) {break;}
                 this.prepare_erase_pen();
                 break;
             default:

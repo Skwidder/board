@@ -88,7 +88,7 @@ func board(w http.ResponseWriter, r *http.Request) {
 	renderSinglePage(w, "board.html")
 }
 
-func suffix_op(w http.ResponseWriter, r *http.Request, suffix string) {
+func suffixOp(w http.ResponseWriter, r *http.Request, suffix string) {
 	boardID := chi.URLParam(r, "boardID")
 	wsURL := fmt.Sprintf("ws://%s:%d/b/%s/%s", WSHOST, WSPORT, boardID, suffix)
 	ws, err := websocket.Dial(wsURL, "", "http://localhost")
@@ -112,16 +112,16 @@ func suffix_op(w http.ResponseWriter, r *http.Request, suffix string) {
 }
 
 func sgf(w http.ResponseWriter, r *http.Request) {
-	suffix_op(w, r, "sgf")
+	suffixOp(w, r, "sgf")
 }
 
 func sgfix(w http.ResponseWriter, r *http.Request) {
-	suffix_op(w, r, "sgfix")
+	suffixOp(w, r, "sgfix")
 }
 
 func debug(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	suffix_op(w, r, "debug")
+	suffixOp(w, r, "debug")
 }
 
 func newBoard(w http.ResponseWriter, r *http.Request) {
