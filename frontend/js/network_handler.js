@@ -417,6 +417,10 @@ class NetworkHandler {
         let meta = this.state.keys_down.has("Meta");
         // logical xor
         let jump = this.state.branch_jump != shift
+        let on_input_bar = document.activeElement.tagName == "INPUT";
+        if (on_input_bar) {
+            return;
+        }
 
         switch(event.key) {
             case "ArrowUp":
