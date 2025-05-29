@@ -60,6 +60,12 @@ class NetworkHandler {
         console.log("connected!");
         this.state.modals.hide_modal("info-modal");
         this.prepare_isprotected();
+
+        // send in saved nickname, if previously entered
+        let nickname = this.state.modals.get_nickname();
+        if (nickname != "") {
+            this.prepare_nickname(this.state.modals.get_nickname());
+        }
     }
 
     reconnect(event) {
@@ -338,6 +344,11 @@ class NetworkHandler {
         this.prepare(payload);
     }
 
+    prepare_nickname(text) {
+        let payload = {"event": "update_nickname", "value": text};
+        this.prepare(payload);
+    }
+
     prepare(payload) {
         // before anything check for integrity of socket
         if (this.ready_state() != WebSocket.OPEN) {
@@ -354,6 +365,8 @@ class NetworkHandler {
         // "request_sgf"
         // "link_ogs_game"
         // "checkpassword"
+        // "isprotected"
+        // "update_nickname"
         if (
             this.state.modals.modals_up.size > 0 &&
             evt != "trash" &&
@@ -362,7 +375,9 @@ class NetworkHandler {
             evt != "upload_sgf" &&
             evt != "request_sgf" &&
             evt != "link_ogs_game" &&
-            evt != "checkpassword") {
+            evt != "checkpassword" &&
+            evt != "isprotected" &&
+            evt != "update_nickname") {
             return;
         }
 
@@ -389,7 +404,7 @@ class NetworkHandler {
     }
 
     send(payload) {
-        //console.log("sending:", payload);
+        console.log("sending:", payload);
         
         // first create the json payload
         let json_payload = JSON.stringify(payload);
@@ -404,7 +419,7 @@ class NetworkHandler {
 
 
     onmessage(event) {
-        //console.log("receiving:", event.data);
+        console.log("receiving:", event.data);
         let payload = JSON.parse(event.data);
         this.fromserver(payload);
     }

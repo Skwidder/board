@@ -19,6 +19,11 @@ function make_settings() {
     return {"buffer": buffer, "size": size, "password": password, "nickname": nickname};
 }
 
+function get_nickname() {
+    let id = "settings-modal";
+    return document.getElementById(id + "-nickname-bar").value;
+}
+
 export function create_modals(_state) {
     // apparently necessary to make the tooltips work properly
     const state = _state;
@@ -183,7 +188,8 @@ export function create_modals(_state) {
             (event) => {
                 if (event.key == "Enter") {
                     hide_modal(id);
-                    state.network_handler.prepare_settings(make_settings())
+                    let nickname = nickname_bar.value;
+                    state.network_handler.prepare_nickname(nickname);
                 }
             }
         );
@@ -958,6 +964,7 @@ export function create_modals(_state) {
         update_users_modal,
         hide_modal,
         show_toast,
+        get_nickname,
     };
 
 }

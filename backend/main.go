@@ -660,9 +660,13 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 		// handle timing
 		// events allowable to skip buffer:
-		// 		"update_buffer"
 		//		"draw"
-		if evt.Event != "update_buffer" && evt.Event != "draw" && room.lastUser != id {
+		// 		"update_settings"
+		//		"update_nickname"
+		if evt.Event != "update_settings" &&
+			evt.Event != "update_nickname" &&
+			evt.Event != "draw" &&
+			room.lastUser != id {
 			now := time.Now()
 			diff := now.Sub(*room.timeLastEvent)
 			if diff.Milliseconds() < room.State.InputBuffer {
@@ -772,6 +776,17 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
 			}
+		} else if evt.Event == "update_nickname" {
+			fmt.Println(evt)
+			nickname := evt.Value.(string)
+			room.nicks[id] = nickname
+			userEvt := &EventJSON {
+				"connected_users",
+				room.nicks,
+				0,
+				"",
+			}
+			room.Broadcast(userEvt, id, false)
 		} else if evt.Event == "update_settings" {
 			sMap := evt.Value.(map[string]interface{})
 			buffer := int64(sMap["buffer"].(float64))
