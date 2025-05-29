@@ -36,7 +36,7 @@ class NetworkHandler {
         this.add_listeners();
 
         // in a var for now so we can do exponential backoff in the future
-        this.backoff = 1000;
+        this.backoff = 500;
 
         // necessary because of cloudfront's auto-timeout max of 60sec
         setInterval(() => this.keep_warm(), 30000)
@@ -58,7 +58,11 @@ class NetworkHandler {
 
     onopen(event) {
         console.log("connected!");
+
+        // hide the info modal
         this.state.modals.hide_modal("info-modal");
+
+        // check to see if the room is protected by a password
         this.prepare_isprotected();
 
         // send in saved nickname, if previously entered
@@ -66,12 +70,19 @@ class NetworkHandler {
         if (nickname != "") {
             this.prepare_nickname(this.state.modals.get_nickname());
         }
+
+        // reset backoff
+        this.backoff = 500;
     }
 
     reconnect(event) {
         this.state.reset();
         if (!this.state.modals.modals_up.has("info-modal")) {
             this.state.modals.show_info_modal("Reconnecting...");
+        }
+        this.backoff *= 2;
+        if (this.backoff > 120000) {
+            this.backoff = 500;
         }
         console.log("reconnecting in", this.backoff, "ms");
         setTimeout(() => this.connect(), this.backoff);
@@ -404,7 +415,7 @@ class NetworkHandler {
     }
 
     send(payload) {
-        console.log("sending:", payload);
+        //console.log("sending:", payload);
         
         // first create the json payload
         let json_payload = JSON.stringify(payload);
@@ -419,7 +430,7 @@ class NetworkHandler {
 
 
     onmessage(event) {
-        console.log("receiving:", event.data);
+        //console.log("receiving:", event.data);
         let payload = JSON.parse(event.data);
         this.fromserver(payload);
     }
