@@ -49,11 +49,12 @@ class BoardGraphics {
         this.state = state;
 
         let review = document.getElementById("review");
-        this.ratio = window.devicePixelRatio;
 
         this.size = this.state.size;
         this.width = parseInt(review.offsetHeight)*(this.size-1)/(this.size+1);
         this.side = this.width/(this.size-1);
+
+        this.minstroke = this.side / 64;
         this.pad = this.side;
 
         this.svgs = new Map();
@@ -136,6 +137,7 @@ class BoardGraphics {
         this.size = this.state.size;
         this.width = parseInt(review.offsetHeight)*(this.size-1)/(this.size+1);
         this.side = this.width/(this.size-1);
+        this.minstroke = this.side / 64;
         this.pad = this.side;
     }
 
@@ -275,8 +277,7 @@ class BoardGraphics {
         this.svg_draw_polyline(coord_pairs, "#000000", "lines");
     }
 
-    svg_draw_polyline(coord_pairs, hexColor, id, stroke=1) {
-        stroke = stroke/this.ratio;
+    svg_draw_polyline(coord_pairs, hexColor, id, stroke=this.minstroke) {
         let svg = this.svgs.get(id);
         let d = "";
 
@@ -372,22 +373,21 @@ class BoardGraphics {
     }
 
     // board graphics
-    draw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
+    draw_circle(x, y, r, hexColor, id, filled=true, stroke=3*this.minstroke) {
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
         return this.draw_raw_circle(real_x, real_y, r, hexColor, id, filled, stroke);
     }
 
     // board graphics
-    draw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
+    draw_gradient_circle(x, y, r, grad_id, id, stroke=3*this.minstroke) {
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
         return this.draw_raw_gradient_circle(real_x, real_y, r, grad_id, id, stroke);
     }
 
 
-    draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3) {
-        stroke = stroke/this.ratio;
+    draw_raw_circle(x, y, r, hexColor, id, filled=true, stroke=3*this.minstroke) {
 
         // for kicks and giggles
         //r = 0.8*r;
@@ -410,8 +410,7 @@ class BoardGraphics {
         return circle;
     }
 
-    draw_raw_square(x, y, r, hexColor, id, filled=true, stroke=3) {
-        stroke = stroke/this.ratio;
+    draw_raw_square(x, y, r, hexColor, id, filled=true, stroke=3*this.minstroke) {
         let svg = this.svgs.get(id);
         let square = document.createElementNS(this.svgns, "rect");
 
@@ -426,8 +425,7 @@ class BoardGraphics {
         return square
     }
 
-    draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3) {
-        stroke = stroke/this.ratio;
+    draw_raw_gradient_circle(x, y, r, grad_id, id, stroke=3*this.minstroke) {
         let color = "url(#" + grad_id + ")";
         return this.draw_raw_circle(x, y, r, color, id, true, stroke);
     }
@@ -467,7 +465,7 @@ class BoardGraphics {
         coord_pairs.push([A, B]);
         coord_pairs.push([B, C]);
         coord_pairs.push([C, A]);
-        let t = this.svg_draw_polyline(coord_pairs, hexColor, id, 3);
+        let t = this.svg_draw_polyline(coord_pairs, hexColor, id, 3*this.minstroke);
         t.id = "mark-" + x.toString() + "-" + y.toString();
 
     }
@@ -499,7 +497,7 @@ class BoardGraphics {
         let C = [real_x-b, real_y+b];
         let D = [real_x-b, real_y-b];
         let coord_pairs = [[A, B], [B, C], [C, D], [D, A]];
-        let s = this.svg_draw_polyline(coord_pairs, hexColor, id, 3);
+        let s = this.svg_draw_polyline(coord_pairs, hexColor, id, 3*this.minstroke);
         s.id = "mark-" + x.toString() + "-" + y.toString();
     }
 
@@ -575,11 +573,11 @@ class BoardGraphics {
                 [x1*rect.width, y1*rect.height]
             ]
         );
-        this.svg_draw_polyline(coord_pairs, pen_color, "pen", 4);
+        this.svg_draw_polyline(coord_pairs, pen_color, "pen", 4*this.minstroke);
     }
 
     draw_stone(x, y, color) {
-        let radius = this.side/2 - 0.5/this.ratio;
+        let radius = this.side/2 * 0.98;
         let hexcolor = "#000000";
         if (color == 2) {
             hexcolor = "#F0F0F0";
@@ -590,6 +588,8 @@ class BoardGraphics {
         let svg_id = "stones";
 
         // stone
+        
+        let stroke = 0.5*this.minstroke;
 
         let stone;
         if (color == 2) {
@@ -597,14 +597,14 @@ class BoardGraphics {
             //this.draw_circle(x, y, radius, hexcolor, svg_id);
 
             // gradient fill
-            stone = this.draw_gradient_circle(x, y, radius, "white_grad", svg_id, 1.25);
+            stone = this.draw_gradient_circle(x, y, radius, "white_grad", svg_id, stroke);
             
         } else if (color == 1) {
             // regular fill
             //this.draw_circle(x, y, radius, hexcolor, svg_id);
             
             // gradient fill
-            stone = this.draw_gradient_circle(x, y, radius, "black_grad", svg_id, 1.25);
+            stone = this.draw_gradient_circle(x, y, radius, "black_grad", svg_id, stroke);
 
         }
         stone.setAttribute("id", "stone-"+id);
@@ -616,10 +616,10 @@ class BoardGraphics {
     }
 
     draw_cast_shadow(x, y) {
-        let radius = this.side/2 - 0.5/this.ratio;
+        let radius = this.side/2 * 0.98;
         let real_x = x*this.side + this.pad;
         let real_y = y*this.side + this.pad;
-        let offset = 2.5/this.ratio;
+        let offset = 3*this.minstroke;
         let id = "shadows";
 
         return this.draw_raw_circle(real_x+offset, real_y+offset, radius, "#00000055", id, true, 0);
