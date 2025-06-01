@@ -719,7 +719,7 @@ export function create_modals(_state) {
         let inp = document.createElement("input");
         // we CAN accept multiple files
         // ... but should we?
-        //inp.setAttribute("multiple", "true");
+        inp.setAttribute("multiple", "true");
         inp.id = "upload-sgf";
         inp.style.display = "none";
         inp.setAttribute("type", "file");

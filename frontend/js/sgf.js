@@ -11,7 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 import { letterstocoord } from './common.js';
 
 export {
-    Parser
+    Parser,
+    merge,
 }
 
 class Expr {
@@ -231,7 +232,47 @@ class Parser {
         }
         return this.text[this.index+n];
     }
+}
 
+function merge(sgfs) {
+    if (sgfs.length == 0) {
+        return "";
+    } else if (sgfs.length == 1) {
+        return sgfs[0];
+    }
+    let size = 0;
+    for (let sgf of sgfs) {
+        let p = new Parser(sgf);
+        let root = p.parse().value;
+        let sizes = root.fields.get("SZI") || [];
+
+        // if SZ is not provided, assume 19
+        let _size = 19;
+        if (sizes.length > 0) {
+            _size = sizes[0];
+        }
+
+        // if we haven't set the (assumed) same size yet, set it
+        if (size == 0) {
+            size = _size;
+        }
+
+        // if not all the sgfs are the same size, just return the first one
+        if (_size != size) {
+            return sgfs[0];
+        }
+    }
+
+    // if we exit the loop, all the sgfs are the same size
+    // so make a new root, and set all the sgfs as children
+    let result = "(;GM[1]FF[4]CA[UTF-8]PB[Black]PW[White]RU[Japanese]KM[6.5]SZ["
+        + size.toString() + "]";
+    for (let sgf of sgfs) {
+        console.log(sgf);
+        result += "(" + sgf + ")";
+    }
+    result += ")";
+    return result;
 
 }
 
