@@ -308,18 +308,20 @@ func (s *State) PushHead(x, y, col int) {
 	s.Head = n
 }
 
-func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int) {
+func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int, force bool) {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
     coord := &Coord{x, y}
-	// check to see if it's already there
-	for i,node := range(s.Current.Down) {
-		coord_old := node.XY
-		if coord_old != nil && coord != nil && coord_old.X == x && coord_old.Y == y && node.Color == col {
-			s.Current.PreferredChild = i
-			s.Right()
-			return
+	if !force {
+		// check to see if it's already there
+		for i,node := range(s.Current.Down) {
+			coord_old := node.XY
+			if coord_old != nil && coord != nil && coord_old.X == x && coord_old.Y == y && node.Color == col {
+				s.Current.PreferredChild = i
+				s.Right()
+				return
+			}
 		}
 	}
 
@@ -442,7 +444,7 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, evt.Color, false, nil, -1)
+        s.AddNode(x, y, evt.Color, false, nil, -1, false)
 	case "pass":
 		fields := make(map[string][]string)
 		s.AddPassNode(evt.Color, fields, -1)
@@ -458,7 +460,7 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, 0, true, nil, -1)
+        s.AddNode(x, y, 0, true, nil, -1, false)
 	case "triangle":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -733,7 +735,7 @@ func FromSGF(data string) (*State, error) {
 			}
 
             if col != 0 && v != nil {
-                state.AddNode(v.X, v.Y, col, false, node.Fields, index)
+                state.AddNode(v.X, v.Y, col, false, node.Fields, index, true)
             } else if col != 0 {
 				state.AddPassNode(col, node.Fields, index)
 			} else {

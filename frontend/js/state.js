@@ -8,6 +8,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
+import { merge } from './sgf.js';
 import { Board, from_sgf } from './board.js';
 import { BoardGraphics } from './boardgraphics.js';
 import { TreeGraphics } from './treegraphics.js';
@@ -896,19 +898,57 @@ class State {
             // hide the upload modal
             this.modals.hide_modal("upload-modal");
 
-            // TODO: what shall we do when we get multiple files?
-            const selectedFile = inp.files[0];
-            const reader = new FileReader();
-            reader.readAsText(selectedFile);
+            if (inp.files.length == 0) {
+                // i guess do nothing
+                return;
+            } else if (inp.files.length == 1) {
+                // if 1 file, it's easy
+                let f = inp.files[0];
+                let reader = new FileReader();
+                reader.readAsText(f);
 
-            reader.addEventListener(
-                "load",
-                () => {
-                    // encode unicode, and encode with base64
-                    this.network_handler.prepare_upload(b64_encode_unicode(reader.result));
-                },
-                false,
-            );
+                reader.addEventListener(
+                    "load",
+                    () => {
+                        // encode unicode, and encode with base64
+                        this.network_handler.prepare_upload(b64_encode_unicode(reader.result));
+                    },
+                    false,
+                );
+            } else {
+                // max out at 10, just in case
+                let max = 10;
+                let i = 0;
+                // if multiple files, build promises
+                let promises = [];
+                for (let f of inp.files) {
+                    if (i >= max) {
+                        break;
+                    }
+                    i++;
+                    promises.push(
+                        new Promise((resolve, reject) => {
+                            let reader = new FileReader();
+                            reader.readAsText(f);
+                            reader.addEventListener(
+                                "load",
+                                () => resolve(reader.result),
+                                false,
+                            );
+                        })
+                    );
+                }
+    
+                // turn list of promises into 1 promise
+                Promise.all(promises)
+                    .then((values) => {
+                        let sgf = merge(values);
+                        // encode unicode, and encode with base64
+                        this.network_handler.prepare_upload(b64_encode_unicode(sgf));
+                    }
+                    );
+            }
+
         }
     }
 

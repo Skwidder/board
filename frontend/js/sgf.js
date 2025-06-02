@@ -11,7 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 import { letterstocoord } from './common.js';
 
 export {
-    Parser
+    Parser,
+    merge,
 }
 
 class Expr {
@@ -26,6 +27,34 @@ class SGFNode {
         this.fields = fields;
         this.down = [];
         this.index = index;
+    }
+
+    to_sgf(root=false) {
+        let result = "";
+        if (root) {
+            result += "(";
+        }
+        result += ";";
+        for (let [field, values] of this.fields) {
+            result += field;
+            for (let value of values) {
+                result += "[";
+                result += value.replaceAll("]", "\\]");
+                result += "]";
+            }
+        }
+
+        for (let d of this.down) {
+            if (this.down.length > 1) {
+                result += "(" + d.to_sgf() + ")";
+            } else {
+                result += d.to_sgf();
+            }
+        }
+        if (root) {
+            result += ")";
+        }
+        return result;
     }
 }
 
@@ -231,7 +260,77 @@ class Parser {
         }
         return this.text[this.index+n];
     }
+}
 
+function merge(sgfs) {
+    if (sgfs.length == 0) {
+        return "";
+    } else if (sgfs.length == 1) {
+        return sgfs[0];
+    }
+    let size = 0;
+    let fields = new Map();
+    fields.set("GM", ["1"]);
+    fields.set("FF", ["4"]);
+    fields.set("CA", ["UTF-8"]);
+    fields.set("PB", ["Black"]);
+    fields.set("PW", ["White"]);
+    fields.set("RU", ["Japanese"]);
+    fields.set("KM", ["6.5"]);
+    let new_root = new SGFNode(fields, 0);
+    for (let sgf of sgfs) {
+        let p = new Parser(sgf);
+        let root = p.parse().value;
+        let sizes = root.fields.get("SZ") || [];
+
+        // if SZ is not provided, assume 19
+        let _size = 19;
+        if (sizes.length > 0) {
+            _size = sizes[0];
+        }
+
+        // if we haven't set the (assumed) same size yet, set it
+        if (size == 0) {
+            size = _size;
+        }
+
+        // if not all the sgfs are the same size, just return the first one
+        if (_size != size) {
+            return sgfs[0];
+        }
+
+        if (root.fields.has("B") ||
+            root.fields.has("W") ||
+            root.fields.has("AB") ||
+            root.fields.has("AW")) {
+            // strip fields and save the node
+            for (let f of ["RU", "SZ", "KM", "TM", "OT"]) {
+                root.fields.delete(f);
+            }
+            new_root.down.push(root);
+        } else {
+            // otherwise save all the children
+            for (let d of root.down) {
+                new_root.down.push(d);
+            }
+        }
+    }
+
+    new_root.fields.set("SZ", [size.toString()]);
+    return new_root.to_sgf(true);
+
+    /*
+    // if we exit the loop, all the sgfs are the same size
+    // so make a new root, and set all the sgfs as children
+    let result = "(;GM[1]FF[4]CA[UTF-8]PB[Black]PW[White]RU[Japanese]KM[6.5]SZ["
+        + size.toString() + "]";
+    for (let sgf of sgfs) {
+        //console.log(sgf);
+        result += "(" + sgf + ")";
+    }
+    result += ")";
+    return result;
+    */
 
 }
 
