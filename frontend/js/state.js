@@ -916,9 +916,16 @@ class State {
                     false,
                 );
             } else {
+                // max out at 10, just in case
+                let max = 10;
+                let i = 0;
                 // if multiple files, build promises
                 let promises = [];
                 for (let f of inp.files) {
+                    if (i >= max) {
+                        break;
+                    }
+                    i++;
                     promises.push(
                         new Promise((resolve, reject) => {
                             let reader = new FileReader();
