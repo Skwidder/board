@@ -308,17 +308,15 @@ function merge(sgfs) {
                 root.fields.delete(f);
             }
             new_root.down.push(root);
-            console.log("saving root:", root);
         } else {
             // otherwise save all the children
             for (let d of root.down) {
                 new_root.down.push(d);
-                console.log("saving child:", d);
             }
         }
     }
 
-    new_root.fields.set("SZ", [size]);
+    new_root.fields.set("SZ", [size.toString()]);
     return new_root.to_sgf(true);
 
     /*
