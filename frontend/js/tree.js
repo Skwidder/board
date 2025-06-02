@@ -182,7 +182,7 @@ class Tree {
         this.current = this.root;
     }
 
-    push(removed, set_index=-1, fields=null) {
+    push(removed, set_index=-1, fields=null, force=false) {
         // to allow for reindexing on the fly
         let new_index = set_index;
         if (set_index == -1) {
@@ -190,7 +190,7 @@ class Tree {
         }
 
         let n = new Node(removed, new_index, this.current, fields, this.current_depth);
-        if (this.root != null && set_index==-1) {
+        if (this.root != null && set_index==-1 && !force) {
             // first check if it's already there
             for (let i=0; i<this.current.down.length; i++) {
                 let node = this.current.down[i];

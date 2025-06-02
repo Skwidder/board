@@ -71,6 +71,16 @@ function from_sgf(b64_data) {
                     // clear previous move
                     board.set(coord, 0);
                 }
+
+                // clear other stones
+                for (let x of node.fields.get("AB") || []) {
+                    let c = letterstocoord(x);
+                    board.set(c, 0);
+                }
+                for (let x of node.fields.get("AW") || []) {
+                    let c = letterstocoord(x);
+                    board.set(c, 0);
+                }
             }
             continue;
         }
@@ -190,12 +200,12 @@ class Board {
         if (fields.has("B")) {
             let coord = letterstocoord(fields.get("B")[0]);
             // coord may be null, but that's ok
-            this.place(coord, 1, index, fields);
+            this.place(coord, 1, index, fields, true);
             return;
         } else if (fields.has("W")) {
             let coord = letterstocoord(fields.get("W")[0]);
             // coord may be null, but that's ok
-            this.place(coord, 2, index, fields);
+            this.place(coord, 2, index, fields, true);
             return;
         }
 
@@ -240,11 +250,10 @@ class Board {
             this.set(coord, 2);
         }
 
-
-        this.tree.push(removed, index, fields);
+        this.tree.push(removed, index, fields, true);
     }
 
-    place(start, color, set_index=-1, fields=null) {
+    place(start, color, set_index=-1, fields=null, force=false) {
         if (start == null) {
             // start == null means fields has no "B" or "W"
             // that means no captured
@@ -252,7 +261,7 @@ class Board {
             removed[1] = [];
             removed[2] = [];
 
-            this.tree.push(removed, set_index, fields);
+            this.tree.push(removed, set_index, fields, force);
             return new Result(true, []);
         }
 
@@ -283,7 +292,7 @@ class Board {
             fields.set(key, [start.to_letters()]);
         }
 
-        this.tree.push(dead, set_index, fields);
+        this.tree.push(dead, set_index, fields, force);
         return new Result(true, dead);
     }
 
