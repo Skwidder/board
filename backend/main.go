@@ -438,6 +438,7 @@ func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
     chunkSize := 64
     message := []byte{}
     for {
+		log.Println("main.ReadBytes")
         if len(message) >= size {
             break
         }
@@ -577,6 +578,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
     // main loop
 	for {
+		log.Println("main.Handler")
 		// read in 4 bytes (length of rest of message)
         length_array := make([]byte, 4)
         _, err := ws.Read(length_array)
@@ -777,7 +779,6 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.OGSLink.End()
 			}
 		} else if evt.Event == "update_nickname" {
-			fmt.Println(evt)
 			nickname := evt.Value.(string)
 			room.nicks[id] = nickname
 			userEvt := &EventJSON {

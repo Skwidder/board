@@ -113,6 +113,7 @@ func ReadFrame(socketchan chan byte) ([]byte, error) {
 	started := false
 	depth := 0
 	for {
+		log.Println("ogs.ReadFrame")
 		select {
 		case b := <- socketchan:
 			if !started {
@@ -140,6 +141,7 @@ func ReadFrame(socketchan chan byte) ([]byte, error) {
 func (o *OGSConnector) ReadSocketToChan(socketchan chan byte) error {
 	defer close(socketchan)
 	for {
+		log.Println("ogs.ReadSocketToChan")
 		data := make([]byte, 256)
 		n, _ := o.Socket.Read(data)
 		for _,b := range(data[:n]) {
@@ -180,6 +182,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 	defer o.End()
 
 	for {
+		log.Println("ogs.GameLoop")
 		if o.Exit {
 			break
 		}
