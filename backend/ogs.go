@@ -87,7 +87,6 @@ func (o *OGSConnector) Send(topic string, payload map[string]interface{}) error 
 	if err != nil {
 		return err
 	}
-	//log.Println(string(data))
 	o.Socket.Write(data)
 	return nil
 }
@@ -113,9 +112,13 @@ func ReadFrame(socketchan chan byte) ([]byte, error) {
 	started := false
 	depth := 0
 	for {
-		log.Println("ogs.ReadFrame")
 		select {
-		case b := <- socketchan:
+		case b,ok := <- socketchan:
+			if !ok {
+				log.Println("channel closed")
+				// channel closed
+				return nil, nil
+			}
 			if !started {
 				if b != '[' {
 					return nil, fmt.Errorf("invalid starting byte")
@@ -141,7 +144,6 @@ func ReadFrame(socketchan chan byte) ([]byte, error) {
 func (o *OGSConnector) ReadSocketToChan(socketchan chan byte) error {
 	defer close(socketchan)
 	for {
-		log.Println("ogs.ReadSocketToChan")
 		data := make([]byte, 256)
 		n, _ := o.Socket.Read(data)
 		for _,b := range(data[:n]) {
@@ -155,6 +157,7 @@ func (o *OGSConnector) ReadSocketToChan(socketchan chan byte) error {
 }
 
 func (o *OGSConnector) End() {
+	log.Println("ending OGS link")
 	o.Exit = true
 }
 
@@ -182,7 +185,6 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 	defer o.End()
 
 	for {
-		log.Println("ogs.GameLoop")
 		if o.Exit {
 			break
 		}
