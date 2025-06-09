@@ -11,87 +11,87 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-    "fmt"
-    "strings"
+	"encoding/base64"
+	"fmt"
 	"strconv"
-    "encoding/base64"
+	"strings"
 )
 
 const Letters = "ABCDEFGHIJKLNMOPQRSTUVWXYZ"
 
 type Settings struct {
-	Buffer int64
-	Size int
+	Buffer   int64
+	Size     int
 	Password string
 }
 
 type Coord struct {
-    X int
-    Y int
+	X int
+	Y int
 }
 
 func (c *Coord) ToLetters() string {
-    alphabet := "abcdefghijklmnopqrs"
-    return string([]byte{alphabet[c.X], alphabet[c.Y]})
+	alphabet := "abcdefghijklmnopqrs"
+	return string([]byte{alphabet[c.X], alphabet[c.Y]})
 }
 
 func LettersToCoord(s string) *Coord {
-    if len(s) != 2 {
-        return nil
-    }
-    t := strings.ToLower(s)
-    return &Coord{int(t[0]-97), int(t[1]-97)}
+	if len(s) != 2 {
+		return nil
+	}
+	t := strings.ToLower(s)
+	return &Coord{int(t[0] - 97), int(t[1] - 97)}
 }
 
 func InterfaceToCoord(ifc interface{}) (*Coord, error) {
-    coords := make([]int, 0)
+	coords := make([]int, 0)
 
-    // coerce the value to an array
-    val, ok := ifc.([]interface{})
+	// coerce the value to an array
+	val, ok := ifc.([]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("error coercing to coord")
 	}
 
-    for _,v := range val {
-        i := int(v.(float64))
-        coords = append(coords, i)
-    }
-    x := coords[0]
-    y := coords[1]
+	for _, v := range val {
+		i := int(v.(float64))
+		coords = append(coords, i)
+	}
+	x := coords[0]
+	y := coords[1]
 	return &Coord{x, y}, nil
 
 }
 
 type TreeNode struct {
-    //XY *Coord
-    //Color int
-    Down []*TreeNode
-    Up *TreeNode
-    Index int
-    PreferredChild int
-    //Erase bool
+	//XY *Coord
+	//Color int
+	Down           []*TreeNode
+	Up             *TreeNode
+	Index          int
+	PreferredChild int
+	//Erase bool
 	Fields map[string][]string
 }
 
 func (n *TreeNode) IsPass() bool {
-	if c,ok := n.Fields["B"]; ok {
+	if c, ok := n.Fields["B"]; ok {
 		return c[0] == ""
 	}
-	if c,ok := n.Fields["W"]; ok {
+	if c, ok := n.Fields["W"]; ok {
 		return c[0] == ""
 	}
 	return false
 }
 
 func (n *TreeNode) Coord() *Coord {
-	if c,ok := n.Fields["B"]; ok {
+	if c, ok := n.Fields["B"]; ok {
 		if c[0] == "" {
 			return nil
 		}
 		return LettersToCoord(c[0])
 	}
-	if c,ok := n.Fields["W"]; ok {
+	if c, ok := n.Fields["W"]; ok {
 		if c[0] == "" {
 			return nil
 		}
@@ -101,9 +101,9 @@ func (n *TreeNode) Coord() *Coord {
 }
 
 func (n *TreeNode) Color() Color {
-	if _,ok := n.Fields["B"]; ok {
+	if _, ok := n.Fields["B"]; ok {
 		return Black
-	} else if _,ok := n.Fields["W"]; ok {
+	} else if _, ok := n.Fields["W"]; ok {
 		return White
 	}
 	return NoColor
@@ -113,8 +113,8 @@ func NewTreeNode(index int, up *TreeNode, fields map[string][]string) *TreeNode 
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
-    down := []*TreeNode{}
-    return &TreeNode{down, up, index, 0, fields}
+	down := []*TreeNode{}
+	return &TreeNode{down, up, index, 0, fields}
 }
 
 func (n *TreeNode) AddField(key, value string) {
@@ -134,7 +134,7 @@ func (n *TreeNode) RemoveField(key, value string) {
 			index = i
 		}
 	}
-	if index == - 1 {
+	if index == -1 {
 		return
 	}
 	n.Fields[key] = append(n.Fields[key][:index], n.Fields[key][index+1:]...)
@@ -146,149 +146,148 @@ func (n *TreeNode) RemoveField(key, value string) {
 // as a rule, anything that would need to get sent to new connections
 // should be stored here and not in the Room struct
 type State struct {
-    Root *TreeNode
-    Current *TreeNode
-	Head *TreeNode
-    Nodes map[int]*TreeNode
-    NextIndex int
+	Root        *TreeNode
+	Current     *TreeNode
+	Head        *TreeNode
+	Nodes       map[int]*TreeNode
+	NextIndex   int
 	InputBuffer int64
-	Timeout float64
-	Size int
+	Timeout     float64
+	Size        int
 }
 
 func (s *State) Prefs() string {
-    result := "{"
-    first := true
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	result := "{"
+	first := true
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
-        c := cur.PreferredChild
-        if first {
-            result = fmt.Sprintf("%s\"%d\":%d", result, cur.Index, c)
-            first = false
-        } else {
-            result = fmt.Sprintf("%s,\"%d\":%d", result, cur.Index, c)
-        }
+		c := cur.PreferredChild
+		if first {
+			result = fmt.Sprintf("%s\"%d\":%d", result, cur.Index, c)
+			first = false
+		} else {
+			result = fmt.Sprintf("%s,\"%d\":%d", result, cur.Index, c)
+		}
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
-    }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
+	}
 
-    result += "}"
-    return result
+	result += "}"
+	return result
 }
 
 func (s *State) SetPreferred(index int) error {
-    n := s.Nodes[index]
-    cur := n
-    for {
+	n := s.Nodes[index]
+	cur := n
+	for {
 		if cur == nil {
 			return fmt.Errorf("Error in indexing")
 		}
-        if cur.Up == nil {
-            break;
-        }
-        oldIndex := cur.Index
-        cur = cur.Up
-        for i,d := range(cur.Down) {
-            if d.Index == oldIndex {
-                cur.PreferredChild = i
-            }
-        }
-    }
+		if cur.Up == nil {
+			break
+		}
+		oldIndex := cur.Index
+		cur = cur.Up
+		for i, d := range cur.Down {
+			if d.Index == oldIndex {
+				cur.PreferredChild = i
+			}
+		}
+	}
 	return nil
 }
 
 func (s *State) ResetPrefs() {
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
 		cur.PreferredChild = 0
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
 	}
 }
 
 func (s *State) SetPrefs(prefs map[string]int) {
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
 		key := fmt.Sprintf("%d", cur.Index)
 		p := prefs[key]
 
 		cur.PreferredChild = p
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
 	}
 }
 
-
 func (s *State) Locate() string {
-    dirs := []int{}
-    c := s.Current
-    for {
-        myIndex := c.Index
-        if c.Up == nil {
-            break
-        }
-        u := c.Up
-        for i:=0; i < len(u.Down); i++ {
-            if u.Down[i].Index == myIndex {
-                dirs = append(dirs, i)
-            }
-        }
-        c = u
-    }
-    result := ""
-    firstComma := false
-    for i:=len(dirs)-1; i>=0; i-- {
-        d := dirs[i]
-        if !firstComma {
-            result = fmt.Sprintf("%d", d)
-            firstComma = true
-        } else {
-            result = fmt.Sprintf("%s,%d", result, d)
-        }
-    }
-    return result
+	dirs := []int{}
+	c := s.Current
+	for {
+		myIndex := c.Index
+		if c.Up == nil {
+			break
+		}
+		u := c.Up
+		for i := 0; i < len(u.Down); i++ {
+			if u.Down[i].Index == myIndex {
+				dirs = append(dirs, i)
+			}
+		}
+		c = u
+	}
+	result := ""
+	firstComma := false
+	for i := len(dirs) - 1; i >= 0; i-- {
+		d := dirs[i]
+		if !firstComma {
+			result = fmt.Sprintf("%d", d)
+			firstComma = true
+		} else {
+			result = fmt.Sprintf("%s,%d", result, d)
+		}
+	}
+	return result
 }
 
 func (s *State) GetNextIndex() int {
-    i := s.NextIndex
-    s.NextIndex++
-    return i
+	i := s.NextIndex
+	s.NextIndex++
+	return i
 }
 
 func (s *State) AddFieldNode(fields map[string][]string, index int) {
@@ -320,7 +319,7 @@ func (s *State) PushHead(x, y int, col Color) {
 		fields[key] = []string{coord.ToLetters()}
 	}
 	index := s.GetNextIndex()
-    n := NewTreeNode(index, s.Head, fields)
+	n := NewTreeNode(index, s.Head, fields)
 	s.Nodes[index] = n
 	if len(s.Head.Down) > 0 {
 		s.Head.PreferredChild++
@@ -336,7 +335,7 @@ func (s *State) PushHead(x, y int, col Color) {
 
 func (s *State) AddNode(x, y int, col Color, index int) {
 	fields := make(map[string][]string)
-    coord := &Coord{x, y}
+	coord := &Coord{x, y}
 	key := "B"
 	if col == White {
 		key = "W"
@@ -344,7 +343,7 @@ func (s *State) AddNode(x, y int, col Color, index int) {
 	fields[key] = []string{coord.ToLetters()}
 
 	// check to see if it's already there
-	for i,node := range(s.Current.Down) {
+	for i, node := range s.Current.Down {
 		//coord_old := node.XY
 		coord_old := node.Coord()
 		if coord_old != nil && coord != nil && coord_old.X == x && coord_old.Y == y && node.Color() == Color(col) {
@@ -357,20 +356,20 @@ func (s *State) AddNode(x, y int, col Color, index int) {
 	s.AddFieldNode(fields, index)
 
 	/*
-	tmp := s.GetNextIndex()
-	if index == -1 {
-	    index = tmp
-	}
-    n := NewTreeNode(index, s.Current, fields)
+		tmp := s.GetNextIndex()
+		if index == -1 {
+		    index = tmp
+		}
+	    n := NewTreeNode(index, s.Current, fields)
 
-    s.Nodes[index] = n
-	if s.Root == nil {
-		s.Root = n
-	} else {
-	    s.Current.Down = append(s.Current.Down, n)
-	    s.Current.PreferredChild = len(s.Current.Down) - 1
-	}
-	s.Current = n
+	    s.Nodes[index] = n
+		if s.Root == nil {
+			s.Root = n
+		} else {
+		    s.Current.Down = append(s.Current.Down, n)
+		    s.Current.PreferredChild = len(s.Current.Down) - 1
+		}
+		s.Current = n
 	*/
 
 }
@@ -378,7 +377,7 @@ func (s *State) AddNode(x, y int, col Color, index int) {
 func (s *State) Cut(index int) {
 	s.Left()
 	j := -1
-	for i:=0; i < len(s.Current.Down); i++ {
+	for i := 0; i < len(s.Current.Down); i++ {
 		node := s.Current.Down[i]
 		if node.Index == index {
 			j = i
@@ -392,40 +391,40 @@ func (s *State) Cut(index int) {
 	s.Current.Down = append(s.Current.Down[:j], s.Current.Down[j+1:]...)
 
 	// adjust prefs
-	if (s.Current.PreferredChild >= len(s.Current.Down)) {
+	if s.Current.PreferredChild >= len(s.Current.Down) {
 		s.Current.PreferredChild = 0
 	}
 }
 
 func (s *State) Left() {
-    if s.Current.Up != nil {
-        s.Current = s.Current.Up
-    }
+	if s.Current.Up != nil {
+		s.Current = s.Current.Up
+	}
 }
 
 func (s *State) Right() {
-    if len(s.Current.Down) > 0 {
-        index := s.Current.PreferredChild
-        s.Current = s.Current.Down[index]
-    }
+	if len(s.Current.Down) > 0 {
+		index := s.Current.PreferredChild
+		s.Current = s.Current.Down[index]
+	}
 }
 
 func (s *State) Up() {
-    if len(s.Current.Down) == 0 {
-        return
-    }
-    c := s.Current.PreferredChild
-    mod := len(s.Current.Down)
-    s.Current.PreferredChild = (((c-1) % mod) + mod) % mod
+	if len(s.Current.Down) == 0 {
+		return
+	}
+	c := s.Current.PreferredChild
+	mod := len(s.Current.Down)
+	s.Current.PreferredChild = (((c - 1) % mod) + mod) % mod
 }
 
 func (s *State) Down() {
-    if len(s.Current.Down) == 0 {
-        return
-    }
-    c := s.Current.PreferredChild
-    mod := len(s.Current.Down)
-    s.Current.PreferredChild = (((c+1) % mod) + mod) % mod
+	if len(s.Current.Down) == 0 {
+		return
+	}
+	c := s.Current.PreferredChild
+	mod := len(s.Current.Down)
+	s.Current.PreferredChild = (((c + 1) % mod) + mod) % mod
 }
 
 func (s *State) GotoCoord(x, y int) {
@@ -433,7 +432,7 @@ func (s *State) GotoCoord(x, y int) {
 	// look forward
 	for {
 		xy := cur.Coord()
-		if (xy != nil && xy.X == x && xy.Y == y) {
+		if xy != nil && xy.X == x && xy.Y == y {
 			s.Current = cur
 			return
 		}
@@ -447,7 +446,7 @@ func (s *State) GotoCoord(x, y int) {
 	// look backward
 	for {
 		xy := cur.Coord()
-		if (xy != nil && xy.X == x && xy.Y == y) {
+		if xy != nil && xy.X == x && xy.Y == y {
 			s.Current = cur
 			return
 		}
@@ -465,13 +464,13 @@ func (s *State) Add(evt *EventJSON) error {
 		if err != nil {
 			return err
 		}
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 
-        s.AddNode(x, y, evt.Color, -1)
+		s.AddNode(x, y, evt.Color, -1)
 	case "pass":
 		fields := make(map[string][]string)
 		if evt.Color == Black {
@@ -486,11 +485,11 @@ func (s *State) Add(evt *EventJSON) error {
 			return err
 		}
 
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 		fields := make(map[string][]string)
 		fields["AE"] = []string{c.ToLetters()}
 		s.AddFieldNode(fields, -1)
@@ -501,11 +500,11 @@ func (s *State) Add(evt *EventJSON) error {
 			return err
 		}
 
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 		l := c.ToLetters()
 		s.Current.AddField("TR", l)
 
@@ -515,11 +514,11 @@ func (s *State) Add(evt *EventJSON) error {
 			return err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 		l := c.ToLetters()
 		s.Current.AddField("SQ", l)
 
@@ -530,11 +529,11 @@ func (s *State) Add(evt *EventJSON) error {
 			return err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 
 		l := c.ToLetters()
 		letter := val["letter"].(string)
@@ -548,17 +547,17 @@ func (s *State) Add(evt *EventJSON) error {
 			return err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil
+		}
 
 		l := c.ToLetters()
 		number := int(val["number"].(float64))
 		lb := fmt.Sprintf("%s:%d", l, number)
 		s.Current.AddField("LB", lb)
-	
+
 	case "remove_mark":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -577,64 +576,64 @@ func (s *State) Add(evt *EventJSON) error {
 				}
 			}
 		}
-	
+
 	case "scissors":
-        index := int(evt.Value.(float64))
+		index := int(evt.Value.(float64))
 		if index == 0 {
 			return nil
 		}
 		s.Cut(index)
 
 	case "keydown":
-        // coerce the value to a string
-        val := evt.Value.(string)
-        if val == "ArrowLeft" {
-            s.Left()
-        } else if val == "ArrowRight" {
-            s.Right()
-        } else if val == "ArrowUp" {
-            s.Up()
-        } else if val == "ArrowDown" {
-            s.Down()
-        }
+		// coerce the value to a string
+		val := evt.Value.(string)
+		if val == "ArrowLeft" {
+			s.Left()
+		} else if val == "ArrowRight" {
+			s.Right()
+		} else if val == "ArrowUp" {
+			s.Up()
+		} else if val == "ArrowDown" {
+			s.Down()
+		}
 	case "button":
-        val := evt.Value.(string)
-        if val == "Rewind" {
-            s.Current = s.Root
-        } else if val == "FastForward" {
-            for {
-                if len(s.Current.Down) == 0 {
-                    break
-                }
-                index := s.Current.PreferredChild
-                s.Current = s.Current.Down[index]
-            }
-        }
+		val := evt.Value.(string)
+		if val == "Rewind" {
+			s.Current = s.Root
+		} else if val == "FastForward" {
+			for {
+				if len(s.Current.Down) == 0 {
+					break
+				}
+				index := s.Current.PreferredChild
+				s.Current = s.Current.Down[index]
+			}
+		}
 	case "goto_grid":
-        index := int(evt.Value.(float64))
+		index := int(evt.Value.(float64))
 		err := s.SetPreferred(index)
 		if err != nil {
 			return err
 		}
-        s.Current = s.Nodes[index]
+		s.Current = s.Nodes[index]
 	case "goto_coord":
-        coords := make([]int, 0)
-        // coerce the value to an array
-        val := evt.Value.([]interface{})
-        for _,v := range val {
-            i := int(v.(float64))
-            coords = append(coords, i)
-        }
-        x := coords[0]
-        y := coords[1]
+		coords := make([]int, 0)
+		// coerce the value to an array
+		val := evt.Value.([]interface{})
+		for _, v := range val {
+			i := int(v.(float64))
+			coords = append(coords, i)
+		}
+		x := coords[0]
+		y := coords[1]
 		s.GotoCoord(x, y)
 	case "update_buffer":
 		// if there's an update to input buffer, save it
-    	val := int64(evt.Value.(float64))
+		val := int64(evt.Value.(float64))
 		s.InputBuffer = val
 	case "comment":
 		val := evt.Value.(string)
-		s.Current.AddField("C", val + "\n")
+		s.Current.AddField("C", val+"\n")
 	case "draw":
 		vals := evt.Value.([]interface{})
 		var x0 float64
@@ -644,7 +643,7 @@ func (s *State) Add(evt *EventJSON) error {
 		} else {
 			x0 = vals[0].(float64)
 		}
-	
+
 		if vals[1] == nil {
 			y0 = -1.0
 		} else {
@@ -664,75 +663,75 @@ func (s *State) Add(evt *EventJSON) error {
 }
 
 func (s *State) ToSGF(indexes bool) string {
-    result := "("
-    stack := []*StackTreeNode{&StackTreeNode{"node", s.Root, ""}};
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
-        if cur.Type == "string" {
-            result += cur.StringValue
-            continue
-        }
-        node := cur.NodeValue
-        result += ";"
+	result := "("
+	stack := []*StackTreeNode{&StackTreeNode{"node", s.Root, ""}}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
+		if cur.Type == "string" {
+			result += cur.StringValue
+			continue
+		}
+		node := cur.NodeValue
+		result += ";"
 		/*
-        if node.Erase {
-			result += fmt.Sprintf("AE[%s]", node.XY.ToLetters())
-        } else if node.Color > 0 {
-			color := "B"
-            if node.Color == 2 {
-				color = "W"
-            }
-			if node.XY != nil {
-				result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
-			} else {
-				result += fmt.Sprintf("%s[]", color)
-			}
-        }
+		        if node.Erase {
+					result += fmt.Sprintf("AE[%s]", node.XY.ToLetters())
+		        } else if node.Color > 0 {
+					color := "B"
+		            if node.Color == 2 {
+						color = "W"
+		            }
+					if node.XY != nil {
+						result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
+					} else {
+						result += fmt.Sprintf("%s[]", color)
+					}
+		        }
 		*/
 		// throw in other fields
-		for key, multifield := range(node.Fields) {
+		for key, multifield := range node.Fields {
 			if key == "IX" {
 				continue
 			}
 			result += fmt.Sprintf("%s", key)
-			for _,fieldValue := range(multifield) {
+			for _, fieldValue := range multifield {
 				m := strings.ReplaceAll(fieldValue, "]", "\\]")
 				result += fmt.Sprintf("[%s]", m)
 			}
 		}
 
 		if indexes {
-        	result += fmt.Sprintf("IX[%d]", node.Index)
+			result += fmt.Sprintf("IX[%d]", node.Index)
 		}
 
-        if len(node.Down) == 1 {
-            stack = append(stack, &StackTreeNode{"node", node.Down[0], ""})
-        } else if len(node.Down) > 1 {
-            // go backward through array
-            for i:=len(node.Down)-1; i >= 0; i-- {
-                n := node.Down[i]
-                stack = append(stack, &StackTreeNode{"string", nil, ")"})
-                stack = append(stack, &StackTreeNode{"node", n, ""})
-                stack = append(stack, &StackTreeNode{"string", nil, "("})
-            }
-        }
-    }
+		if len(node.Down) == 1 {
+			stack = append(stack, &StackTreeNode{"node", node.Down[0], ""})
+		} else if len(node.Down) > 1 {
+			// go backward through array
+			for i := len(node.Down) - 1; i >= 0; i-- {
+				n := node.Down[i]
+				stack = append(stack, &StackTreeNode{"string", nil, ")"})
+				stack = append(stack, &StackTreeNode{"node", n, ""})
+				stack = append(stack, &StackTreeNode{"string", nil, "("})
+			}
+		}
+	}
 
-    result += ")"
+	result += ")"
 	return result
 }
 
 func FromSGF(data string) (*State, error) {
-    p := NewParser(data)
-    root, err := p.Parse()
-    if err != nil {
-        return nil, err
-    }
+	p := NewParser(data)
+	root, err := p.Parse()
+	if err != nil {
+		return nil, err
+	}
 
 	var size int64 = 19
-	if _,ok := root.Fields["SZ"]; ok {
+	if _, ok := root.Fields["SZ"]; ok {
 		size_field := root.Fields["SZ"]
 		if len(size_field) != 1 {
 			return nil, fmt.Errorf("SZ cannot be a multifield")
@@ -743,18 +742,18 @@ func FromSGF(data string) (*State, error) {
 		}
 	}
 
-    state := NewState(int(size), false)
-    stack := []*StackSGFNode{&StackSGFNode{"node", root, ""}}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
-        if cur.Type == "string" {
-            if cur.StringValue == "<" {
-                state.Left()
-            }
-        } else {
-            node := cur.NodeValue
+	state := NewState(int(size), false)
+	stack := []*StackSGFNode{&StackSGFNode{"node", root, ""}}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
+		if cur.Type == "string" {
+			if cur.StringValue == "<" {
+				state.Left()
+			}
+		} else {
+			node := cur.NodeValue
 
 			index := -1
 			if indexes, ok := node.Fields["IX"]; ok {
@@ -768,33 +767,33 @@ func FromSGF(data string) (*State, error) {
 			}
 
 			state.AddFieldNode(node.Fields, index)
-            for i:=len(node.Down)-1; i>=0; i-- {
-                stack = append(stack, &StackSGFNode{"string", nil, "<"})
-                stack = append(stack, &StackSGFNode{"node", node.Down[i], ""})
-            }
+			for i := len(node.Down) - 1; i >= 0; i-- {
+				stack = append(stack, &StackSGFNode{"string", nil, "<"})
+				stack = append(stack, &StackSGFNode{"node", node.Down[i], ""})
+			}
 			state.Head = state.Current
-        }
-    }
-    state.Current = state.Root
+		}
+	}
+	state.Current = state.Root
 	state.ResetPrefs()
-    return state, nil
+	return state, nil
 }
 
 func (s *State) InitData(event string) *EventJSON {
-    sgf := s.ToSGF(true)
+	sgf := s.ToSGF(true)
 	encoded := base64.StdEncoding.EncodeToString([]byte(sgf))
-    loc := s.Locate()
-    prefs := s.Prefs()
+	loc := s.Locate()
+	prefs := s.Prefs()
 	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", encoded, loc, prefs, s.InputBuffer, s.NextIndex)
 	evt := &EventJSON{event, value, 0, ""}
 	return evt
-    
-    //return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))
- 
+
+	//return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))
+
 }
 
 func NewState(size int, initRoot bool) *State {
-    nodes := make(map[int]*TreeNode)
+	nodes := make(map[int]*TreeNode)
 	var root *TreeNode
 	root = nil
 	index := 0
@@ -808,26 +807,25 @@ func NewState(size int, initRoot bool) *State {
 		fields["PW"] = []string{"White"}
 		fields["RU"] = []string{"Japanese"}
 		fields["KM"] = []string{"6.5"}
-	
-	    // index, up, fields
-	    root = NewTreeNode(0, nil, fields)
-    	nodes[0] = root
+
+		// index, up, fields
+		root = NewTreeNode(0, nil, fields)
+		nodes[0] = root
 		index = 1
 	}
 	// default input buffer of 250
 	// default room timeout of 86400
-    return &State{root, root, root, nodes, index, 250, 86400, size}
+	return &State{root, root, root, nodes, index, 250, 86400, size}
 }
 
 type StackTreeNode struct {
-    Type string
-    NodeValue *TreeNode
-    StringValue string
+	Type        string
+	NodeValue   *TreeNode
+	StringValue string
 }
 
 type StackSGFNode struct {
-    Type string
-    NodeValue *SGFNode
-    StringValue string
+	Type        string
+	NodeValue   *SGFNode
+	StringValue string
 }
-
