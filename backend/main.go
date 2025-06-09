@@ -102,7 +102,7 @@ type LoadJSON struct {
 type EventJSON struct {
     Event string `json:"event"`
     Value interface{} `json:"value"`
-    Color int `json:"color"`
+    Color Color `json:"color"`
 	UserID string `json:"userid"`
 }
 
@@ -171,11 +171,11 @@ func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
 	}
 }
 
-func (r *Room) PushHead(x, y, col int) *EventJSON {
+func (r *Room) PushHead(x, y int, col Color) *EventJSON {
 	r.State.PushHead(x, y, col)
 	evt := &EventJSON{
 		Event: "push_head",
-		Value: []int{x, y},
+		Value: []int{int(x), int(y)},
 		Color: col,
 		UserID: "",
 	}

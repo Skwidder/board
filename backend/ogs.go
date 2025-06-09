@@ -202,10 +202,10 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			x := int(move[0].(float64))
 			y := int(move[1].(float64))
 
-			col := 1
-			curColor := o.Room.State.Head.Color
-			if curColor == 1 {
-				col = 2
+			col := Black
+			curColor := o.Room.State.Head.Color()
+			if curColor == Black {
+				col = White
 			}
 			o.Room.State.PushHead(x, y, col)
         	evt := o.Room.State.InitData("handshake")

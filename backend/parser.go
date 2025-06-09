@@ -14,25 +14,25 @@ import (
     "fmt"
 )
 
-type Expr struct {
-    Type string
-    Value interface{}
-}
+type Color int
+const (
+	NoColor Color = iota
+	Black
+	White
+)
 
 func IsWhitespace(c byte) bool {
     return c == '\n' || c == ' ' || c == '\t' || c == '\r'
 }
 
 type SGFNode struct {
-    Value *Coord
-    Color int
     Fields map[string][]string
     Down []*SGFNode
     Index int
 }
 
-func NewSGFNode(v *Coord, color int, fields map[string][]string, index int) *SGFNode {
-    return &SGFNode{v, color, fields, []*SGFNode{}, index}
+func NewSGFNode(fields map[string][]string, index int) *SGFNode {
+    return &SGFNode{fields, []*SGFNode{}, index}
 }
 
 type Parser struct {
@@ -54,7 +54,7 @@ func (p *Parser) Parse() (*SGFNode, error) {
     }
 }
 
-func (p *Parser) SkipWhitespace() *Expr {
+func (p *Parser) SkipWhitespace() {
     for {
         if IsWhitespace(p.peek(0)) {
             p.read()
@@ -62,7 +62,6 @@ func (p *Parser) SkipWhitespace() *Expr {
             break
         }
     }
-    return &Expr{"whitespace", ""}
 }
 
 func (p *Parser) ParseKey() (string, error) {
@@ -121,8 +120,6 @@ func (p *Parser) ParseNodes() ([]*SGFNode, error) {
 
 func (p *Parser) ParseNode() (*SGFNode, error) {
     fields := make(map[string][]string)
-    color := 0
-    move := ""
     index := 0
     for {
         p.SkipWhitespace()
@@ -163,20 +160,10 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
         }
 
         p.SkipWhitespace()
-        switch key {
-        case "B":
-            color = 1
-            move = multifield[0]
-        case "W":
-            color = 2
-            move = multifield[0]
-        default:
-            fields[key] = multifield
-        }
+        fields[key] = multifield
     }
 
-    v := LettersToCoord(move)
-    n := NewSGFNode(v, color, fields, index)
+    n := NewSGFNode(fields, index)
     return n, nil
 }
 
