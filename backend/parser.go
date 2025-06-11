@@ -310,7 +310,10 @@ func Merge(sgfs []string) (string, error) {
 			for _,d := range root.Down {
 				d.Fields["C"] = []string{}
 				for _,key := range []string{"PB", "PW", "RE", "KM", "DT"} {
-					value := root.Fields[key]
+					if len(root.Fields[key]) == 0 {
+						continue
+					}
+					value := root.Fields[key][0]
 					d.Fields["C"] = append(d.Fields["C"], fmt.Sprintf("%s: %s", key, value))
 				}
 				newRoot.Down = append(newRoot.Down, d)
