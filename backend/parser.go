@@ -11,7 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-	"fmt"
+    "fmt"
+	"strings"
 )
 
 type Color int
@@ -34,6 +35,35 @@ type SGFNode struct {
 
 func NewSGFNode(fields map[string][]string, index int) *SGFNode {
 	return &SGFNode{fields, []*SGFNode{}, index}
+}
+
+func NewRoot() *SGFNode {
+	return &SGFNode{make(map[string][]string), []*SGFNode{}, 0}
+}
+
+func (n *SGFNode) ToSGF(root bool) string {
+	result := ";"
+	for field, values := range n.Fields {
+		result += field
+		for _,value := range values {
+			result += "["
+			result += strings.ReplaceAll(value, "]", "\\]")
+			result += "]"
+		}
+	}
+
+	for _,d := range n.Down {
+		if len(n.Down) > 1 {
+			result += "(" + d.ToSGF(false) + ")"
+		} else {
+			result += d.ToSGF(false)
+		}
+	}
+
+	if root {
+		result = "(" + result + ")"
+	}
+	return result
 }
 
 type Parser struct {
@@ -163,7 +193,6 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
 		p.SkipWhitespace()
 		fields[key] = multifield
 	}
-
 	n := NewSGFNode(fields, index)
 	return n, nil
 }
@@ -222,4 +251,73 @@ func (p *Parser) peek(n int) byte {
 		return 0
 	}
 	return p.Text[p.Index+n]
+}
+
+func Merge(sgfs []string) (string, error) {
+	if len(sgfs) == 0 {
+		return "", nil
+	} else if len(sgfs) == 1 {
+		return sgfs[0], nil
+	}
+	size := ""
+    fields := make(map[string][]string)
+	fields["GM"] = []string{"1"}
+	fields["FF"] = []string{"4"}
+	fields["CA"] = []string{"UTF-8"}
+	fields["PB"] = []string{"Black"}
+	fields["PW"] = []string{"White"}
+	fields["RU"] = []string{"Japanese"}
+	fields["KM"] = []string{"6.5"}
+	newRoot := NewRoot()
+	newRoot.Fields = fields
+
+	for _,sgf := range sgfs {
+		p := NewParser(sgf)
+		root, err := p.Parse()
+		if err != nil {
+			return "", err
+		}
+		
+		// if SZ is not provided, assume 19
+		sizes := root.Fields["SZ"]
+		_size := "19"
+		if (len(sizes) > 0) {
+			_size = sizes[0]
+		}
+
+		// if we haven't set the (assumed) same size yet, set it
+		if (size == "") {
+			size = _size
+		}
+
+		// if not all the sgfs are the same size, just return the first one
+		if (_size != size) {
+			return sgfs[0], nil
+		}
+
+		_, b := root.Fields["B"]
+		_, w := root.Fields["W"]
+		_, ab := root.Fields["AB"]
+		_, aw := root.Fields["AW"]
+		if b || w || ab || aw {
+			// strip fields and save the node
+			for _,f := range []string{"RU", "SZ", "KM", "TM", "OT"} {
+				delete(root.Fields, f)
+			}
+			newRoot.Down = append(newRoot.Down, root)
+		} else {
+			// otherwise save all the children
+			for _,d := range root.Down {
+				d.Fields["C"] = []string{}
+				for _,key := range []string{"PB", "PW", "RE", "KM", "DT"} {
+					value := root.Fields[key]
+					d.Fields["C"] = append(d.Fields["C"], fmt.Sprintf("%s: %s", key, value))
+				}
+				newRoot.Down = append(newRoot.Down, d)
+			}
+		}
+	}
+
+	newRoot.Fields["SZ"] = []string{string(size)}
+	return newRoot.ToSGF(true), nil
 }
