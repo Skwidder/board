@@ -11,7 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-    "fmt"
+	"fmt"
 	"strings"
 )
 
@@ -45,14 +45,14 @@ func (n *SGFNode) ToSGF(root bool) string {
 	result := ";"
 	for field, values := range n.Fields {
 		result += field
-		for _,value := range values {
+		for _, value := range values {
 			result += "["
 			result += strings.ReplaceAll(value, "]", "\\]")
 			result += "]"
 		}
 	}
 
-	for _,d := range n.Down {
+	for _, d := range n.Down {
 		if len(n.Down) > 1 {
 			result += "(" + d.ToSGF(false) + ")"
 		} else {
@@ -260,7 +260,7 @@ func Merge(sgfs []string) (string, error) {
 		return sgfs[0], nil
 	}
 	size := ""
-    fields := make(map[string][]string)
+	fields := make(map[string][]string)
 	fields["GM"] = []string{"1"}
 	fields["FF"] = []string{"4"}
 	fields["CA"] = []string{"UTF-8"}
@@ -271,27 +271,27 @@ func Merge(sgfs []string) (string, error) {
 	newRoot := NewRoot()
 	newRoot.Fields = fields
 
-	for _,sgf := range sgfs {
+	for _, sgf := range sgfs {
 		p := NewParser(sgf)
 		root, err := p.Parse()
 		if err != nil {
 			return "", err
 		}
-		
+
 		// if SZ is not provided, assume 19
 		sizes := root.Fields["SZ"]
 		_size := "19"
-		if (len(sizes) > 0) {
+		if len(sizes) > 0 {
 			_size = sizes[0]
 		}
 
 		// if we haven't set the (assumed) same size yet, set it
-		if (size == "") {
+		if size == "" {
 			size = _size
 		}
 
 		// if not all the sgfs are the same size, just return the first one
-		if (_size != size) {
+		if _size != size {
 			return sgfs[0], nil
 		}
 
@@ -301,15 +301,15 @@ func Merge(sgfs []string) (string, error) {
 		_, aw := root.Fields["AW"]
 		if b || w || ab || aw {
 			// strip fields and save the node
-			for _,f := range []string{"RU", "SZ", "KM", "TM", "OT"} {
+			for _, f := range []string{"RU", "SZ", "KM", "TM", "OT"} {
 				delete(root.Fields, f)
 			}
 			newRoot.Down = append(newRoot.Down, root)
 		} else {
 			// otherwise save all the children
-			for _,d := range root.Down {
+			for _, d := range root.Down {
 				d.Fields["C"] = []string{}
-				for _,key := range []string{"PB", "PW", "RE", "KM", "DT"} {
+				for _, key := range []string{"PB", "PW", "RE", "KM", "DT"} {
 					if len(root.Fields[key]) == 0 {
 						continue
 					}

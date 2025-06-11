@@ -356,20 +356,20 @@ func (s *State) AddNode(x, y int, col Color, index int) {
 	s.AddFieldNode(fields, index)
 
 	/*
-		tmp := s.GetNextIndex()
-		if index == -1 {
-		    index = tmp
-		}
-	    n := NewTreeNode(index, s.Current, fields)
+			tmp := s.GetNextIndex()
+			if index == -1 {
+			    index = tmp
+			}
+		    n := NewTreeNode(index, s.Current, fields)
 
-	    s.Nodes[index] = n
-		if s.Root == nil {
-			s.Root = n
-		} else {
-		    s.Current.Down = append(s.Current.Down, n)
-		    s.Current.PreferredChild = len(s.Current.Down) - 1
-		}
-		s.Current = n
+		    s.Nodes[index] = n
+			if s.Root == nil {
+				s.Root = n
+			} else {
+			    s.Current.Down = append(s.Current.Down, n)
+			    s.Current.PreferredChild = len(s.Current.Down) - 1
+			}
+			s.Current = n
 	*/
 
 }
@@ -676,19 +676,19 @@ func (s *State) ToSGF(indexes bool) string {
 		node := cur.NodeValue
 		result += ";"
 		/*
-		        if node.Erase {
-					result += fmt.Sprintf("AE[%s]", node.XY.ToLetters())
-		        } else if node.Color > 0 {
-					color := "B"
-		            if node.Color == 2 {
-						color = "W"
-		            }
-					if node.XY != nil {
-						result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
-					} else {
-						result += fmt.Sprintf("%s[]", color)
-					}
-		        }
+			        if node.Erase {
+						result += fmt.Sprintf("AE[%s]", node.XY.ToLetters())
+			        } else if node.Color > 0 {
+						color := "B"
+			            if node.Color == 2 {
+							color = "W"
+			            }
+						if node.XY != nil {
+							result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
+						} else {
+							result += fmt.Sprintf("%s[]", color)
+						}
+			        }
 		*/
 		// throw in other fields
 		for key, multifield := range node.Fields {

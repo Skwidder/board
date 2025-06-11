@@ -692,13 +692,13 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.OGSLink.End()
 			}
 			// it might be a string
-			if s,ok := evt.Value.(string); ok {
+			if s, ok := evt.Value.(string); ok {
 
-		    	decoded, err := base64.StdEncoding.DecodeString(s)
-		    	if err != nil {
-		    	    log.Println(err)
-		    	    continue
-		    	}
+				decoded, err := base64.StdEncoding.DecodeString(s)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
 				if IsZipFile(decoded) {
 					filesBytes, err := Decompress(decoded)
 					if err != nil {
@@ -718,10 +718,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				} else {
 					evt = room.UploadSGF(string(decoded))
 				}
-			} else if arr,ok := evt.Value.([]interface{}); ok {
+			} else if arr, ok := evt.Value.([]interface{}); ok {
 				// it might be an array of strings
 				sgfs := []string{}
-				for _,ifc := range arr {
+				for _, ifc := range arr {
 					s := ifc.(string)
 					d, err := base64.StdEncoding.DecodeString(s)
 					if err != nil {
