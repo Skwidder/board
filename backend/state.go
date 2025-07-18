@@ -312,6 +312,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) {
 	}
 
 	diff := NewDiff(diffAdd, diffRemove)
+	s.Board.ApplyDiff(diff)
 	s.Current.Diff = diff
 }
 

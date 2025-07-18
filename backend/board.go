@@ -72,6 +72,10 @@ type StoneSet struct {
 	Color
 }
 
+func (s *StoneSet) String() string {
+	return fmt.Sprintf("%v - %v", s.CoordSet, s.Color)
+}
+
 func NewStoneSet(s CoordSet, c Color) *StoneSet {
 	return &StoneSet{s, c}
 }
