@@ -252,6 +252,7 @@ func (s *Server) Load() {
 		return
 	}
 	for _,e := range sgfs {
+		log.Println(e)
 		id := e.Name()
 		path := filepath.Join(dir, id)
 		data, err := ioutil.ReadFile(path)

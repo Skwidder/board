@@ -70,16 +70,16 @@ type TreeNode struct {
     Up *TreeNode
     Index int
     PreferredChild int
-    Erase bool
 	Fields map[string][]string
+	Diff *Diff
 }
 
-func NewTreeNode(coord *Coord, col, index int, up *TreeNode, erase bool, fields map[string][]string) *TreeNode {
+func NewTreeNode(coord *Coord, col, index int, up *TreeNode, fields map[string][]string) *TreeNode {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
     down := []*TreeNode{}
-    return &TreeNode{coord, col, down, up, index, 0, erase, fields}
+    return &TreeNode{coord, col, down, up, index, 0, fields, nil}
 }
 
 func (n *TreeNode) AddField(key, value string) {
@@ -119,6 +119,7 @@ type State struct {
 	InputBuffer int64
 	Timeout float64
 	Size int
+	Board *Board
 }
 
 func (s *State) Prefs() string {
@@ -261,7 +262,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) {
 	if index == -1 {
 		index = tmp
 	}
-	n := NewTreeNode(nil, -1, index, s.Current, false, fields)
+	n := NewTreeNode(nil, -1, index, s.Current, fields)
 	s.Nodes[index] = n
 	if s.Root == nil {
 		s.Root = n
@@ -270,6 +271,48 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) {
 		s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
+
+	// compute diff
+	diffAdd := []*StoneSet{}
+	if val, ok := fields["AB"]; ok {
+		add := NewCoordSet()
+		for _,v := range val {
+			add.Add(LettersToCoord(v))
+		}
+		stoneSet := NewStoneSet(add, Black)
+		diffAdd = append(diffAdd, stoneSet)
+	}
+
+	if val, ok := fields["AW"]; ok {
+		add := NewCoordSet()
+		for _,v := range val {
+			add.Add(LettersToCoord(v))
+		}
+		stoneSet := NewStoneSet(add, White)
+		diffAdd = append(diffAdd, stoneSet)
+	}
+
+	diffRemove := []*StoneSet{}
+	if val, ok := fields["AE"]; ok {
+		csBlack := NewCoordSet()
+		csWhite := NewCoordSet()
+		for _,v := range val {
+			coord := LettersToCoord(v)
+			col := s.Board.Get(coord)
+			if col == Black {
+				csBlack.Add(coord)
+			} else if col == White {
+				csWhite.Add(coord)
+			}
+		}
+		removeBlack := NewStoneSet(csBlack, Black)
+		removeWhite := NewStoneSet(csWhite, White)
+		diffRemove = append(diffRemove, removeBlack)
+		diffRemove = append(diffRemove, removeWhite)
+	}
+
+	diff := NewDiff(diffAdd, diffRemove)
+	s.Current.Diff = diff
 }
 
 func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
@@ -277,7 +320,7 @@ func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
 	if index == -1 {
     	index = tmp
 	}
-    n := NewTreeNode(nil, col, index, s.Current, false, fields)
+    n := NewTreeNode(nil, col, index, s.Current, fields)
     s.Nodes[index] = n
 	if s.Root == nil {
 		s.Root = n
@@ -286,6 +329,7 @@ func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
 	    s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
+	// no need to add a diff
 }
 
 func (s *State) PushHead(x, y, col int) {
@@ -294,7 +338,7 @@ func (s *State) PushHead(x, y, col int) {
 		coord = nil
 	}
 	index := s.GetNextIndex()
-    n := NewTreeNode(coord, col, index, s.Head, false, nil)
+    n := NewTreeNode(coord, col, index, s.Head, nil)
 	s.Nodes[index] = n
 	if len(s.Head.Down) > 0 {
 		s.Head.PreferredChild++
@@ -306,9 +350,10 @@ func (s *State) PushHead(x, y, col int) {
 		s.Current = n
 	}
 	s.Head = n
+	// TODO: need to compute diff
 }
 
-func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, index int, force bool) {
+func (s *State) AddNode(x, y, col int, fields map[string][]string, index int, force bool) {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
@@ -329,7 +374,7 @@ func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, i
 	if index == -1 {
 	    index = tmp
 	}
-    n := NewTreeNode(coord, col, index, s.Current, erase, fields)
+    n := NewTreeNode(coord, col, index, s.Current, fields)
 
     s.Nodes[index] = n
 	if s.Root == nil {
@@ -339,6 +384,8 @@ func (s *State) AddNode(x, y, col int, erase bool, fields map[string][]string, i
 	    s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
+	diff := s.Board.Move(coord, Color(col))
+	s.Current.Diff = diff
 }
 
 func (s *State) Cut(index int) {
@@ -365,6 +412,7 @@ func (s *State) Cut(index int) {
 
 func (s *State) Left() {
     if s.Current.Up != nil {
+		s.Board.ApplyDiff(s.Current.Diff.Invert())
         s.Current = s.Current.Up
     }
 }
@@ -373,7 +421,43 @@ func (s *State) Right() {
     if len(s.Current.Down) > 0 {
         index := s.Current.PreferredChild
         s.Current = s.Current.Down[index]
+		s.Board.ApplyDiff(s.Current.Diff)
     }
+}
+
+func (s *State) GotoIndex(index int) error {
+	err := s.SetPreferred(index)
+	if err != nil {
+		return err
+	}
+	s.Rewind()
+	for {
+		if s.Current.Index == index {
+			break
+		}
+		s.Right()
+	}
+    //s.Current = s.Nodes[index]
+	return nil
+}
+
+func (s *State) Rewind() {
+	s.Current = s.Root
+	s.Board.Clear()
+	s.Board.ApplyDiff(s.Current.Diff)
+}
+
+func (s *State) FastForward() {
+	for {
+	    if len(s.Current.Down) == 0 {
+	        break
+	    }
+		s.Right()
+		/*
+	    index := s.Current.PreferredChild
+	    s.Current = s.Current.Down[index]
+		*/
+	}
 }
 
 func (s *State) Up() {
@@ -444,7 +528,7 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, evt.Color, false, nil, -1, false)
+        s.AddNode(x, y, evt.Color, nil, -1, false)
 	case "pass":
 		fields := make(map[string][]string)
 		s.AddPassNode(evt.Color, fields, -1)
@@ -460,7 +544,9 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, 0, true, nil, -1, false)
+		fields := make(map[string][]string)
+		fields["AE"] = []string{c.ToLetters()}
+		s.AddFieldNode(fields, -1)
 	case "triangle":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -566,8 +652,11 @@ func (s *State) Add(evt *EventJSON) error {
 	case "button":
         val := evt.Value.(string)
         if val == "Rewind" {
-            s.Current = s.Root
+			s.Rewind()
+            //s.Current = s.Root
         } else if val == "FastForward" {
+			s.FastForward()
+			/*
             for {
                 if len(s.Current.Down) == 0 {
                     break
@@ -575,14 +664,18 @@ func (s *State) Add(evt *EventJSON) error {
                 index := s.Current.PreferredChild
                 s.Current = s.Current.Down[index]
             }
+			*/
         }
 	case "goto_grid":
         index := int(evt.Value.(float64))
+		s.GotoIndex(index)
+		/*
 		err := s.SetPreferred(index)
 		if err != nil {
 			return err
 		}
         s.Current = s.Nodes[index]
+		*/
 	case "goto_coord":
         coords := make([]int, 0)
         // coerce the value to an array
@@ -642,9 +735,7 @@ func (s *State) ToSGF(indexes bool) string {
         }
         node := cur.NodeValue
         result += ";"
-        if node.Erase {
-			result += fmt.Sprintf("AE[%s]", node.XY.ToLetters())
-        } else if node.Color > 0 {
+        if node.Color > 0 {
 			color := "B"
             if node.Color == 2 {
 				color = "W"
@@ -735,7 +826,7 @@ func FromSGF(data string) (*State, error) {
 			}
 
             if col != 0 && v != nil {
-                state.AddNode(v.X, v.Y, col, false, node.Fields, index, true)
+                state.AddNode(v.X, v.Y, col, node.Fields, index, true)
             } else if col != 0 {
 				state.AddPassNode(col, node.Fields, index)
 			} else {
@@ -748,7 +839,7 @@ func FromSGF(data string) (*State, error) {
 			state.Head = state.Current
         }
     }
-    state.Current = state.Root
+	state.Rewind()
 	state.ResetPrefs()
     return state, nil
 }
@@ -782,14 +873,15 @@ func NewState(size int, initRoot bool) *State {
 		fields["RU"] = []string{"Japanese"}
 		fields["KM"] = []string{"6.5"}
 	
-	    // coord, color, index, up, erase, fields
-	    root = NewTreeNode(nil, 0, 0, nil, false, fields)
+	    // coord, color, index, up, fields
+	    root = NewTreeNode(nil, 0, 0, nil, fields)
     	nodes[0] = root
 		index = 1
 	}
+	board := NewBoard(size)
 	// default input buffer of 250
 	// default room timeout of 86400
-    return &State{root, root, root, nodes, index, 250, 86400, size}
+    return &State{root, root, root, nodes, index, 250, 86400, size, board}
 }
 
 type StackTreeNode struct {
