@@ -14,25 +14,66 @@ import (
     "fmt"
 )
 
-type Expr struct {
-    Type string
-    Value interface{}
-}
-
 func IsWhitespace(c byte) bool {
     return c == '\n' || c == ' ' || c == '\t' || c == '\r'
 }
 
 type SGFNode struct {
+	/*
     Value *Coord
     Color int
+	*/
     Fields map[string][]string
     Down []*SGFNode
     Index int
 }
 
-func NewSGFNode(v *Coord, color int, fields map[string][]string, index int) *SGFNode {
-    return &SGFNode{v, color, fields, []*SGFNode{}, index}
+func (n *SGFNode) IsMove() bool {
+	if _, ok := n.Fields["B"]; ok {
+		return true
+	}
+	if _, ok := n.Fields["W"]; ok {
+		return true
+	}
+	return false
+}
+
+func (n *SGFNode) IsPass() bool {
+	if val, ok := n.Fields["B"]; ok {
+		return len(val) == 1 && val[0] == ""
+	}
+	if val, ok := n.Fields["W"]; ok {
+		return len(val) == 1 && val[0] == ""
+	}
+	return false
+}
+
+func (n *SGFNode) Color() Color {
+	if _, ok := n.Fields["B"]; ok {
+		return Black
+	}
+	if _, ok := n.Fields["W"]; ok {
+		return White
+	}
+	return NoColor
+}
+
+func (n *SGFNode) Coord() *Coord {
+	if val, ok := n.Fields["B"]; ok {
+		if len(val) == 1 {
+			return LettersToCoord(val[0])
+		}
+	}
+	if val, ok := n.Fields["W"]; ok {
+		if len(val) == 1 {
+			return LettersToCoord(val[0])
+		}
+	}
+	return nil
+}
+
+func NewSGFNode(fields map[string][]string, index int) *SGFNode {
+    return &SGFNode{fields, []*SGFNode{}, index}
 }
 
 type Parser struct {
@@ -54,7 +95,7 @@ func (p *Parser) Parse() (*SGFNode, error) {
     }
 }
 
-func (p *Parser) SkipWhitespace() *Expr {
+func (p *Parser) SkipWhitespace() {
     for {
         if IsWhitespace(p.peek(0)) {
             p.read()
@@ -62,7 +103,6 @@ func (p *Parser) SkipWhitespace() *Expr {
             break
         }
     }
-    return &Expr{"whitespace", ""}
 }
 
 func (p *Parser) ParseKey() (string, error) {
@@ -121,8 +161,10 @@ func (p *Parser) ParseNodes() ([]*SGFNode, error) {
 
 func (p *Parser) ParseNode() (*SGFNode, error) {
     fields := make(map[string][]string)
+	/*
     color := 0
     move := ""
+	*/
     index := 0
     for {
         p.SkipWhitespace()
@@ -163,6 +205,8 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
         }
 
         p.SkipWhitespace()
+        fields[key] = multifield
+		/*
         switch key {
         case "B":
             color = 1
@@ -171,12 +215,12 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
             color = 2
             move = multifield[0]
         default:
-            fields[key] = multifield
-        }
+			*/
     }
 
-    v := LettersToCoord(move)
-    n := NewSGFNode(v, color, fields, index)
+    //v := LettersToCoord(move)
+    //n := NewSGFNode(v, color, fields, index)
+    n := NewSGFNode(fields, index)
     return n, nil
 }
 

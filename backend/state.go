@@ -65,7 +65,7 @@ func InterfaceToCoord(ifc interface{}) (*Coord, error) {
 
 type TreeNode struct {
     XY *Coord
-    Color int
+    Color Color
     Down []*TreeNode
     Up *TreeNode
     Index int
@@ -74,7 +74,7 @@ type TreeNode struct {
 	Diff *Diff
 }
 
-func NewTreeNode(coord *Coord, col, index int, up *TreeNode, fields map[string][]string) *TreeNode {
+func NewTreeNode(coord *Coord, col Color, index int, up *TreeNode, fields map[string][]string) *TreeNode {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
@@ -316,7 +316,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) {
 	s.Current.Diff = diff
 }
 
-func (s *State) AddPassNode(col int, fields map[string][]string, index int) {
+func (s *State) AddPassNode(col Color, fields map[string][]string, index int) {
 	tmp := s.GetNextIndex()
 	if index == -1 {
     	index = tmp
@@ -339,7 +339,7 @@ func (s *State) PushHead(x, y, col int) {
 		coord = nil
 	}
 	index := s.GetNextIndex()
-    n := NewTreeNode(coord, col, index, s.Head, nil)
+    n := NewTreeNode(coord, Color(col), index, s.Head, nil)
 	s.Nodes[index] = n
 	if len(s.Head.Down) > 0 {
 		s.Head.PreferredChild++
@@ -354,7 +354,7 @@ func (s *State) PushHead(x, y, col int) {
 	// TODO: need to compute diff
 }
 
-func (s *State) AddNode(x, y, col int, fields map[string][]string, index int, force bool) {
+func (s *State) AddNode(x, y int, col Color, fields map[string][]string, index int, force bool) {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
@@ -363,7 +363,7 @@ func (s *State) AddNode(x, y, col int, fields map[string][]string, index int, fo
 		// check to see if it's already there
 		for i,node := range(s.Current.Down) {
 			coord_old := node.XY
-			if coord_old != nil && coord != nil && coord_old.X == x && coord_old.Y == y && node.Color == col {
+			if coord_old != nil && coord != nil && coord_old.X == x && coord_old.Y == y && node.Color == Color(col) {
 				s.Current.PreferredChild = i
 				s.Right()
 				return
@@ -375,7 +375,7 @@ func (s *State) AddNode(x, y, col int, fields map[string][]string, index int, fo
 	if index == -1 {
 	    index = tmp
 	}
-    n := NewTreeNode(coord, col, index, s.Current, fields)
+    n := NewTreeNode(coord, Color(col), index, s.Current, fields)
 
     s.Nodes[index] = n
 	if s.Root == nil {
@@ -529,10 +529,10 @@ func (s *State) Add(evt *EventJSON) error {
             return nil
         }
 
-        s.AddNode(x, y, evt.Color, nil, -1, false)
+        s.AddNode(x, y, Color(evt.Color), nil, -1, false)
 	case "pass":
 		fields := make(map[string][]string)
-		s.AddPassNode(evt.Color, fields, -1)
+		s.AddPassNode(Color(evt.Color), fields, -1)
 	case "remove_stone":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -812,8 +812,6 @@ func FromSGF(data string) (*State, error) {
             }
         } else {
             node := cur.NodeValue
-            v := node.Value
-            col := node.Color
 
 			index := -1
 			if indexes, ok := node.Fields["IX"]; ok {
@@ -826,10 +824,12 @@ func FromSGF(data string) (*State, error) {
 				}
 			}
 
-            if col != 0 && v != nil {
-                state.AddNode(v.X, v.Y, col, node.Fields, index, true)
-            } else if col != 0 {
-				state.AddPassNode(col, node.Fields, index)
+			if node.IsPass() {
+				state.AddPassNode(node.Color(), node.Fields, index)
+			} else if node.IsMove() {
+				fmt.Println(node.Color())
+				v := node.Coord()
+                state.AddNode(v.X, v.Y, node.Color(), node.Fields, index, true)
 			} else {
 				state.AddFieldNode(node.Fields, index)
 			}
