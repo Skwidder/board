@@ -161,42 +161,31 @@ class TreeGraphics {
                 max_y = coord.y;
             }
         }
-        /*
-        for (let node of explorer.nodes) {
-            console.log("node:", node);
-        }
-
-        for (let node of explorer.preferred_nodes) {
-            console.log("preferred node:", node);
-        }
-        */
 
         this.set_dims_all(max_x+1, max_y+1);
+
+        let current = explorer.current;
+        this.draw_current(current.x, current.y);
 
         this._draw_stones(explorer.nodes);
         this._draw_preferred_stones(explorer.preferred_nodes);
         this._draw_lines(explorer.edges);
         this._draw_preferred_lines(explorer.preferred_edges);
+
+        console.log(current.x, current.y);
+        this.set_scroll(current.x, current.y);
     }
 
     _draw_stones(nodes) {
-        this.clear_svg("stones");
-        let black_stones = [];
-        let white_stones = [];
-
-        for (let node of nodes) {
-            if (node.color == BLACK) {
-                black_stones.push([node.coord.x, node.coord.y]);
-            } else if (node.color == WHITE) {
-                white_stones.push([node.coord.x, node.coord.y]);
-            }
-        }
-        this.svg_draw_circles(black_stones, BLACK, false, "stones");
-        this.svg_draw_circles(white_stones, WHITE, false, "stones");
+        this._draw_explorer_stones(nodes, "stones", false);
     }
 
     _draw_preferred_stones(nodes) {
-        this.clear_svg("preferred-stones");
+        this._draw_explorer_stones(nodes, "preferred-stones", true);
+    }
+
+    _draw_explorer_stones(nodes, id, preferred) {
+        this.clear_svg(id);
         let black_stones = [];
         let white_stones = [];
 
@@ -207,34 +196,42 @@ class TreeGraphics {
                 white_stones.push([node.coord.x, node.coord.y]);
             }
         }
-        this.svg_draw_circles(black_stones, BLACK, true, "preferred-stones");
-        this.svg_draw_circles(white_stones, WHITE, true, "preferred-stones");
+        this.svg_draw_circles(black_stones, BLACK, preferred, id);
+        this.svg_draw_circles(white_stones, WHITE, preferred, id);
+
     }
 
     _draw_lines(edges) {
-        this.clear_svg("lines");
-        let lines = [];
-
-        for (let edge of edges) {
-            let line = [
-                [edge.start.x, edge.start.y],
-                [edge.end.x, edge.end.y]];
-            lines.push(line);
-        }
-        this.svg_draw_polyline(lines, "#BBBBBB", "lines");
+        this._draw_explorer_lines(edges, "lines", "#BBBBBB");
     }
    
     _draw_preferred_lines(edges) {
-        this.clear_svg("preferred-lines");
+        this._draw_explorer_lines(edges, "preferred-lines", "#8d42eb");
+    }
+
+    _draw_explorer_lines(edges, id, color) {
+        this.clear_svg(id);
         let lines = [];
 
         for (let edge of edges) {
-            let line = [
-                [edge.start.x, edge.start.y],
-                [edge.end.x, edge.end.y]];
-            lines.push(line);
+            if (edge.end.y - edge.start.y > 1) {
+                let line = [
+                    [edge.start.x, edge.end.y-1],
+                    [edge.end.x, edge.end.y]];
+                lines.push(line);
+                line = [
+                    [edge.start.x, edge.start.y],
+                    [edge.start.x, edge.end.y-1]];
+                lines.push(line);
+            } else {
+                let line = [
+                    [edge.start.x, edge.start.y],
+                    [edge.end.x, edge.end.y]];
+                lines.push(line);
+            }
         }
-        this.svg_draw_polyline(lines, "#8d42eb", "preferred-lines");
+        this.svg_draw_polyline(lines, color, id);
+
     }
 
     update(tree, change_preferred=false, change_stones=false) {
@@ -255,6 +252,7 @@ class TreeGraphics {
     }
 
     set_scroll(x, y) {
+        let [x_pos, y_pos] = this.get_xypos(x,y);
         let old_left = this.container.scrollLeft;
         let old_top = this.container.scrollTop;
         let x_padding = 5*this.step;
@@ -263,11 +261,11 @@ class TreeGraphics {
         // and only update if not
 
         let width = this.container.offsetWidth;
-        if (old_left > x-x_padding || x + x_padding > old_left + width) {
-            this.container.scrollLeft = x - x_padding;
+        if (old_left > x_pos-x_padding || x_pos + x_padding > old_left + width) {
+            this.container.scrollLeft = x_pos - x_padding;
         }
-        if (old_top > y - y_padding || y + y_padding > old_top + this.height) {
-            this.container.scrollTop = y - y_padding;
+        if (old_top > y_pos - y_padding || y_pos + y_padding > old_top + this.height) {
+            this.container.scrollTop = y_pos - y_padding;
         }
 
     }
@@ -588,6 +586,7 @@ class TreeGraphics {
     }
 
     draw_current(x, y) {
+        this.clear_svg("current");
         let w = this.step/2;
         let [pos_x, pos_y] = this.get_xypos(x,y);
         this.svg_draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current");
