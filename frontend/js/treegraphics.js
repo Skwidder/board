@@ -14,6 +14,10 @@ export {
     TreeGraphics
 }
 
+const NOCOLOR = 0;
+const BLACK = 1;
+const WHITE = 2;
+
 class TreeGraphics {
     constructor() {
         let review = document.getElementById("review");
@@ -142,6 +146,95 @@ class TreeGraphics {
             }
         }
         return 0;
+    }
+
+    _update(explorer) {
+        let max_x = 0;
+        let max_y = 0;
+        for (let node of explorer.nodes) {
+
+            let coord = node.coord;
+            if (coord.x > max_x) {
+                max_x = coord.x;
+            }
+            if (coord.y > max_y) {
+                max_y = coord.y;
+            }
+        }
+        /*
+        for (let node of explorer.nodes) {
+            console.log("node:", node);
+        }
+
+        for (let node of explorer.preferred_nodes) {
+            console.log("preferred node:", node);
+        }
+        */
+
+        this.set_dims_all(max_x+1, max_y+1);
+
+        this._draw_stones(explorer.nodes);
+        this._draw_preferred_stones(explorer.preferred_nodes);
+        this._draw_lines(explorer.edges);
+        this._draw_preferred_lines(explorer.preferred_edges);
+    }
+
+    _draw_stones(nodes) {
+        this.clear_svg("stones");
+        let black_stones = [];
+        let white_stones = [];
+
+        for (let node of nodes) {
+            if (node.color == BLACK) {
+                black_stones.push([node.coord.x, node.coord.y]);
+            } else if (node.color == WHITE) {
+                white_stones.push([node.coord.x, node.coord.y]);
+            }
+        }
+        this.svg_draw_circles(black_stones, BLACK, false, "stones");
+        this.svg_draw_circles(white_stones, WHITE, false, "stones");
+    }
+
+    _draw_preferred_stones(nodes) {
+        this.clear_svg("preferred-stones");
+        let black_stones = [];
+        let white_stones = [];
+
+        for (let node of nodes) {
+            if (node.color == BLACK) {
+                black_stones.push([node.coord.x, node.coord.y]);
+            } else if (node.color == WHITE) {
+                white_stones.push([node.coord.x, node.coord.y]);
+            }
+        }
+        this.svg_draw_circles(black_stones, BLACK, true, "preferred-stones");
+        this.svg_draw_circles(white_stones, WHITE, true, "preferred-stones");
+    }
+
+    _draw_lines(edges) {
+        this.clear_svg("lines");
+        let lines = [];
+
+        for (let edge of edges) {
+            let line = [
+                [edge.start.x, edge.start.y],
+                [edge.end.x, edge.end.y]];
+            lines.push(line);
+        }
+        this.svg_draw_polyline(lines, "#BBBBBB", "lines");
+    }
+   
+    _draw_preferred_lines(edges) {
+        this.clear_svg("preferred-lines");
+        let lines = [];
+
+        for (let edge of edges) {
+            let line = [
+                [edge.start.x, edge.start.y],
+                [edge.end.x, edge.end.y]];
+            lines.push(line);
+        }
+        this.svg_draw_polyline(lines, "#8d42eb", "preferred-lines");
     }
 
     update(tree, change_preferred=false, change_stones=false) {

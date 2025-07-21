@@ -24,6 +24,11 @@ export {
     State
 }
 
+const FrameType = {
+    DIFF: 0,
+    FULL: 1,
+}
+
 function b64_encode_unicode(str) {
     const text_encoder = new TextEncoder('utf-8');
     const encoded_data = text_encoder.encode(str);
@@ -1051,6 +1056,85 @@ class State {
         this.tree_graphics.update(this.board.tree, true, true);
     }
 
+    handle_frame(frame) {
+        console.log(frame);
+        if (frame.type == FrameType.DIFF) {
+            this.apply_diff(frame.diff);
+        } else if (frame.type == FrameType.FULL) {
+            this.full_frame(frame.diff);
+        }
+        if (frame.marks != null && "current" in frame.marks) {
+            let current = frame.marks.current;
+            let color = current.color;
+            let coordset = current.coordset;
+            for (let k in coordset) {
+                let coord = coordset[k];
+                this.board_graphics.clear_current();
+                this.board_graphics._draw_current(coord.x, coord.y, color);
+            }
+        }
+        if (frame.explorer != null) {
+            this.tree_graphics._update(frame.explorer);
+        }
+    }
+
+    full_frame(frame) {
+        if (frame == null) {
+            return;
+        }
+        this.board_graphics.clear_and_remove();
+        for (let a of frame.add) {
+            let col = a["color"];
+            let coordset = a["coordset"];
+            for (let k in coordset) {
+                let coord = coordset[k];
+                this._place_stone(coord.x, coord.y, col);
+            }
+        }
+    }
+
+    apply_diff(diff) {
+        if (diff == null) {
+            return;
+        }
+        for (let a of diff.add) {
+            let col = a["color"];
+            let coordset = a["coordset"];
+            for (let k in coordset) {
+                let coord = coordset[k];
+                this._place_stone(coord.x, coord.y, col);
+            }
+        }
+        for (let r of diff.remove) {
+            let coordset = r["coordset"];
+            for (let k in coordset) {
+                let coord = coordset[k];
+                this.remove_stone(coord.x, coord.y);
+            }
+        }
+    }
+
+    _place_stone(x, y, color) {
+        // if out of bounds, just return
+        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
+            return;
+        }
+
+        // returns list of dead stones
+        let coord = new Coord(x, y);
+        this.board.set(coord, color);
+
+        this.board_graphics.remove_marks();
+        this.board_graphics.draw_stone(x, y, color);
+        //this.board_graphics.draw_current();
+        if (this.toggling) {
+            this.toggle_color();
+        }
+        this.update_comments();
+        this.update_move_number();
+        //this.tree_graphics.update(this.board.tree, true, true);
+    }
+
     place_stone(x, y, color) {
         // if out of bounds, just return
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
@@ -1184,6 +1268,6 @@ class State {
         this.board_graphics.erase_stone(x, y);
         this.update_comments();
         this.update_move_number();
-        this.tree_graphics.update(this.board.tree, true, true);
+        //this.tree_graphics.update(this.board.tree, true, true);
     }
 }

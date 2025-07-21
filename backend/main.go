@@ -740,6 +740,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				log.Println(err)
 				newEvent := ErrorJSON(err.Error())
 				data, _ := json.Marshal(newEvent)
+				// broadcaste error message
 				for _,conn := range room.conns {
 					conn.Write(data)
 				}
@@ -748,6 +749,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			if data == "Permission denied" {
 				newEvent := ErrorJSON("Error fetching SGF. Is it a private OGS game?")
 				data, _ := json.Marshal(newEvent)
+				// broadcast error message
 				for _,conn := range room.conns {
 					conn.Write(data)
 				}
@@ -855,7 +857,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		*/
 
 		} else {
-            err = room.State.Add(evt)
+			frame, err := room.State.AddEvent(evt)
 			if err != nil {
 				newEvent := ErrorJSON(err.Error())
 				data, _ := json.Marshal(newEvent)
@@ -864,6 +866,14 @@ func (s *Server) Handler(ws *websocket.Conn) {
 					conn.Write(data)
 				}
                 continue
+			}
+			if frame != nil {
+				evt = &EventJSON {
+					Event: "frame",
+					Value: frame,
+					Color: 0,
+					UserID: "",
+				}
 			}
         }
 		room.Broadcast(evt, id, true)

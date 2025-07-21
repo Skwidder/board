@@ -430,6 +430,9 @@ class BoardGraphics {
         return this.draw_raw_circle(x, y, r, color, id, true, stroke);
     }
 
+    draw_current_coord(x, y) {
+    }
+
     draw_current() {
         this.clear_svg("current");
         let cur = this.state.board.tree.current;

@@ -146,6 +146,9 @@ class NetworkHandler {
                     this.state.down();
                 }
                 break;
+            case "frame":
+                this.state.handle_frame(payload["value"]);
+                break;
             case "add_stone":
                 coords = payload["value"];
                 this.state.place_stone(coords[0], coords[1], payload["color"]);
@@ -321,7 +324,8 @@ class NetworkHandler {
     }
 
     prepare_scissors() {
-        let payload = {"event":"scissors", "value": this.state.board.tree.current.index};
+        //let payload = {"event":"scissors", "value": this.state.board.tree.current.index};
+        let payload = {"event":"scissors"};
         this.prepare(payload);
     }
 
@@ -430,7 +434,7 @@ class NetworkHandler {
 
 
     onmessage(event) {
-        //console.log("receiving:", event.data);
+        console.log("receiving:", event.data);
         let payload = JSON.parse(event.data);
         this.fromserver(payload);
     }

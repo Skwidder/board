@@ -22,6 +22,20 @@ const (
 	White
 )
 
+type FrameType int
+const (
+	DiffFrame = iota
+	FullFrame
+)
+
+type Frame struct {
+	Type FrameType `json:"type"`
+	Diff *Diff `json:"diff"`
+	Marks map[string]*StoneSet `json:"marks"`
+	Explorer *Explorer `json:"explorer"`
+}
+
+
 func Opposite(c Color) Color {
 	if c == Black {
 		return White
@@ -68,8 +82,8 @@ func NewCoordSet() CoordSet {
 }
 
 type StoneSet struct {
-	CoordSet
-	Color
+	CoordSet `json:"coordset"`
+	Color `json:"color"`
 }
 
 func (s *StoneSet) String() string {
@@ -81,8 +95,8 @@ func NewStoneSet(s CoordSet, c Color) *StoneSet {
 }
 
 type Diff struct {
-	Add []*StoneSet
-	Remove []*StoneSet
+	Add []*StoneSet `json:"add"`
+	Remove []*StoneSet `json:"remove"`
 }
 
 func NewDiff(add, remove []*StoneSet) *Diff {
@@ -356,7 +370,6 @@ func (b *Board) Move(start *Coord, col Color) *Diff {
 	cs := NewCoordSet()
 	cs.Add(start)
 	add := NewStoneSet(cs, col)
-	fmt.Println(b)
 	return NewDiff([]*StoneSet{add}, []*StoneSet{remove})
 }
 
@@ -370,5 +383,23 @@ func (b *Board) ApplyDiff(d *Diff) {
 	for _,remove := range d.Remove {
 		b.SetMany(remove.CoordSet, NoColor)
 	}
-	fmt.Println(b)
+}
+
+func (b *Board) CurrentFrame() *Frame {
+	black := NewCoordSet()
+	white := NewCoordSet()
+	for j,row := range b.Points {
+		for i,c := range row {
+			if c == Black {
+				black.Add(&Coord{i, j})
+			} else if c == White {
+				white.Add(&Coord{i, j})
+			}
+		}
+	}
+	addBlack := NewStoneSet(black, Black)
+	addWhite := NewStoneSet(white, White)
+	diff := NewDiff([]*StoneSet{addBlack, addWhite}, nil)
+
+	return &Frame{FullFrame, diff, nil, nil}
 }
