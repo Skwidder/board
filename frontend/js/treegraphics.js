@@ -200,17 +200,27 @@ class TreeGraphics {
         this.clear_svg(id);
         let black_stones = [];
         let white_stones = [];
+        
+        let black_numbers = [];
+        let white_numbers = [];
 
         for (let node of nodes) {
             if (node.color == BLACK) {
                 black_stones.push([node.coord.x, node.coord.y]);
+                black_numbers.push([node.coord, node.coord.x.toString()]);
             } else if (node.color == WHITE) {
                 white_stones.push([node.coord.x, node.coord.y]);
+                white_numbers.push([node.coord, node.coord.x.toString()]);
             }
         }
+
+        // draw circles
         this.svg_draw_circles(black_stones, BLACK, preferred, id);
         this.svg_draw_circles(white_stones, WHITE, preferred, id);
 
+        // draw numbers
+        this.svg_draw_texts(black_numbers, WHITE, preferred, id);
+        this.svg_draw_texts(white_numbers, BLACK, preferred, id);
     }
 
     _draw_lines(edges) {
@@ -246,6 +256,7 @@ class TreeGraphics {
 
     }
 
+    /*
     update(tree, change_preferred=false, change_stones=false) {
         // fill grid
         let [grid, loc] = this.fill_grid(tree);
@@ -262,6 +273,7 @@ class TreeGraphics {
         // this should be based on the current move
         this.set_scroll(x, y);
     }
+    */
 
     set_scroll(x, y) {
         let [x_pos, y_pos] = this.get_xypos(x,y);
@@ -311,6 +323,7 @@ class TreeGraphics {
         }
     }
 
+    /*
     fill_grid(tree) {
         // there is a 2d "grid" that every move will exist on
         let row = new Array(tree.max_depth).fill(0);
@@ -401,6 +414,7 @@ class TreeGraphics {
         }
         return [grid, loc];
     }
+    */
 
     get_xpos(x) {
         return this.x_offset + x*this.step;
@@ -414,6 +428,7 @@ class TreeGraphics {
         return [this.get_xpos(x), this.get_ypos(y)];
     }
 
+    /*
     draw_lines(grid, loc) {
         let lines = [];
 
@@ -430,7 +445,10 @@ class TreeGraphics {
         }
         this.svg_draw_polyline(lines, "#BBBBBB", "lines");
     }
+    */
 
+
+    /*
     draw_preferred_line(tree, loc) {
         let cur = tree.root;
         let lines = [];
@@ -445,7 +463,9 @@ class TreeGraphics {
         }
         this.svg_draw_polyline(lines, "#8d42eb", "preferred-lines");
     }
+    */
 
+    /*
     draw_preferred_stones(tree, loc) {
         let cur = tree.root;
 
@@ -517,7 +537,9 @@ class TreeGraphics {
         this.svg_draw_texts(white_numbers, 2, true, "preferred-stones");
 
     }
+    */
 
+    /*
     draw_stones(tree, grid, loc) {
         // get indexes of tree's preferred nodes
         let preferred = tree.preferred();
@@ -596,6 +618,7 @@ class TreeGraphics {
         this.svg_draw_texts(black_numbers, 1, false, "stones");
         this.svg_draw_texts(white_numbers, 2, false, "stones");
     }
+    */
 
     draw_current(x, y) {
         this.clear_svg("current");
@@ -605,6 +628,7 @@ class TreeGraphics {
         this.current = [x,y];
     }
 
+    /*
     draw_tree(tree, grid, loc, change_preferred, change_stones) {
         if (change_preferred) {
             this.clear_svg("preferred-lines");
@@ -648,6 +672,7 @@ class TreeGraphics {
         }
         return [pos_x, pos_y];
     }
+    */
 
     svg_draw_texts(values, color, preferred, id) {
         let hex_color = "#000000";
@@ -658,7 +683,9 @@ class TreeGraphics {
             hex_color += "44";
         }
         let svg = this.svgs.get(id);
-        for (let [[x,y], text_value] of values) {
+        for (let [coord, text_value] of values) {
+            let x = coord.x;
+            let y = coord.y;
             let text_id = id + ":" + x + ":" + y + ":text";
 
             //if (preferred) {
@@ -691,6 +718,7 @@ class TreeGraphics {
         }
     }
 
+    /*
     get_connecting_line(cur, loc) {
         let lines = [];
 
@@ -707,6 +735,7 @@ class TreeGraphics {
         }
         return lines;
     }
+    */
 
     svg_draw_polyline(coord_pairs, hexColor, id) {
         let svg = this.svgs.get(id);

@@ -837,36 +837,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			}
 			room.password = hashed
 
-		// this functionality has been absorbed into the regular url paste
-		/* 
-		} else if evt.Event == "link_ogs_game" {
-			if room.OGSLink != nil {
-				room.OGSLink.End()
-			}
+			room.Broadcast(evt, id, true)
 
-			url := evt.Value.(string)
-			spl := strings.Split(url, "/")
-			if len(spl) < 2 {
-				continue
-			}
-			idStr := spl[len(spl)-1]
-			id64, err := strconv.ParseInt(idStr, 10, 64)
-			if err != nil {
-				continue
-			}
-			id := int(id64)
-
-			o, err := NewOGSConnector(room)
-			if err != nil {
-				continue
-			}
-			go o.GameLoop(id)
-			room.OGSLink = o
-
-			// no need to broadcast this
-			continue
-		*/
-
+			frame := room.State.GenerateFullFrame()
+			evt = FrameJSON(frame)
 		} else {
 			frame, err := room.State.AddEvent(evt)
 			if err != nil {

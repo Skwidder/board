@@ -871,11 +871,11 @@ export function create_modals(_state) {
     function update_gameinfo_modal() {
         let body = document.getElementById("info-modal-gameinfo");
         body.innerHTML = "";
-        let game_info = state.get_game_info();
+        let gameinfo = state.get_gameinfo();
         let result = "";
-        for (let key in game_info) {
+        for (let key in gameinfo) {
             let temp = document.createElement("div");
-            temp.textContent = key + ": " + game_info[key];
+            temp.textContent = key + ": " + gameinfo[key];
             result += temp.innerHTML + "<br>";
         }
         body.innerHTML = result;

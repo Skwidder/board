@@ -66,7 +66,6 @@ class State {
         this.connected_users = {};
 
         this.board_graphics.draw_board();
-        this.tree_graphics.update(this.board.tree);
 
         create_buttons(this);
 
@@ -76,6 +75,7 @@ class State {
         }
 
         this.resize();
+        this.gameinfo = new Map();
     }
 
     set_network_handler(handler) {
@@ -111,6 +111,7 @@ class State {
             review.setAttribute("size", this.size);
             this.recompute_consts();
             this.board_graphics.reset_board();
+            //this.tree_graphics.
             this.reset();
         }
         this.password = settings["password"];
@@ -176,7 +177,7 @@ class State {
         this.mark = "";
 
         this.board = new Board(this.size);
-        this.tree_graphics.clear_all();
+        //this.tree_graphics.clear_all();
         // update move number
         this.update_move_number();
 
@@ -184,15 +185,18 @@ class State {
         this.update_comments();
 
         this.modals.update_modals();
-        //this.tree_graphics.update(this.board.tree, true, true);
     }
 
-    get_game_info() {
-        let fields = this.board.tree.root.fields;
+    get_gameinfo() {
+        return this.gameinfo;
+    }
+
+    set_gameinfo(fields_object) {
+        let fields = new Map(Object.entries(fields_object));
         if (fields == null) {
             fields = new Map();
         }
-        let game_info = {};
+        let gameinfo = {};
 
         // currently doesn't play very nice with chinese characters
 
@@ -201,9 +205,9 @@ class State {
             if (fields.has("BR")) {
                 rank = " [" + fields.get("BR") + "]";
             }
-            game_info["Black"] = fields.get("PB") + rank;
+            gameinfo["Black"] = fields.get("PB") + rank;
         } else {
-            game_info["Black"] = "Black";
+            gameinfo["Black"] = "Black";
         }
 
         if (fields.has("PW")) {
@@ -211,50 +215,50 @@ class State {
             if (fields.has("WR")) {
                 rank = " [" + fields.get("WR") + "]";
             }
-            game_info["White"] = fields.get("PW") + rank;
+            gameinfo["White"] = fields.get("PW") + rank;
         } else {
-            game_info["White"] = "White";
+            gameinfo["White"] = "White";
         }
 
         if (fields.has("RE")) {
-            game_info["Result"] = fields.get("RE");
+            gameinfo["Result"] = fields.get("RE");
         }
 
         if (fields.has("KM")) {
-            game_info["Komi"] = fields.get("KM");
+            gameinfo["Komi"] = fields.get("KM");
         }
 
         if (fields.has("DT")) {
-            game_info["Date"] = fields.get("DT");
+            gameinfo["Date"] = fields.get("DT");
         }
 
         if (fields.has("RU")) {
-            game_info["Ruleset"] = fields.get("RU");
+            gameinfo["Ruleset"] = fields.get("RU");
         }
 
         /*
         if (fields.has("PC")) {
-            game_info["Place"] = fields.get("PC");
+            gameinfo["Place"] = fields.get("PC");
         }
 
         if (fields.has("SO")) {
-            game_info["Source"] = fields.get("SO");
+            gameinfo["Source"] = fields.get("SO");
         }
 
         if (fields.has("EV")) {
-            game_info["Event"] = fields.get("EV");
+            gameinfo["Event"] = fields.get("EV");
         }
 
         if (fields.has("N")) {
-            game_info["Name"] = fields.get("N");
+            gameinfo["Name"] = fields.get("N");
         }
 
         if (fields.has("GN")) {
-            game_info["Game Name"] = fields.get("GN");
+            gameinfo["Game Name"] = fields.get("GN");
         }
         */
 
-        return game_info;
+        this.gameinfo = gameinfo;
     }
 
     compute_consts() {
@@ -643,6 +647,8 @@ class State {
     }
 
     handle_frame(frame) {
+        this.handle_metadata(frame.metadata);
+
         if (frame.type == FrameType.DIFF) {
             this.apply_diff(frame.diff);
         } else if (frame.type == FrameType.FULL) {
@@ -661,6 +667,7 @@ class State {
         if (frame.explorer != null) {
             this.tree_graphics._update(frame.explorer);
         }
+
     }
 
     full_frame(frame) {
@@ -675,6 +682,22 @@ class State {
                 let coord = coordset[k];
                 this._place_stone(coord.x, coord.y, col);
             }
+        }
+    }
+
+    handle_metadata(metadata) {
+        if (metadata == null) {
+            return;
+        }
+        if (metadata.size != null) {
+
+            this.set_gameinfo(metadata.fields);
+
+            let review = document.getElementById("review");
+            review.setAttribute("size", metadata.size);
+            this.recompute_consts();
+            this.board_graphics.reset_board();
+            this.reset();
         }
     }
 
@@ -825,6 +848,5 @@ class State {
         this.board_graphics.erase_stone(x, y);
         this.update_comments();
         this.update_move_number();
-        //this.tree_graphics.update(this.board.tree, true, true);
     }
 }

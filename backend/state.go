@@ -487,10 +487,19 @@ func (s *State) GenerateMarks() map[string]*StoneSet {
 	return marks
 }
 
+func (s *State) GenerateMetadata() *Metadata {
+	m := &Metadata {
+		Size: s.Size,
+		Fields: s.Root.Fields,
+	}
+	return m
+}
+
 func (s *State) GenerateFullFrame() *Frame {
 	frame := s.Board.CurrentFrame()
 	frame.Marks = s.GenerateMarks()
 	frame.Explorer = s.Root.FillGrid(s.Current.Index)
+	frame.Metadata = s.GenerateMetadata()
 	return frame
 
 }
@@ -520,13 +529,13 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		marks := s.GenerateMarks()
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, marks, explorer}, nil
+		return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
 	case "pass":
 		fields := make(map[string][]string)
 		s.AddPassNode(Color(evt.Color), fields, -1)
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
 	case "remove_stone":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -544,7 +553,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.AddFieldNode(fields, -1)
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, nil, explorer}, nil
+		return &Frame{DiffFrame, diff, nil, explorer, nil}, nil
 	case "triangle":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -632,29 +641,29 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Cut()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, marks, explorer}, nil
+		return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
 	
 	case "left":
 		diff := s.Left()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-        return &Frame{DiffFrame, diff, marks, explorer}, nil
+        return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
 
 	case "right":
 		diff := s.Right()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-        return &Frame{DiffFrame, diff, marks, explorer}, nil
+        return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
 	
 	case "up":
         s.Up()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
 	
 	case "down":
         s.Down()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
 
 
 	case "button":

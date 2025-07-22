@@ -33,6 +33,12 @@ type Frame struct {
 	Diff *Diff `json:"diff"`
 	Marks map[string]*StoneSet `json:"marks"`
 	Explorer *Explorer `json:"explorer"`
+	Metadata *Metadata `json:"metadata"`
+}
+
+type Metadata struct {
+	Size int `json:"size"`
+	Fields map[string][]string `json:"fields"`
 }
 
 
@@ -401,5 +407,5 @@ func (b *Board) CurrentFrame() *Frame {
 	addWhite := NewStoneSet(white, White)
 	diff := NewDiff([]*StoneSet{addBlack, addWhite}, nil)
 
-	return &Frame{FullFrame, diff, nil, nil}
+	return &Frame{FullFrame, diff, nil, nil, nil}
 }
