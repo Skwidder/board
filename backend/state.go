@@ -451,7 +451,7 @@ func (s *State) GotoCoord(x, y int) {
 	// look forward
 	for {
 		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
-			s.Current = cur
+			s.GotoIndex(cur.Index)
 			return
 		}
 		if len(cur.Down) == 0 {
@@ -464,7 +464,7 @@ func (s *State) GotoCoord(x, y int) {
 	// look backward
 	for {
 		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
-			s.Current = cur
+			s.GotoIndex(cur.Index)
 			return
 		}
 		if cur.Up == nil {
@@ -472,6 +472,27 @@ func (s *State) GotoCoord(x, y int) {
 		}
 		cur = cur.Up
 	}
+
+	// didn't find anything
+	// do nothing
+}
+
+func (s *State) GenerateMarks() map[string]*StoneSet {
+	marks := make(map[string]*StoneSet)
+	if (s.Current.XY != nil) {
+		cs := NewCoordSet()
+		cs.Add(s.Current.XY)
+		marks["current"] = NewStoneSet(cs, s.Current.Color)
+	}
+	return marks
+}
+
+func (s *State) GenerateFullFrame() *Frame {
+	frame := s.Board.CurrentFrame()
+	frame.Marks = s.GenerateMarks()
+	frame.Explorer = s.Root.FillGrid(s.Current.Index)
+	return frame
+
 }
 
 func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
@@ -489,10 +510,14 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 
 		diff := s.AddNode(c, Color(evt.Color), nil, -1, false)
 
+		/*
 		marks := make(map[string]*StoneSet)
 		cs := NewCoordSet()
 		cs.Add(c)
 		marks["current"] = NewStoneSet(cs, Color(evt.Color))
+		*/
+
+		marks := s.GenerateMarks()
 
 		explorer := s.Root.FillGrid(s.Current.Index)
 		return &Frame{DiffFrame, diff, marks, explorer}, nil
@@ -605,89 +630,48 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 	
 	case "scissors":
 		diff := s.Cut()
-
-		marks := make(map[string]*StoneSet)
-		if (s.Current.XY != nil) {
-			cs := NewCoordSet()
-			cs.Add(s.Current.XY)
-			marks["current"] = NewStoneSet(cs, s.Current.Color)
-		}
-
+		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
 		return &Frame{DiffFrame, diff, marks, explorer}, nil
+	
+	case "left":
+		diff := s.Left()
+		marks := s.GenerateMarks()
+		explorer := s.Root.FillGrid(s.Current.Index)
+        return &Frame{DiffFrame, diff, marks, explorer}, nil
 
-	case "keydown":
-        // coerce the value to a string
-        val := evt.Value.(string)
-        if val == "ArrowLeft" {
-			diff := s.Left()
+	case "right":
+		diff := s.Right()
+		marks := s.GenerateMarks()
+		explorer := s.Root.FillGrid(s.Current.Index)
+        return &Frame{DiffFrame, diff, marks, explorer}, nil
+	
+	case "up":
+        s.Up()
+		explorer := s.Root.FillGrid(s.Current.Index)
+		return &Frame{DiffFrame, nil, nil, explorer}, nil
+	
+	case "down":
+        s.Down()
+		explorer := s.Root.FillGrid(s.Current.Index)
+		return &Frame{DiffFrame, nil, nil, explorer}, nil
 
-			marks := make(map[string]*StoneSet)
-			if (s.Current.XY != nil) {
-				cs := NewCoordSet()
-				cs.Add(s.Current.XY)
-				marks["current"] = NewStoneSet(cs, s.Current.Color)
-			}
 
-			explorer := s.Root.FillGrid(s.Current.Index)
-            return &Frame{DiffFrame, diff, marks, explorer}, nil
-        } else if val == "ArrowRight" {
-			diff := s.Right()
-
-			marks := make(map[string]*StoneSet)
-			if (s.Current.XY != nil) {
-				cs := NewCoordSet()
-				cs.Add(s.Current.XY)
-				marks["current"] = NewStoneSet(cs, s.Current.Color)
-			}
-
-			explorer := s.Root.FillGrid(s.Current.Index)
-            return &Frame{DiffFrame, diff, marks, explorer}, nil
-        } else if val == "ArrowUp" {
-            s.Up()
-        } else if val == "ArrowDown" {
-            s.Down()
-        }
 	case "button":
         val := evt.Value.(string)
         if val == "Rewind" {
 			s.Rewind()
-
-			marks := make(map[string]*StoneSet)
-			if (s.Current.XY != nil) {
-				cs := NewCoordSet()
-				cs.Add(s.Current.XY)
-				marks["current"] = NewStoneSet(cs, s.Current.Color)
-			}
-
-			frame := s.Board.CurrentFrame()
-			frame.Marks = marks
-			frame.Explorer = s.Root.FillGrid(s.Current.Index)
-
-			return frame, nil
-            //s.Current = s.Root
+			return s.GenerateFullFrame(), nil
         } else if val == "FastForward" {
 			s.FastForward()
-
-			marks := make(map[string]*StoneSet)
-			if (s.Current.XY != nil) {
-				cs := NewCoordSet()
-				cs.Add(s.Current.XY)
-				marks["current"] = NewStoneSet(cs, s.Current.Color)
-			}
-
-			frame := s.Board.CurrentFrame()
-			frame.Marks = marks
-			frame.Explorer = s.Root.FillGrid(s.Current.Index)
-
-			return frame, nil
+			return s.GenerateFullFrame(), nil
         }
+
 	case "goto_grid":
         index := int(evt.Value.(float64))
 		s.GotoIndex(index)
-		frame := s.Board.CurrentFrame()
-		frame.Explorer = s.Root.FillGrid(s.Current.Index)
-		return frame, nil
+
+		return s.GenerateFullFrame(), nil
 	case "goto_coord":
         coords := make([]int, 0)
         // coerce the value to an array
@@ -699,6 +683,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
         x := coords[0]
         y := coords[1]
 		s.GotoCoord(x, y)
+		return s.GenerateFullFrame(), nil
 	case "comment":
 		val := evt.Value.(string)
 		s.Current.AddField("C", val + "\n")

@@ -61,6 +61,7 @@ class TreeGraphics {
         this.new_svg("preferred-xs", 60);
 
         this.grid = [];
+        this.index = 0;
 
         this.r = 12;
         this.step = this.r*3;
@@ -126,31 +127,36 @@ class TreeGraphics {
 
         if (x < container_rect.left || x > container_rect.right) {
             // x out of bounds
-            return 0;
+            return -1;
 
         }
 
         if (y < container_rect.top || y > container_rect.bottom) {
             // y out of bounds
-            return 0;
+            return -1;
         }
 
         let grid_x = Math.floor((x-rect.left)/this.step);
         let grid_y = Math.floor((y-rect.top)/this.step);
         if (grid_x < 0 || grid_y < 0) {
-            return 0;
+            return -1;
         }
-        if (grid_y < this.grid.length) {
-            if (grid_x < this.grid[grid_y].length) {
-                return this.grid[grid_y][grid_x];
+
+        if (this.grid.has(grid_y)) {
+            let row = this.grid.get(grid_y);
+            if (row.has(grid_x)) {
+                return row.get(grid_x);
             }
         }
-        return 0;
+
+        return -1;
     }
 
     _update(explorer) {
         let max_x = 0;
         let max_y = 0;
+        let grid = new Map();
+
         for (let node of explorer.nodes) {
 
             let coord = node.coord;
@@ -160,7 +166,14 @@ class TreeGraphics {
             if (coord.y > max_y) {
                 max_y = coord.y;
             }
+
+            if (!grid.has(coord.y)) {
+                grid.set(coord.y, new Map());
+            }
+            grid.get(coord.y).set(coord.x, node.index);
         }
+
+        this.grid = grid;
 
         this.set_dims_all(max_x+1, max_y+1);
 
@@ -172,7 +185,6 @@ class TreeGraphics {
         this._draw_lines(explorer.edges);
         this._draw_preferred_lines(explorer.preferred_edges);
 
-        console.log(current.x, current.y);
         this.set_scroll(current.x, current.y);
     }
 

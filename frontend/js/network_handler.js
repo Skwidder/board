@@ -135,30 +135,8 @@ class NetworkHandler {
         var value;
         var userid;
         switch (evt) {
-            case "keydown":
-                if (payload["value"] == "ArrowLeft") {
-                    this.state.left();
-                } else if (payload["value"] == "ArrowRight") {
-                    this.state.right();
-                } else if (payload["value"] == "ArrowUp") {
-                    this.state.up();
-                } else if (payload["value"] == "ArrowDown") {
-                    this.state.down();
-                }
-                break;
             case "frame":
                 this.state.handle_frame(payload["value"]);
-                break;
-            case "add_stone":
-                coords = payload["value"];
-                this.state.place_stone(coords[0], coords[1], payload["color"]);
-                break;
-            case "remove_stone":
-                coords = payload["value"];
-                this.state.remove_stone(coords[0], coords[1]);
-                break;
-            case "pass":
-                this.state.pass(payload["color"]);
                 break;
             case "triangle":
                 coords = payload["value"];
@@ -180,37 +158,8 @@ class NetworkHandler {
                 coords = payload["value"];
                 this.state.remove_mark(coords[0], coords[1]);
                 break;
-            case "handshake":
-                value = payload["value"];
-                this.state.handshake(JSON.parse(value));
-                break;
-            case "upload_sgf":
-                value = payload["value"];
-                // just reset the board and reuse the handshake function
-                this.state.reset();
-                this.state.handshake(JSON.parse(value));
-                break;
-            case "button":
-                if (payload["value"] == "Rewind") {
-                    this.state.rewind();
-                } else if (payload["value"] = "FastForward") {
-                    this.state.fastforward();
-                }
-                break;
-            case "goto_grid":
-                index = payload["value"];
-                this.state.goto_index(index);
-                break;
-            case "goto_coord":
-                coords = payload["value"];
-                this.state.goto_coord(coords[0], coords[1]);
-                break;
             case "trash":
                 this.state.reset();
-                break;
-            case "scissors":
-                index = payload["value"];
-                this.state.cut(index);
                 break;
             case "update_buffer":
                 value = payload["value"];
@@ -284,22 +233,22 @@ class NetworkHandler {
     }
 
     prepare_left() {
-        let payload = {"event":"keydown","value":"ArrowLeft"};
+        let payload = {"event":"left"};
         this.prepare(payload);
     }
 
     prepare_right() {
-        let payload = {"event":"keydown","value":"ArrowRight"};
+        let payload = {"event":"right"};
         this.prepare(payload);
     }
 
     prepare_up() {
-        let payload = {"event":"keydown","value":"ArrowUp"};
+        let payload = {"event":"up"};
         this.prepare(payload);
     }
 
     prepare_down() {
-        let payload = {"event":"keydown","value":"ArrowDown"};
+        let payload = {"event":"down"};
         this.prepare(payload);
     }
 
@@ -419,7 +368,7 @@ class NetworkHandler {
     }
 
     send(payload) {
-        //console.log("sending:", payload);
+        console.log("sending:", payload);
         
         // first create the json payload
         let json_payload = JSON.stringify(payload);
@@ -461,8 +410,8 @@ class NetworkHandler {
                     }
                     payload = {"event": "goto_grid", "value": index};
                     this.prepare(payload);
-                }else{
-                    this.prepare(payload);
+                } else {
+                    this.prepare_up();
                 }
                 break;
 
@@ -474,14 +423,16 @@ class NetworkHandler {
                     }
                     payload = {"event": "goto_grid", "value": index};
                     this.prepare(payload);
-                }else{
-                    this.prepare(payload);
+                } else {
+                    this.prepare_down();
                 }
                 break;
 
             case "ArrowLeft":
+                this.prepare_left();
+                break;
             case "ArrowRight":
-                this.prepare(payload);
+                this.prepare_right();
                 break;
             
             case "1":
@@ -605,9 +556,10 @@ class NetworkHandler {
         let y = event.clientY;
         let flip = this.state.keys_down.has("Shift");
 
-        let explorer_node = this.state.tree_graphics.capture_mouse(x, y);
-        if (explorer_node != 0 && explorer_node != 1) {
-            let payload = {"event": "goto_grid", "value": explorer_node.index};
+        //let explorer_node = this.state.tree_graphics.capture_mouse(x, y);
+        let index = this.state.tree_graphics.capture_mouse(x, y);
+        if (index != -1) {
+            let payload = {"event": "goto_grid", "value": index};
             this.prepare(payload);
             return;
         }

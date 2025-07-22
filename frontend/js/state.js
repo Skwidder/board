@@ -82,73 +82,6 @@ class State {
         this.network_handler = handler;
     }
 
-    handshake(value) {
-        let sgf = value["sgf"];
-        let loc = value["loc"];
-        let prefs = value["prefs"];
-        let next_index = value["next_index"];
-        let input_buffer = value["buffer"];
-
-        // update buffer
-        this.input_buffer = input_buffer;
-
-        // set board
-        this.board = from_sgf(sgf);
-        this.size = this.board.size;
-        let review = document.getElementById("review");
-        review.setAttribute("size", this.size);
-        this.recompute_consts();
-        this.board_graphics.reset_board();
-
-        // update settings modal
-        this.modals.update_settings_modal();
-
-        // handicap stones, for example
-        this.init_stones();
-
-        this.color = 1;
-        let fields = this.board.tree.root.fields;
-        if (fields != null && fields.has("HA")) {
-            this.color = 2;
-        }
-
-        // update info
-        this.modals.update_gameinfo_modal();
-
-        // set prefs
-        this.board.tree.set_prefs(prefs);
-
-        // set next index
-        this.board.tree.next_index = next_index;
-
-        if (loc != "") {
-            let dirs = loc.split(",");
-            for (let d of dirs) {
-                // currently i don't even need the actual direction
-                // because i have the preferred child
-                // and the current location is always guaranteed to be
-                // in the direction of the preferred child
-                // (for now anyway)
-                this.right(false);
-            }
-        }
-
-        // only update graphics once
-        this.update_move_number();
-
-        // update comments
-        this.update_comments();
-
-        // apply marks
-        this.apply_marks();
-
-        // apply pen
-        this.apply_pen();
-
-        this.tree_graphics.update(this.board.tree, true, true);
-        this.board_graphics.draw_stones();
-    }
-
     guest_nick(id) {
         return "Guest-" + id.substring(0, 4);
     }
@@ -198,375 +131,41 @@ class State {
         this.apply_pen();
     }
 
-    cut(index) {
-        // can't cut the root node
-        if (index == 0){
-            return;
-        }
-
-        // go left FIRST!!
-        this.left();
-
-        // cut the node
-        this.board.tree.cut(index);
-
-        // then do regular update stuff
-        this.update_comments();
-        this.update_move_number();
-        this.tree_graphics.update(this.board.tree, true, true);
-        this.update_toggle_color();
-    }
-
-    get_index() {
-        return this.board.tree.current.index;
-    }
-
     get_index_up() {
-        let index = this.board.tree.current.index;
-        let [grid, loc] = this.tree_graphics.fill_grid(this.board.tree);
-        let [x,y] = loc.get(index);
+        let [x,y] = this.tree_graphics.current;
+
         while (true) {
             y--;
             if (y < 0) {
                 return -1;
             }
 
-            // there could be a 1 if it's not a tree node but has tree nodes below
-            if (grid[y][x] == 1) {
+            if (!this.tree_graphics.grid.has(y)) {
                 continue;
             }
 
-            if (grid[y][x] != 0) {
-                return grid[y][x].index;
+            let row = this.tree_graphics.grid.get(y);
+            if (row.has(x)) {
+                return row.get(x);
             }
         }
     }
 
     get_index_down() {
-        let index = this.board.tree.current.index;
-        let [grid, loc] = this.tree_graphics.fill_grid(this.board.tree);
-        let [x,y] = loc.get(index);
+        let [x,y] = this.tree_graphics.current;
+
         while (true) {
             y++;
-            if (y >= grid.length) {
+            if (!this.tree_graphics.grid.has(y)) {
                 return -1;
             }
 
-            // there could be a 1 if it's not a tree node but has tree nodes below
-            if (grid[y][x] == 1) {
-                continue;
-            }
-
-            if (grid[y][x] != 0) {
-                return grid[y][x].index;
-            }
-        }
-    }
-
-    goto_index(index) {
-        this.board.tree.set_preferred(index);
-        this.board_graphics.clear_and_remove();
-        this.board.clear();
-        this.board.tree.rewind();
-        this.init_stones();
-        //let most = 20;
-        let i = 0;
-        while (this.board.tree.current.index != index) {
-            // this boolean indicates not to draw anything
-            this.right(false);
-            i++;
-            //if (i > most) {
-            //    break;
-            //}
-        }
-
-        // wait to update the stones until the end
-        this.board_graphics.draw_stones();
-
-        this.update_move_number();
-
-        // update comments
-        this.update_comments();
-
-        // apply marks
-        this.apply_marks();
-
-        // apply pen
-        this.apply_pen();
-
-        // wait to update the tree until the end
-        this.tree_graphics.update(this.board.tree, true);
-
-        this.update_toggle_color();
-    }
-
-    goto_coord(x, y) {
-        let cur = this.board.tree.current;
-
-        // look forward
-        while (true) {
-            let coord = cur.coord();
-            if (coord != null && coord.x == x && coord.y == y) {
-                // if found looking forward, return
-                this.goto_index(cur.index);
-                return;
-            }
-            if (cur.down.length == 0) {
-                break;
-            }
-            cur = cur.down[cur.preferred_child];
-        }
-
-        // look backward
-        cur = this.board.tree.current;
-        while (true) {
-            let coord = cur.coord();
-            if (coord != null && coord.x == x && coord.y == y) {
-                // if found looking backward, return
-                this.goto_index(cur.index);
-                return;
-            }
-            if (cur.up == null) {
-                break;
-            }
-            cur = cur.up;
-        }
-    }
-
-    left() {
-        // this is the node we just moved from
-        let node = this.board.tree.left();
-        if (node == null) {
-            return;
-        }
-        let coord = node.coord();
-        let captured = node.captured;
-        let color = node.color();
-
-        this.board_graphics.clear_current();
-
-        // clear previous move
-        if (coord != null) {
-            this.board_graphics.clear_stone(coord.x,coord.y);
-            this.board.set(coord, 0);
-        }
-
-        // clear additional stones
-        let a_stones = node.a_stones();
-        for (let col of [1,2]) {
-            for (let c of a_stones[col]) {
-                let a_coord = letterstocoord(c);
-                this.board_graphics.clear_stone(a_coord.x, a_coord.y, col);
-                this.board.set(a_coord, 0);
+            let row = this.tree_graphics.grid.get(y);
+            if (row.has(x)) {
+                return row.get(x);
             }
         }
 
-        // find current move
-        let cur = this.board.tree.current;
-
-        // draw current
-        this.board_graphics.draw_current();
-
-        // get color
-        let new_color = 2;
-        if (color == 2) {
-            new_color = 1;
-        }
-
-        // redraw captured stones
-        for (let col of [1, 2]) {
-            for (let c of captured[col]) {
-                this.board_graphics.draw_stone(c.x, c.y, col);
-                this.board.set(c, col);
-            }
-        }
-
-        this.update_toggle_color();
-
-        // clear marks
-        this.board_graphics.remove_marks();
-
-        // update comments
-        this.update_comments();
-
-        // update move number
-        this.update_move_number();
-
-        // apply marks
-        this.apply_marks();
-
-        // apply pen
-        this.apply_pen();
-
-        // update explorer
-        this.tree_graphics.update(this.board.tree);
-    }
-    
-    right(update=true) {
-        let node = this.board.tree.right();
-        if (node == null) {
-            return;
-        }
-        let coord = node.coord();
-        let captured = node.captured;
-        let color = node.color();
-        if (update) {
-            this.board_graphics.clear_svg("current");
-        }
-
-        // so, if the coord is null, it could be a pass
-        if (!node.is_pass()) {
-
-            // add new stones
-            let add = node.a_stones();
-            for (let c of [1,2]) {
-                for (let xy of add[c]) {
-                    let a_coord = letterstocoord(xy);
-                    this.board.set(a_coord, c);
-                    if (update) {
-                        this.board_graphics.draw_stone(a_coord.x, a_coord.y, c);
-                    }
-                }
-            }
-
-            if (node.has_move()) {
-                // add current stone
-                this.board.set(coord, color);
-                if (update) {
-                    this.board_graphics.draw_stone(coord.x, coord.y, color);
-                    this.board_graphics.draw_current();
-                }
-            }
-
-        }
-
-        let new_color = 2;
-        if (color == 2) {
-            new_color = 1;
-        }
-
-        // clear captured stones
-        for (let col of [1, 2]) {
-            for (let c of captured[col]) {
-                if (update) {
-                    this.board_graphics.clear_stone(c.x, c.y);
-                }
-                this.board.set(c, 0);
-            }
-        }
-
-        this.update_toggle_color();
-
-        if (update) {
-            this.update_comments();
-        }
-
-        // clear marks
-        if (update) {
-            this.board_graphics.remove_marks();
-        }
-
-        // apply marks
-        if (update) {
-            this.apply_marks();
-            // apply pen
-            this.apply_pen();
-
-        }
-
-        // update explorer
-        if (update) {
-            this.update_move_number();
-            this.tree_graphics.update(this.board.tree);
-        }
-    }
-
-    up() {
-        this.board.tree.up();
-        this.tree_graphics.update(this.board.tree, true);
-    }
-
-    down() {
-        this.board.tree.down();
-        this.tree_graphics.update(this.board.tree, true);
-    }
-
-    rewind() {
-        //console.time("rewind");
-
-        // reset graphics
-        this.board_graphics.clear_and_remove();
-
-        // reset board
-        this.board.clear();
-
-        // rewind tree
-        this.board.tree.rewind();
-
-        // handicap stones
-        this.init_stones();
-
-        // change color
-        this.color = 1;
-        let fields = this.board.tree.root.fields;
-        if (fields != null && fields.has("HA")) {
-            this.color = 2;
-        }
-
-        // update comments
-        this.update_comments();
-
-
-        // update move number
-        this.update_move_number();
-
-        // apply marks
-        this.apply_marks();
-
-        // apply pen
-        this.apply_pen();
-
-        // update explorer
-        this.tree_graphics.update(this.board.tree);
-
-        // update color
-        this.update_toggle_color();
-        //console.timeEnd("rewind");
-
-    }
-
-    fastforward() {
-        while (true) {
-            if (this.board.tree.current.down.length == 0) {
-                break;
-            }
-            // this boolean indicates not to draw anything
-            this.right(false);
-        }
-
-        // wait to update the stones until the end
-        this.board_graphics.draw_stones();
-
-        // update comments
-        this.update_comments();
-
-        // update move number
-        this.update_move_number();
-
-        // remove old marks
-        this.board_graphics.remove_marks();
-
-        // apply marks
-        this.apply_marks();
-
-        // apply pen
-        this.apply_pen();
-
-        // wait to update the tree until the end
-        this.tree_graphics.update(this.board.tree);
-
-        // update color
-        this.update_toggle_color();
     }
 
     reset() {
@@ -585,7 +184,7 @@ class State {
         this.update_comments();
 
         this.modals.update_modals();
-        this.tree_graphics.update(this.board.tree, true, true);
+        //this.tree_graphics.update(this.board.tree, true, true);
     }
 
     get_game_info() {
@@ -843,7 +442,6 @@ class State {
 
                     this.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
                 }
-
             }
         }
 
@@ -1044,20 +642,7 @@ class State {
         }
     }
 
-    pass(color) {
-        this.board.tree.push_pass(color);
-        this.board_graphics.clear_marks();
-        this.board_graphics.clear_current();
-        if (this.toggling) {
-            this.toggle_color();
-        }
-        this.update_comments();
-        this.update_move_number();
-        this.tree_graphics.update(this.board.tree, true, true);
-    }
-
     handle_frame(frame) {
-        console.log(frame);
         if (frame.type == FrameType.DIFF) {
             this.apply_diff(frame.diff);
         } else if (frame.type == FrameType.FULL) {
@@ -1114,53 +699,25 @@ class State {
         }
     }
 
+    // TODO: this function does too much
     _place_stone(x, y, color) {
         // if out of bounds, just return
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
 
-        // returns list of dead stones
         let coord = new Coord(x, y);
         this.board.set(coord, color);
 
         this.board_graphics.remove_marks();
         this.board_graphics.draw_stone(x, y, color);
-        //this.board_graphics.draw_current();
+
         if (this.toggling) {
             this.toggle_color();
         }
+
         this.update_comments();
         this.update_move_number();
-        //this.tree_graphics.update(this.board.tree, true, true);
-    }
-
-    place_stone(x, y, color) {
-        // if out of bounds, just return
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
-        }
-
-        // returns list of dead stones
-        let coord = new Coord(x, y);
-        let result = this.board.place(coord, color);
-        if (!result.ok) {
-            return;
-        }
-
-        for (let v of result.values[opposite(color)]) {
-            this.board_graphics.clear_stone(v.x, v.y);
-        }
-
-        this.board_graphics.remove_marks();
-        this.board_graphics.draw_stone(x, y, color);
-        this.board_graphics.draw_current();
-        if (this.toggling) {
-            this.toggle_color();
-        }
-        this.update_comments();
-        this.update_move_number();
-        this.tree_graphics.update(this.board.tree, true, true);
     }
 
     place_triangle(x, y) {

@@ -110,6 +110,10 @@ func ErrorJSON(msg string) *EventJSON {
 	return &EventJSON{"error", msg, 0, ""}
 }
 
+func FrameJSON(frame *Frame) *EventJSON {
+	return &EventJSON{"frame", frame, 0, ""}
+}
+
 type Room struct {
     conns map[string]*websocket.Conn
     State *State
@@ -191,7 +195,8 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
     r.State = state
 	
 	// replace evt with initdata
-	return r.State.InitData("upload_sgf")
+	frame := r.State.GenerateFullFrame()
+	return FrameJSON(frame)
 }
 
 func (r *Room) SendUserList() {
@@ -223,7 +228,8 @@ func (s *Server) Save() {
 		path := filepath.Join(RoomPath(), id)
 		log.Printf("Saving %s", path)
 
-		// the same process as a client handshake
+		// TODO: the term "handshake" has become obsolete
+		// as this is not the same process for client handshakes anymore
         evt := room.State.InitData("handshake")
 		dataStruct := &LoadJSON{}
 		s,_ := evt.Value.(string)
@@ -542,7 +548,9 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
     // send initial state
     if !first {
-        evt := room.State.InitData("handshake")
+		frame := room.State.GenerateFullFrame()
+		evt := FrameJSON(frame)
+		
         if initData, err := json.Marshal(evt); err != nil {
             log.Println(id, err)
 			return
@@ -779,6 +787,9 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
 			}
+			frame := room.State.GenerateFullFrame()
+			evt = FrameJSON(frame)
+
 		} else if evt.Event == "update_nickname" {
 			nickname := evt.Value.(string)
 			room.nicks[id] = nickname
@@ -868,12 +879,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
                 continue
 			}
 			if frame != nil {
-				evt = &EventJSON {
-					Event: "frame",
-					Value: frame,
-					Color: 0,
-					UserID: "",
-				}
+				evt = FrameJSON(frame)
 			}
         }
 		room.Broadcast(evt, id, true)
