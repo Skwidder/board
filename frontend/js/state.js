@@ -42,8 +42,8 @@ class State {
         window.addEventListener("resize", (event) => this.resize(event));
         this.compute_consts();
         this.color = 1;
-        this.saved_color = 1;
         this.toggling = true;
+        this.handicap = false;
         this.mark = "";
         this.input_buffer = 250;
         this.password = "";
@@ -61,6 +61,7 @@ class State {
         this.dark_mode = false;
         this.board = new Board(this.size);
         this.marks = new Map();
+        this.pen = new Array();
         this.current = null;
         this.numbers = new Map();
         this.letters = new Array(26).fill(0);
@@ -117,7 +118,6 @@ class State {
             review.setAttribute("size", this.size);
             this.recompute_consts();
             this.board_graphics.reset_board();
-            //this.tree_graphics.
             this.reset();
         }
         this.password = settings["password"];
@@ -205,18 +205,18 @@ class State {
 
     reset() {
         this.board_graphics.clear_and_remove();
+        this.handicap = false;
         this.color = 1;
-        this.saved_color = 1;
         this.toggling = true;
         this.mark = "";
 
         this.board = new Board(this.size);
-        //this.tree_graphics.clear_all();
+
         // update move number
-        this.update_move_number();
+        this.set_move_number(0);
 
         // update comments
-        this.update_comments();
+        this.comments.clear();
 
         this.modals.update_modals();
     }
@@ -268,6 +268,10 @@ class State {
 
         if (fields.has("RU")) {
             gameinfo["Ruleset"] = fields.get("RU");
+        }
+
+        if (fields.has("AB")) {
+            this.handicap = true;
         }
 
         /*
@@ -371,20 +375,6 @@ class State {
 
     }
 
-    update_comments() {
-        this.comments.clear();
-        if (!this.board.tree.current.fields.has("C")) {
-            return;
-        }
-        let cmts = this.board.tree.current.fields.get("C");
-        for (let cmt of cmts) {
-            cmt = cmt.trim();
-            for (let cmt_line of cmt.split("\n")) {
-                this.comments.update(cmt_line);
-            }
-        }
-    }
-
     comments_toggle() {
         if (this.comments.hidden()) {
             this.comments.show();
@@ -393,22 +383,17 @@ class State {
         }
     }
 
-    update_move_number() {
+    set_move_number(d) {
         let num = document.getElementById("move-number");
-        let d = this.board.tree.current_depth-1;
         num.innerHTML = d;
     }
 
-    toggle_color() {
-        if (this.color == 1) {
-            this.color = 2;
-        } else {
-            this.color = 1;
-        }
+    get_move_number() {
+        let num = document.getElementById("move-number");
+        return num.innerHTML;
     }
 
     set_black() {
-        this.saved_color = this.color;
         this.color = 1;
         this.toggling = false;
         this.mark = "";
@@ -416,7 +401,6 @@ class State {
     }
 
     set_white() {
-        this.saved_color = this.color;
         this.color = 2;
         this.toggling = false;
         this.mark = "";
@@ -425,7 +409,7 @@ class State {
 
     set_toggle() {
         this.toggling = true;
-        this.update_toggle_color();
+        this.update_color();
         this.mark = "";
         this.board_graphics.clear_ghosts();
     }
@@ -453,67 +437,49 @@ class State {
             y0 = -1.0;
         }
         let digs = 4;
-        let s = x0.toFixed(digs) + ":" + y0.toFixed(digs) + ":" +
-            x1.toFixed(digs) + ":" + y1.toFixed(digs) + ":" + pen_color;
-        this.board.tree.current.add_field("PX", s);
+        this.pen.push([x0, y0, x1, y1, pen_color]);
     }
 
     apply_pen() {
-        for (let [key, values] of this.board.tree.current.fields) {
-            if (key == "PX") {
-                for (let v of values) {
-                    let tokens = v.split(":");
-                    if (tokens.length != 5) {
-                        continue;
-                    }
-                    let x0 = parseFloat(tokens[0]);
-                    let y0 = parseFloat(tokens[1]);
-                    let x1 = parseFloat(tokens[2]);
-                    let y1 = parseFloat(tokens[3]);
-                    let pen_color = tokens[4];
-                    if (x0 == -1.0) {
-                        x0 = null;
-                    }
-                    if (y0 == -1.0) {
-                        y0 = null;
-                    }
-
-                    this.board_graphics.draw_pen(x0, y0, x1, y1, pen_color);
-                }
+        for (let [x0, y0, x1, y1, color] of this.pen) {
+            if (x0 == -1.0) {
+                x0 = null;
             }
+            if (y0 == -1.0) {
+                y0 = null;
+            }
+            this.board_graphics.draw_pen(x0, y0, x1, y1, color);
         }
-
     }
 
     erase_pen() {
         this.board_graphics.clear_pen();
-        this.board.tree.current.fields.delete("PX");
     }
 
-    update_toggle_color() {
-        // update color
-        if (this.toggling) {
-            let cur = this.board.tree.current;
-
-            if (cur.color() == 1) {
+    update_color() {
+        if (!this.toggling) {
+            return;
+        }
+        if (this.current != null) {
+            if (this.board.get(this.current) == 1) {
                 this.color = 2;
-            } else if (cur.color() == 2) {
-                this.color = 1;
-            } else if (cur.down.length > 0) {
-                // TODO: make this better. make toggling better everywhere
-                let c = cur.down[0].color();
-                if (c > 0) {
-                    this.color = c;
-                }
-            }
-            // just make sure the color doesn't end up 0
-            if (this.color == 0) {
+            } else if (this.board.get(this.current) == 2) {
                 this.color = 1;
             }
+            return;
+        }
+
+        if (parseInt(this.get_move_number()) == 0) {
+            if (this.handicap) {
+                this.color = 2;
+            } else {
+                this.color = 1;
+            }
+            return;
         }
     }
 
-    set_triangle() {
+   set_triangle() {
         this.mark = "triangle";
         this.board_graphics.clear_ghosts();
     }
@@ -666,9 +632,16 @@ class State {
     handle_frame(frame) {
         // clear all marks
         this.marks = new Map();
+        this.current = null;
+        this.pen = new Array();
         this.numbers = new Map();
         this.letters = new Array(26).fill(0);
+        this.board_graphics.remove_marks();
 
+        // TODO: there's some weirdness to think about here:
+        // essentially, we only handle metadata on a full frame
+        // so there are things that are done on a full frame that AREN'T
+        // done on a diff (for example, updating color)
         this.handle_metadata(frame.metadata);
 
         if (frame.type == FrameType.DIFF) {
@@ -676,84 +649,78 @@ class State {
         } else if (frame.type == FrameType.FULL) {
             this.full_frame(frame.diff);
         }
+
         if (frame.marks != null) {
             this.handle_marks(frame.marks);
         }
 
-        if (frame.explorer != null) {
-            this.tree_graphics._update(frame.explorer);
+        if (frame.comments != null) {
+            this.handle_comments(frame.comments);
         }
 
+        if (frame.explorer != null) {
+            this.tree_graphics._update(frame.explorer);
+            this.set_move_number(frame.explorer.current.x);
+        }
+
+        this.update_color();
+    }
+
+    handle_comments(comments) {
+        this.comments.clear();
+        for (let cmt of comments) {
+            cmt = cmt.trim();
+            for (let cmt_line of cmt.split("\n")) {
+                this.comments.update(cmt_line);
+            }
+        }
     }
 
     handle_marks(marks) {
         if ("current" in marks && marks.current != null) {
-
             let coord = marks.current;
             this.board_graphics.clear_current();
-            // TODO: fix color here
-            this.board_graphics._draw_current(coord.x, coord.y, opposite(this.board.get(coord)));
+
+            this.board_graphics._draw_current(
+                coord.x,
+                coord.y,
+                opposite(this.board.get(coord)));
             this.current = coord;
         }
 
         if ("squares" in marks && marks.squares != null) {
-
             let squares = marks.squares;
             for (let coord of squares) {
                 this.place_square(coord);
-                /*
-                let color = 1;
-                if (this.board.get(coord) == 1) {
-                    color = 2;
-                }
-                this.board_graphics._draw_square(coord.x, coord.y, color);
-                let id = coordtoid(coord);
-                this.marks.set(id, "square");
-                */
             }
         }
 
         if ("triangles" in marks && marks.triangles != null) {
-
             let triangles = marks.triangles;
-
             for (let coord of triangles) {
                 this.place_triangle(coord);
-                /*
-                let color = 1;
-                if (this.board.get(coord) == 1) {
-                    color = 2;
-                }
-                this.board_graphics._draw_triangle(coord.x, coord.y, color);
-
-                let id = coordtoid(coord);
-                this.marks.set(id, "triangle");
-                */
             }
         }
 
         if ("labels" in marks && marks.labels != null) {
-
             let labels = marks.labels;
             for (let lb of labels) {
                 this.place_label(lb);
+            }
+        }
 
-                /*
-                let coord = lb.coord
-                let id = coordtoid(coord);
-
-                let i = parseInt(lb.text);
-                if (Number.isInteger(i)) {
-                    this.marks.set(id, "number:" + lb.text);
-                    this.numbers.set(i, 1);
-                    this.board_graphics._draw_manual_number(coord.x, coord.y, lb.text);
-                } else {
-                    this.marks.set(id, "letter:" + lb.text);
-                    let letter_index = lb.text.charCodeAt(0)-65;
-                    this.letters[letter_index] = 1;
-                    this.board_graphics._draw_manual_letter(coord.x, coord.y, lb.text);
+        if ("pens" in marks && marks.pens != null) {
+            let pens = marks.pens;
+            for (let pen of pens) {
+                let x0 = pen.x0;
+                let y0 = pen.y0;
+                if (pen.x0 == -1) {
+                    x0 = null;
                 }
-                */
+                if (pen.y0 == -1) {
+                    y0 = null;
+                }
+                this.draw_pen(x0, y0, pen.x1, pen.y1, pen.color);
             }
         }
     }
@@ -762,6 +729,7 @@ class State {
         if (frame == null) {
             return;
         }
+        console.log("at the start of full_frame:", this.color);
 
         this.board.clear();
         this.board_graphics.clear_and_remove();
@@ -772,6 +740,7 @@ class State {
                 this._place_stone(coord.x, coord.y, col);
             }
         }
+        console.log("at the end of full_frame:", this.color);
     }
 
     handle_metadata(metadata) {
@@ -779,14 +748,12 @@ class State {
             return;
         }
         if (metadata.size != null) {
-
-            this.set_gameinfo(metadata.fields);
-
             let review = document.getElementById("review");
             review.setAttribute("size", metadata.size);
             this.recompute_consts();
             this.board_graphics.reset_board();
             this.reset();
+            this.set_gameinfo(metadata.fields);
         }
     }
 
@@ -794,6 +761,7 @@ class State {
         if (diff == null) {
             return;
         }
+        console.log("at the end of apply_diff:", this.color);
         for (let a of diff.add) {
             let col = a["color"];
             let coords = a["coords"];
@@ -809,9 +777,9 @@ class State {
                 this.board.set(coord, 0);
             }
         }
+        console.log("at the end of apply_diff:", this.color);
     }
 
-    // TODO: this function does too much
     _place_stone(x, y, color) {
         // if out of bounds, just return
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
@@ -821,15 +789,8 @@ class State {
         let coord = new Coord(x, y);
         this.board.set(coord, color);
 
-        this.board_graphics.remove_marks();
         this.board_graphics.draw_stone(x, y, color);
 
-        if (this.toggling) {
-            this.toggle_color();
-        }
-
-        this.update_comments();
-        this.update_move_number();
     }
 
     place_triangle(coord) {
@@ -842,17 +803,6 @@ class State {
         let id = coordtoid(coord);
         this.marks.set(id, "triangle");
 
-        /*
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
-        }
-
-        let coord = new Coord(x, y);
-        let l = coord.to_letters();
-
-        this.board_graphics.draw_mark(x, y, "triangle");
-        this.board.tree.current.add_field("TR", l);
-        */
     }
 
     place_square(coord) {
@@ -864,17 +814,6 @@ class State {
         let id = coordtoid(coord);
         this.marks.set(id, "square");
 
-        /*
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
-        }
-
-        let coord = new Coord(x, y);
-        let l = coord.to_letters();
-
-        this.board_graphics.draw_mark(x, y, "square");
-        this.board.tree.current.add_field("SQ", l);
-        */
     }
 
     place_label(lb) {
@@ -909,7 +848,5 @@ class State {
         }
 
         this.board_graphics.erase_stone(x, y);
-        this.update_comments();
-        this.update_move_number();
     }
 }

@@ -801,7 +801,6 @@ class BoardGraphics {
 
 
     draw_mark(x, y, mark) {
-        this.saved_color = this.color;
         let hexcolor = "#000000";
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";

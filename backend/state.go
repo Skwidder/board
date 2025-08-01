@@ -509,6 +509,26 @@ func (s *State) GenerateMarks() *Marks {
 		}
 		marks.Labels = labels
 	}
+
+	if pxs, ok := s.Current.Fields["PX"]; ok {
+		pens := []*Pen{}
+		for _,px := range pxs {
+			spl := strings.Split(px, ":")
+			if len(spl) != 5 {
+				continue
+			}
+			x0, err := strconv.ParseFloat(spl[0], 64)
+			y0, err := strconv.ParseFloat(spl[1], 64)
+			x1, err := strconv.ParseFloat(spl[2], 64)
+			y1, err := strconv.ParseFloat(spl[3], 64)
+			if err != nil {
+				continue
+			}
+			pen := &Pen{x0, y0, x1, y1, spl[4]}
+			pens = append(pens, pen)
+		}
+		marks.Pens = pens
+	}
 	return marks
 }
 
@@ -520,11 +540,20 @@ func (s *State) GenerateMetadata() *Metadata {
 	return m
 }
 
+func (s *State) GenerateComments() []string {
+	cmts := []string{}
+	if c, ok := s.Current.Fields["C"]; ok {
+		cmts = c
+	}
+	return cmts
+}
+
 func (s *State) GenerateFullFrame() *Frame {
 	frame := s.Board.CurrentFrame()
 	frame.Marks = s.GenerateMarks()
 	frame.Explorer = s.Root.FillGrid(s.Current.Index)
 	frame.Metadata = s.GenerateMetadata()
+	frame.Comments = s.GenerateComments()
 	return frame
 
 }
@@ -547,13 +576,13 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		marks := s.GenerateMarks()
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
+		return &Frame{DiffFrame, diff, marks, explorer, nil, nil}, nil
 	case "pass":
 		fields := make(map[string][]string)
 		s.AddPassNode(Color(evt.Color), fields, -1)
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 	case "remove_stone":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -571,7 +600,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.AddFieldNode(fields, -1)
 
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, nil, explorer, nil}, nil
+		return &Frame{DiffFrame, diff, nil, explorer, nil, nil}, nil
 	case "triangle":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -659,29 +688,32 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Cut()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
+		comments := s.GenerateComments()
+		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 	
 	case "left":
 		diff := s.Left()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-        return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
+		comments := s.GenerateComments()
+        return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 
 	case "right":
 		diff := s.Right()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-        return &Frame{DiffFrame, diff, marks, explorer, nil}, nil
+		comments := s.GenerateComments()
+        return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 	
 	case "up":
         s.Up()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 	
 	case "down":
         s.Down()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer, nil}, nil
+		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 
 
 	case "button":

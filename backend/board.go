@@ -33,6 +33,7 @@ type Frame struct {
 	Diff *Diff `json:"diff"`
 	Marks *Marks `json:"marks"`
 	Explorer *Explorer `json:"explorer"`
+	Comments []string `json:"comments"`
 	Metadata *Metadata `json:"metadata"`
 }
 
@@ -41,11 +42,20 @@ type Marks struct {
 	Squares []*Coord `json:"squares"`
 	Triangles []*Coord `json:"triangles"`
 	Labels []*Label `json:"labels"`
+	Pens []*Pen `json:"pens"`
 }
 
 type Label struct {
 	Coord *Coord `json:"coord"`
 	Text string `json:"text"`
+}
+
+type Pen struct {
+	X0 float64 `json:"x0"`
+	Y0 float64 `json:"y0"`
+	X1 float64 `json:"x1"`
+	Y1 float64 `json:"y1"`
+	Color string `json:"color"`
 }
 
 type Metadata struct {
@@ -427,5 +437,5 @@ func (b *Board) CurrentFrame() *Frame {
 	addWhite := NewStoneSet(white, White)
 	diff := NewDiff([]*StoneSet{addBlack, addWhite}, nil)
 
-	return &Frame{FullFrame, diff, nil, nil, nil}
+	return &Frame{FullFrame, diff, nil, nil, nil, nil}
 }
