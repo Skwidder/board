@@ -763,6 +763,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				}
 				continue
 			}
+
+			evt = room.UploadSGF(string(data))
+
+			/*
 			state, err := FromSGF(string(data))
             if err != nil {
                 log.Println(err)
@@ -776,6 +780,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			}
 			room.State = state
 			evt = room.State.InitData("upload_sgf")
+			*/
         } else if evt.Event == "trash" {
             // reset room
 			oldBuffer := room.State.InputBuffer

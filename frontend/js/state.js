@@ -633,6 +633,7 @@ class State {
         // clear all marks
         this.marks = new Map();
         this.current = null;
+        this.board_graphics.clear_current();
         this.pen = new Array();
         this.numbers = new Map();
         this.letters = new Array(26).fill(0);
@@ -679,7 +680,6 @@ class State {
     handle_marks(marks) {
         if ("current" in marks && marks.current != null) {
             let coord = marks.current;
-            this.board_graphics.clear_current();
 
             this.board_graphics._draw_current(
                 coord.x,
@@ -729,7 +729,6 @@ class State {
         if (frame == null) {
             return;
         }
-        console.log("at the start of full_frame:", this.color);
 
         this.board.clear();
         this.board_graphics.clear_and_remove();
@@ -740,7 +739,6 @@ class State {
                 this._place_stone(coord.x, coord.y, col);
             }
         }
-        console.log("at the end of full_frame:", this.color);
     }
 
     handle_metadata(metadata) {
@@ -761,7 +759,6 @@ class State {
         if (diff == null) {
             return;
         }
-        console.log("at the end of apply_diff:", this.color);
         for (let a of diff.add) {
             let col = a["color"];
             let coords = a["coords"];
@@ -777,7 +774,6 @@ class State {
                 this.board.set(coord, 0);
             }
         }
-        console.log("at the end of apply_diff:", this.color);
     }
 
     _place_stone(x, y, color) {

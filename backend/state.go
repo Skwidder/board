@@ -30,6 +30,10 @@ type Coord struct {
 	Y int `json:"y"`
 }
 
+func (c *Coord) String() string {
+	return fmt.Sprintf("(%d, %d)", c.X, c.Y)
+}
+
 func (c *Coord) ToLetters() string {
     alphabet := "abcdefghijklmnopqrs"
     return string([]byte{alphabet[c.X], alphabet[c.Y]})
@@ -301,12 +305,40 @@ func (s *State) PushHead(x, y, col int) {
 	}
 	s.Head.Down = append([]*TreeNode{n}, s.Head.Down...)
 
+	// tracking the head or not
+	tracking := false
 	if s.Current == s.Head {
-		// follow along if we're at the head
+		tracking = true
+	}
+
+	var diff *Diff
+
+	// if we're not tracking the head
+	if !tracking {
+		// save where we currently are
+		save := s.Current.Index
+
+		// goto head
+		s.GotoIndex(s.Head.Index)
+
+		// compute diff
+		diff = s.Board.Move(coord, Color(col))
+
+		// go back to saved index
+		s.GotoIndex(save)
+	} else {
+		// if we are tracking, just compute the diff
+		diff = s.Board.Move(coord, Color(col))
+
+		// and follow along
 		s.Current = n
 	}
+
+	// set new head
 	s.Head = n
-	// TODO: need to compute diff
+
+	// set diff
+	s.Head.Diff = diff
 }
 
 func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, index int, force bool) *Diff {

@@ -208,7 +208,9 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 				col = 2
 			}
 			o.Room.State.PushHead(x, y, col)
-        	evt := o.Room.State.InitData("handshake")
+
+			frame := o.Room.State.GenerateFullFrame()
+			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, "", false)
 
 		} else if topic == fmt.Sprintf("game/%d/gamedata", gameID) {
