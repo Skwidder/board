@@ -27,12 +27,14 @@ func OGSCheckEnded(ogsUrl string) (bool, error) {
 		return false, err
 	}
 
-	resp := struct {Ended string `json:"ended"`}{}
+	resp := struct {
+		Ended string `json:"ended"`
+		Source string `json:"source"`}{}
 	err = json.Unmarshal([]byte(s), &resp)
 	if err != nil {
 		return false, err
 	}
-	return resp.Ended != "", nil
+	return resp.Ended != "" || resp.Source == "sgf", nil
 }
 
 func FetchOGS(ogsUrl string) (string, error) {
