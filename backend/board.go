@@ -31,9 +31,21 @@ const (
 type Frame struct {
 	Type FrameType `json:"type"`
 	Diff *Diff `json:"diff"`
-	Marks map[string]*StoneSet `json:"marks"`
+	Marks *Marks `json:"marks"`
 	Explorer *Explorer `json:"explorer"`
 	Metadata *Metadata `json:"metadata"`
+}
+
+type Marks struct {
+	Current *Coord `json:"current"`
+	Squares []*Coord `json:"squares"`
+	Triangles []*Coord `json:"triangles"`
+	Labels []*Label `json:"labels"`
+}
+
+type Label struct {
+	Coord *Coord `json:"coord"`
+	Text string `json:"text"`
 }
 
 type Metadata struct {
@@ -83,21 +95,29 @@ func (cs CoordSet) String() string {
 	return s
 }
 
+func (cs CoordSet) List() []*Coord {
+	l := []*Coord{}
+	for _,c := range cs {
+		l = append(l, c)
+	}
+	return l
+}
+
 func NewCoordSet() CoordSet {
 	return CoordSet(make(map[string]*Coord))
 }
 
 type StoneSet struct {
-	CoordSet `json:"coordset"`
+	Coords []*Coord `json:"coords"`
 	Color `json:"color"`
 }
 
 func (s *StoneSet) String() string {
-	return fmt.Sprintf("%v - %v", s.CoordSet, s.Color)
+	return fmt.Sprintf("%v - %v", s.Coords, s.Color)
 }
 
 func NewStoneSet(s CoordSet, c Color) *StoneSet {
-	return &StoneSet{s, c}
+	return &StoneSet{s.List(), c}
 }
 
 type Diff struct {
@@ -197,7 +217,7 @@ func (b *Board) Get(c *Coord) Color {
 	return b.Points[c.Y][c.X]
 }
 
-func (b *Board) SetMany(cs CoordSet, col Color) {
+func (b *Board) SetMany(cs []*Coord, col Color) {
 	for _, c := range cs {
 		b.Set(c, col)
 	}
@@ -356,7 +376,7 @@ func (b *Board) WouldKill(start *Coord, col Color) *StoneSet {
 
 func (b *Board) RemoveDead(start *Coord, col Color) *StoneSet {
 	w := b.WouldKill(start, col)
-	b.SetMany(w.CoordSet, NoColor)
+	b.SetMany(w.Coords, NoColor)
 	return w
 }
 
@@ -384,10 +404,10 @@ func (b *Board) ApplyDiff(d *Diff) {
 		return
 	}
 	for _,add := range d.Add {
-		b.SetMany(add.CoordSet, add.Color)
+		b.SetMany(add.Coords, add.Color)
 	}
 	for _,remove := range d.Remove {
-		b.SetMany(remove.CoordSet, NoColor)
+		b.SetMany(remove.Coords, NoColor)
 	}
 }
 

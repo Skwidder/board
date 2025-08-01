@@ -18,7 +18,7 @@ import { create_comments } from './comments.js';
 import { create_buttons } from './buttons.js';
 import { create_modals } from './modals.js';
 
-import { letterstocoord, opposite, Coord, prefer_dark_mode } from './common.js';
+import { letterstocoord, coordtoid, opposite, Coord, prefer_dark_mode } from './common.js';
 
 export {
     State
@@ -28,6 +28,8 @@ const FrameType = {
     DIFF: 0,
     FULL: 1,
 }
+
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 function b64_encode_unicode(str) {
     const text_encoder = new TextEncoder('utf-8');
@@ -58,6 +60,10 @@ class State {
 
         this.dark_mode = false;
         this.board = new Board(this.size);
+        this.marks = new Map();
+        this.current = null;
+        this.numbers = new Map();
+        this.letters = new Array(26).fill(0);
 
         this.board_graphics = new BoardGraphics(this);
         this.tree_graphics = new TreeGraphics();
@@ -167,6 +173,34 @@ class State {
             }
         }
 
+    }
+
+    next_letter() {
+        for (let i = 0; i < 26; i++) {
+            if (this.letters[i] == 0) {
+                return letters[i];
+            }
+        }
+        return null;
+    }
+
+    free_letter(l) {
+        let letter_index = l.charCodeAt(0)-65;
+        this.letters[letter_index] = 0;
+    }
+
+    next_number() {
+        let i = 1;
+        while (true) {
+            if (this.numbers.get(i) == null) {
+                return i;
+            }
+            i++;
+        }
+    }
+
+    free_number(i) {
+        this.numbers.delete(i);
     }
 
     reset() {
@@ -629,24 +663,12 @@ class State {
         document.body.removeChild(element);
     }
 
-    init_stones() {
-        // there might be initialization stones
-        let b = this.board.get_field("AB");
-        let w = this.board.get_field("AW");
-    
-        for (let s of b) {
-            let c = letterstocoord(s);
-            this.board.set(c, 1);
-            this.board_graphics.draw_stone(c.x, c.y, 1);
-        }
-        for (let s of w) {
-            let c = letterstocoord(s);
-            this.board.set(c, 2);
-            this.board_graphics.draw_stone(c.x, c.y, 2);
-        }
-    }
-
     handle_frame(frame) {
+        // clear all marks
+        this.marks = new Map();
+        this.numbers = new Map();
+        this.letters = new Array(26).fill(0);
+
         this.handle_metadata(frame.metadata);
 
         if (frame.type == FrameType.DIFF) {
@@ -654,32 +676,99 @@ class State {
         } else if (frame.type == FrameType.FULL) {
             this.full_frame(frame.diff);
         }
-        if (frame.marks != null && "current" in frame.marks) {
-            let current = frame.marks.current;
-            let color = current.color;
-            let coordset = current.coordset;
-            for (let k in coordset) {
-                let coord = coordset[k];
-                this.board_graphics.clear_current();
-                this.board_graphics._draw_current(coord.x, coord.y, color);
-            }
+        if (frame.marks != null) {
+            this.handle_marks(frame.marks);
         }
+
         if (frame.explorer != null) {
             this.tree_graphics._update(frame.explorer);
         }
 
     }
 
+    handle_marks(marks) {
+        if ("current" in marks && marks.current != null) {
+
+            let coord = marks.current;
+            this.board_graphics.clear_current();
+            // TODO: fix color here
+            this.board_graphics._draw_current(coord.x, coord.y, opposite(this.board.get(coord)));
+            this.current = coord;
+        }
+
+        if ("squares" in marks && marks.squares != null) {
+
+            let squares = marks.squares;
+            for (let coord of squares) {
+                this.place_square(coord);
+                /*
+                let color = 1;
+                if (this.board.get(coord) == 1) {
+                    color = 2;
+                }
+                this.board_graphics._draw_square(coord.x, coord.y, color);
+                let id = coordtoid(coord);
+                this.marks.set(id, "square");
+                */
+            }
+        }
+
+        if ("triangles" in marks && marks.triangles != null) {
+
+            let triangles = marks.triangles;
+
+            for (let coord of triangles) {
+                this.place_triangle(coord);
+                /*
+                let color = 1;
+                if (this.board.get(coord) == 1) {
+                    color = 2;
+                }
+                this.board_graphics._draw_triangle(coord.x, coord.y, color);
+
+                let id = coordtoid(coord);
+                this.marks.set(id, "triangle");
+                */
+            }
+        }
+
+        if ("labels" in marks && marks.labels != null) {
+
+            let labels = marks.labels;
+            for (let lb of labels) {
+                this.place_label(lb);
+
+                /*
+                let coord = lb.coord
+                let id = coordtoid(coord);
+
+                let i = parseInt(lb.text);
+                if (Number.isInteger(i)) {
+                    this.marks.set(id, "number:" + lb.text);
+                    this.numbers.set(i, 1);
+                    this.board_graphics._draw_manual_number(coord.x, coord.y, lb.text);
+                } else {
+                    this.marks.set(id, "letter:" + lb.text);
+                    let letter_index = lb.text.charCodeAt(0)-65;
+                    this.letters[letter_index] = 1;
+                    this.board_graphics._draw_manual_letter(coord.x, coord.y, lb.text);
+                }
+                */
+            }
+        }
+    }
+
     full_frame(frame) {
         if (frame == null) {
             return;
         }
+
+        this.board.clear();
         this.board_graphics.clear_and_remove();
         for (let a of frame.add) {
             let col = a["color"];
-            let coordset = a["coordset"];
-            for (let k in coordset) {
-                let coord = coordset[k];
+            let coords = a["coords"];
+            for (let coord of coords) {
                 this._place_stone(coord.x, coord.y, col);
             }
         }
@@ -707,17 +796,17 @@ class State {
         }
         for (let a of diff.add) {
             let col = a["color"];
-            let coordset = a["coordset"];
-            for (let k in coordset) {
-                let coord = coordset[k];
+            let coords = a["coords"];
+            for (let coord of coords) {
                 this._place_stone(coord.x, coord.y, col);
+                this.board.set(coord, col);
             }
         }
         for (let r of diff.remove) {
-            let coordset = r["coordset"];
-            for (let k in coordset) {
-                let coord = coordset[k];
+            let coords = r["coords"];
+            for (let coord of coords) {
                 this.remove_stone(coord.x, coord.y);
+                this.board.set(coord, 0);
             }
         }
     }
@@ -743,7 +832,17 @@ class State {
         this.update_move_number();
     }
 
-    place_triangle(x, y) {
+    place_triangle(coord) {
+        let color = 1;
+        if (this.board.get(coord) == 1) {
+            color = 2;
+        }
+        this.board_graphics._draw_triangle(coord.x, coord.y, color);
+
+        let id = coordtoid(coord);
+        this.marks.set(id, "triangle");
+
+        /*
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -753,9 +852,19 @@ class State {
 
         this.board_graphics.draw_mark(x, y, "triangle");
         this.board.tree.current.add_field("TR", l);
+        */
     }
 
-    place_square(x, y) {
+    place_square(coord) {
+        let color = 1;
+        if (this.board.get(coord) == 1) {
+            color = 2;
+        }
+        this.board_graphics._draw_square(coord.x, coord.y, color);
+        let id = coordtoid(coord);
+        this.marks.set(id, "square");
+
+        /*
         if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
             return;
         }
@@ -765,77 +874,31 @@ class State {
 
         this.board_graphics.draw_mark(x, y, "square");
         this.board.tree.current.add_field("SQ", l);
+        */
     }
 
-    place_letter(x, y, letter) {
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
-        }
-
-        let coord = new Coord(x, y);
-        let l = coord.to_letters();
+    place_label(lb) {
+        // each lb has a coord and a text
         
-        this.board_graphics.draw_mark(x, y, "letter");
-        let label = l + ":" + letter;
-        this.board.tree.current.add_field("LB", label);
-    }
+        let coord = lb.coord
+        let id = coordtoid(coord);
 
-    place_number(x, y, number) {
-        if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-            return;
+        let i = parseInt(lb.text);
+        if (Number.isInteger(i)) {
+            this.marks.set(id, "number:" + lb.text);
+            this.numbers.set(i, 1);
+            this.board_graphics._draw_manual_number(coord.x, coord.y, lb.text);
+        } else {
+            this.marks.set(id, "letter:" + lb.text);
+            let letter_index = lb.text.charCodeAt(0)-65;
+            this.letters[letter_index] = 1;
+            this.board_graphics._draw_manual_letter(coord.x, coord.y, lb.text);
         }
 
-        let coord = new Coord(x, y);
-        let l = coord.to_letters();
- 
-        this.board_graphics.draw_mark(x, y, "number");
-        let label = l + ":" + number.toString();
-        this.board.tree.current.add_field("LB", label);
-
-    }
-
-    apply_marks() {
-        for (let [key, values] of this.board.tree.current.fields) {
-            if (key == "TR") {
-                for (let v of values) {
-                    let c = letterstocoord(v);
-                    this.board_graphics.draw_mark(c.x, c.y, "triangle");
-                }
-            } else if (key == "SQ") {
-                for (let v of values) {
-                    let c = letterstocoord(v);
-                    this.board_graphics.draw_mark(c.x, c.y, "square");
-                }
-            } else if (key == "LB") {
-                for (let v of values) {
-                    let c = letterstocoord(v.slice(0, 2));
-                    let mark = v.slice(3);
-                    if (mark >= "A" && mark <= "Z") {
-                        this.board_graphics.draw_manual_letter(c.x, c.y, mark);
-                    } else {
-                        this.board_graphics.draw_manual_number(c.x, c.y, parseInt(mark));
-                    }
-                }
-            }
-        }
     }
 
     remove_mark(x, y) {
-        let c = new Coord(x,y);
-        let l = c.to_letters();
-        for (let [key, values] of this.board.tree.current.fields) {
-            for (let value of values) {
-                if (key == "LB" && value.slice(0, 2) == l) {
-                    this.board.tree.current.remove_field("LB", value);
-                } else if (key == "SQ" && value == l) {
-                    this.board.tree.current.remove_field("SQ", l);
-                } else if (key == "TR" && value == l) {
-                    this.board.tree.current.remove_field("TR", l);
-                }
-            }
-        }
         this.board_graphics.remove_mark(x, y);
-
     }
 
     remove_stone(x, y) {

@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import { opposite } from './common.js';
+import { opposite, Coord } from './common.js';
 export {
     NetworkHandler
 }
@@ -134,25 +134,34 @@ class NetworkHandler {
         var index;
         var value;
         var userid;
+        var label;
         switch (evt) {
             case "frame":
                 this.state.handle_frame(payload["value"]);
                 break;
             case "triangle":
-                coords = payload["value"];
-                this.state.place_triangle(coords[0], coords[1]);
+                coords = new Coord(payload["value"][0], payload["value"][1]);
+                this.state.place_triangle(coords);
                 break;
             case "square":
-                coords = payload["value"];
-                this.state.place_square(coords[0], coords[1]);
+                coords = new Coord(payload["value"][0], payload["value"][1]);
+                this.state.place_square(coords);
                 break;
             case "letter":
-                coords = payload["value"]["coords"];
-                this.state.place_letter(coords[0], coords[1], payload["value"]["letter"]);
+                coords = new Coord(payload["value"]["coords"][0], payload["value"]["coords"][1]);
+                label = new Object();
+                label.coord = coords;
+                label.text = payload["value"]["letter"];
+                this.state.place_label(label);
                 break;
             case "number":
-                coords = payload["value"]["coords"];
-                this.state.place_number(coords[0], coords[1], payload["value"]["number"]);
+                coords = new Coord(payload["value"]["coords"][0], payload["value"]["coords"][1]);
+                label = new Object();
+                label.coord = coords;
+                label.text = payload["value"]["number"];
+                this.state.place_label(label);
+
+                //this.state.place_number(coords[0], coords[1], payload["value"]["number"]);
                 break;
             case "remove_mark":
                 coords = payload["value"];
@@ -578,7 +587,7 @@ class NetworkHandler {
 
         if (this.state.mark != "") {
             let id = coords[0].toString() + "-" + coords[1].toString();
-            if (this.state.board_graphics.marks.has(id)) {
+            if (this.state.marks.has(id)) {
                 payload = {"event": "remove_mark", value: coords};
             } else {
                 payload = {"event": this.state.mark};
@@ -590,16 +599,15 @@ class NetworkHandler {
                         payload["value"] = coords;
                         break;
                     case "letter":
-                        let letter_index = this.state.board_graphics.get_letter();
-                        let letter = "";
-                        if (letter_index != null) {
-                            letter = letters[letter_index%26];
+                        let letter = this.state.next_letter();
+                        if (letter == null) {
+                            return;
                         }
     
                         payload["value"] = {"coords": coords, "letter": letter};
                         break;
                     case "number":
-                        let number = this.state.board_graphics.get_number();
+                        let number = this.state.next_number();
                         payload["value"] = {"coords": coords, "number": number};
                         break;
                 }

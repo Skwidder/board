@@ -13,6 +13,8 @@ export {
     letters,
 }
 
+import { opposite, Coord } from './common.js';
+
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 function make_linear_gradient(svgns, color1, color2, id) {
@@ -191,7 +193,7 @@ class BoardGraphics {
     draw_marks() {
         this.clear_svg("marks");
         this.clear_svg("backdrop");
-        for (let [key, value] of this.marks) {
+        for (let [key, value] of this.state.marks) {
             let spl = key.split("-");
             if (spl.length != 2) {
                 return;
@@ -211,8 +213,9 @@ class BoardGraphics {
                 this.draw_triangle(x, y, hexcolor, svg_id);
             } else if (value.startsWith("letter")) {
                 spl = value.split(":");
-                let letter_index = parseInt(spl[1]);
-                let letter = letters[letter_index%26];
+                let letter = spl[1];
+                //let letter_index = parseInt(spl[1]);
+                //let letter = letters[letter_index%26];
                 this.draw_backdrop(x,y);
                 this.draw_letter(x, y, letter, hexcolor, svg_id);
             } else if (value.startsWith("number")) {
@@ -221,6 +224,14 @@ class BoardGraphics {
                 this.draw_backdrop(x,y);
                 this.draw_number(x, y, number, hexcolor, svg_id);
             }
+        }
+
+        let current = this.state.current;
+        if (current != null) {
+            this._draw_current(
+                current.x,
+                current.y,
+                opposite(this.state.board.get(current)));
         }
     }
 
@@ -236,7 +247,7 @@ class BoardGraphics {
             }
         }
 
-        this.draw_current();
+        //this.draw_current();
     }
 
     draw_boardbg(hex_color="") {
@@ -430,9 +441,6 @@ class BoardGraphics {
         return this.draw_raw_circle(x, y, r, color, id, true, stroke);
     }
 
-    draw_current_coord(x, y) {
-    }
-
     draw_current() {
         this.clear_svg("current");
         let cur = this.state.board.tree.current;
@@ -445,7 +453,7 @@ class BoardGraphics {
 
     _draw_current(x, y, color) {
         let hexcolor = "#FFFFFF";
-        if (color == 2) {
+        if (color == 1) {
             hexcolor = "#000000";
         }
         this.draw_circle(x, y, this.side/4, hexcolor, "current", false);
@@ -715,9 +723,9 @@ class BoardGraphics {
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";
         }
-        let letter_index = this.get_letter()
-        let letter = letters[letter_index%26];
-        if (letter_index == null) {
+        let letter = this.state.next_letter();
+
+        if (letter == null) {
             return;
         }
 
@@ -750,14 +758,14 @@ class BoardGraphics {
         if (this.state.board.points[x][y] == 1) {
             hexcolor = "#FFFFFF";
         }
-        let number = this.get_number();
+        let number = this.state.next_number();
         this.draw_number(x, y, number, hexcolor, "ghost-marks");
     }
 
     remove_mark(x, y) {
         let id = x.toString() + "-" + y.toString();
-        let mark = this.marks.get(id);
-        this.marks.delete(id);
+        let mark = this.state.marks.get(id);
+        this.state.marks.delete(id);
         this.clear_mark(x, y);
         let spl = mark.split(":");
         let type = spl[0];
@@ -766,13 +774,31 @@ class BoardGraphics {
         }
         this.clear_backdrop(x, y);
         if (type == "letter") {
-            let i = parseInt(spl[1]);
-            this.free_letter(i);
+            this.state.free_letter(spl[1]);
         } else if (type == "number") {
             let i = parseInt(spl[1]);
-            this.free_number(i);
+            this.state.free_number(i);
         }
     }
+
+    _draw_square(x, y, color) {
+        let svg_id = "marks";
+        let hexcolor = "#000000";
+        if (color == 2) {
+            hexcolor = "#FFFFFF";
+        }
+        this.draw_square(x, y, hexcolor, svg_id);
+    }
+
+    _draw_triangle(x, y, color) {
+        let svg_id = "marks";
+        let hexcolor = "#000000";
+        if (color == 2) {
+            hexcolor = "#FFFFFF";
+        }
+        this.draw_triangle(x, y, hexcolor, svg_id);
+    }
+
 
     draw_mark(x, y, mark) {
         this.saved_color = this.color;
@@ -819,42 +845,39 @@ class BoardGraphics {
         }
     }
 
-    draw_manual_letter(x, y, letter) {
-        this.saved_color = this.color;
+    _draw_manual_letter(x, y, letter) {
+        let coord = new Coord(x, y);
+        let color = opposite(this.state.board.get(coord));
         let hexcolor = "#000000";
-        if (this.state.board.points[x][y] == 1) {
+        if (color == 2) {
             hexcolor = "#FFFFFF";
         }
         let svg_id = "marks";
-        let id = x.toString() + "-" + y.toString();
 
-        let letter_index = letter.charCodeAt(0)-65;
-        this.use_letter(letter_index);
-        this.marks.set(id, "letter:" + letter_index.toString());
         this.draw_backdrop(x, y);
-        let l = this.draw_letter(x, y, letter, hexcolor, svg_id);
 
+        let l = this.draw_letter(x, y, letter, hexcolor, svg_id);
         let _id = "mark-" + x.toString() + "-" + y.toString();
         l.id = _id;
     }
 
-    draw_manual_number(x, y, number) {
-        this.saved_color = this.color;
+    _draw_manual_number(x, y, number) {
+        let coord = new Coord(x, y);
+        let color = opposite(this.state.board.get(coord));
+
         let hexcolor = "#000000";
-        if (this.state.board.points[x][y] == 1) {
+        if (color == 2) {
             hexcolor = "#FFFFFF";
         }
         let svg_id = "marks";
-        let id = x.toString() + "-" + y.toString();
 
-        this.use_number(number);
-        this.marks.set(id, "number:" + number.toString());
         this.draw_backdrop(x, y);
-        let n = this.draw_number(x, y, number, hexcolor, svg_id);
 
+        let n = this.draw_number(x, y, number, hexcolor, svg_id);
         let _id = "mark-" + x.toString() + "-" + y.toString();
         n.id = _id;
     }
+
 
     clear_mark(x, y) {
         let id = "mark-" + x.toString() + "-" + y.toString();

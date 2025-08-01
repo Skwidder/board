@@ -14,6 +14,7 @@ export {
     ObjectSet,
     Result,
     letterstocoord,
+    coordtoid,
     new_text_button,
     new_icon_button,
     add_tooltip,
@@ -42,6 +43,11 @@ function opposite(color) {
         return 2;
     }
     return 1;
+}
+
+// not a method so it can apply to arbitrary Object with x and y attributes
+function coordtoid(c) {
+    return c.x.toString() + "-" + c.y.toString();
 }
 
 function letterstocoord(s) {

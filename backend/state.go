@@ -477,12 +477,37 @@ func (s *State) GotoCoord(x, y int) {
 	// do nothing
 }
 
-func (s *State) GenerateMarks() map[string]*StoneSet {
-	marks := make(map[string]*StoneSet)
+func (s *State) GenerateMarks() *Marks {
+	marks := &Marks{}
 	if (s.Current.XY != nil) {
+		marks.Current = s.Current.XY
+	}
+	if trs, ok := s.Current.Fields["TR"]; ok {
 		cs := NewCoordSet()
-		cs.Add(s.Current.XY)
-		marks["current"] = NewStoneSet(cs, s.Current.Color)
+		for _,tr := range trs {
+			c := LettersToCoord(tr)
+			cs.Add(c)
+		}
+		marks.Triangles = cs.List()
+	}
+	if sqs, ok := s.Current.Fields["SQ"]; ok {
+		cs := NewCoordSet()
+		for _,sq := range sqs {
+			c := LettersToCoord(sq)
+			cs.Add(c)
+		}
+		marks.Squares = cs.List()
+	}
+	if lbs, ok := s.Current.Fields["LB"]; ok {
+		labels := []*Label{}
+		for _,lb := range lbs {
+			spl := strings.Split(lb, ":")
+			c := LettersToCoord(spl[0])
+			text := spl[1]
+			label := &Label{c, text}
+			labels = append(labels, label)
+		}
+		marks.Labels = labels
 	}
 	return marks
 }
@@ -518,13 +543,6 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
         }
 
 		diff := s.AddNode(c, Color(evt.Color), nil, -1, false)
-
-		/*
-		marks := make(map[string]*StoneSet)
-		cs := NewCoordSet()
-		cs.Add(c)
-		marks["current"] = NewStoneSet(cs, Color(evt.Color))
-		*/
 
 		marks := s.GenerateMarks()
 
@@ -891,18 +909,4 @@ func NewState(size int, initRoot bool) *State {
     return &State{root, root, root, nodes, index, 250, 86400, size, board}
 }
 
-/*
-type StackTreeNode struct {
-    Type string
-    NodeValue *TreeNode
-    StringValue string
-}
-*/
 
-/*
-type StackSGFNode struct {
-    Type string
-    NodeValue *SGFNode
-    StringValue string
-}
-*/
