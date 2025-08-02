@@ -580,10 +580,15 @@ func (s *State) GenerateComments() []string {
 	return cmts
 }
 
-func (s *State) GenerateFullFrame() *Frame {
+func (s *State) GenerateFullFrame(init bool) *Frame {
 	frame := s.Board.CurrentFrame()
 	frame.Marks = s.GenerateMarks()
 	frame.Explorer = s.Root.FillGrid(s.Current.Index)
+	if (!init) {
+		frame.Explorer.Nodes = []*GridNode{}
+		frame.Explorer.Edges = []*GridEdge{}
+	}
+
 	frame.Metadata = s.GenerateMetadata()
 	frame.Comments = s.GenerateComments()
 	return frame
@@ -727,6 +732,8 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Left()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
+		explorer.Nodes = []*GridNode{}
+		explorer.Edges = []*GridEdge{}
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 
@@ -734,6 +741,8 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Right()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
+		explorer.Nodes = []*GridNode{}
+		explorer.Edges = []*GridEdge{}
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 	
@@ -752,17 +761,17 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
         val := evt.Value.(string)
         if val == "Rewind" {
 			s.Rewind()
-			return s.GenerateFullFrame(), nil
+			return s.GenerateFullFrame(false), nil
         } else if val == "FastForward" {
 			s.FastForward()
-			return s.GenerateFullFrame(), nil
+			return s.GenerateFullFrame(false), nil
         }
 
 	case "goto_grid":
         index := int(evt.Value.(float64))
 		s.GotoIndex(index)
 
-		return s.GenerateFullFrame(), nil
+		return s.GenerateFullFrame(false), nil
 	case "goto_coord":
         coords := make([]int, 0)
         // coerce the value to an array
@@ -774,7 +783,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
         x := coords[0]
         y := coords[1]
 		s.GotoCoord(x, y)
-		return s.GenerateFullFrame(), nil
+		return s.GenerateFullFrame(false), nil
 	case "comment":
 		val := evt.Value.(string)
 		s.Current.AddField("C", val + "\n")

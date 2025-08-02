@@ -209,7 +209,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			}
 			o.Room.State.PushHead(x, y, col)
 
-			frame := o.Room.State.GenerateFullFrame()
+			frame := o.Room.State.GenerateFullFrame(true)
 			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, "", false)
 

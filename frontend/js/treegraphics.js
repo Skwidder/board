@@ -173,16 +173,18 @@ class TreeGraphics {
             grid.get(coord.y).set(coord.x, node.index);
         }
 
-        this.grid = grid;
 
-        this.set_dims_all(max_x+1, max_y+1);
+        if (explorer.nodes.length > 0) {
+            this.grid = grid;
+            this.set_dims_all(max_x+1, max_y+1);
+            this._draw_stones(explorer.nodes);
+            this._draw_lines(explorer.edges);
+        }
 
         let current = explorer.current;
         this.draw_current(current.x, current.y);
 
-        this._draw_stones(explorer.nodes);
         this._draw_preferred_stones(explorer.preferred_nodes);
-        this._draw_lines(explorer.edges);
         this._draw_preferred_lines(explorer.preferred_edges);
 
         this.set_scroll(current.x, current.y);

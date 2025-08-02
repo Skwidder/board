@@ -195,7 +195,7 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
     r.State = state
 	
 	// replace evt with initdata
-	frame := r.State.GenerateFullFrame()
+	frame := r.State.GenerateFullFrame(true)
 	return FrameJSON(frame)
 }
 
@@ -548,7 +548,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
     // send initial state
     if !first {
-		frame := room.State.GenerateFullFrame()
+		frame := room.State.GenerateFullFrame(true)
 		evt := FrameJSON(frame)
 		
         if initData, err := json.Marshal(evt); err != nil {
@@ -792,7 +792,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
 			}
-			frame := room.State.GenerateFullFrame()
+			frame := room.State.GenerateFullFrame(true)
 			evt = FrameJSON(frame)
 
 		} else if evt.Event == "update_nickname" {
@@ -844,7 +844,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 			room.Broadcast(evt, id, true)
 
-			frame := room.State.GenerateFullFrame()
+			frame := room.State.GenerateFullFrame(true)
 			evt = FrameJSON(frame)
 		} else {
 			frame, err := room.State.AddEvent(evt)
