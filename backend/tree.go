@@ -62,6 +62,7 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 	parents := make(map[int]int)
 	prefs := make(map[int]int)
 	var currentCoord *Coord
+	var currentColor Color
 	for len(stack) > 0 {
 		// pop off the stack
 		cur := stack[len(stack)-1]
@@ -123,6 +124,7 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 
 		if node.Index == currentIndex {
 			currentCoord = &Coord{x, y}
+			currentColor = node.Color
 		}
 
 		// if the parent is a diagonal away, we have to take up
@@ -194,7 +196,14 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 		}
 	}
 
-	return &Explorer{nodes, edges, preferredNodes, preferredEdges, currentCoord}
+	return &Explorer {
+		nodes,
+		edges,
+		preferredNodes,
+		preferredEdges,
+		currentCoord,
+		currentColor,
+	}
 }
 
 type GridNode struct {
@@ -214,4 +223,5 @@ type Explorer struct {
 	PreferredNodes []*GridNode `json:"preferred_nodes"`
 	PreferredEdges []*GridEdge `json:"preferred_edges"`
 	Current *Coord `json:"current"`
+	CurrentColor Color `json:"current_color"`
 }

@@ -749,11 +749,17 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 	case "up":
         s.Up()
 		explorer := s.Root.FillGrid(s.Current.Index)
+		explorer.Nodes = []*GridNode{}
+		explorer.Edges = []*GridEdge{}
+
 		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 	
 	case "down":
         s.Down()
 		explorer := s.Root.FillGrid(s.Current.Index)
+		explorer.Nodes = []*GridNode{}
+		explorer.Edges = []*GridEdge{}
+
 		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 
 

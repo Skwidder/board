@@ -456,10 +456,13 @@ class State {
         this.board_graphics.clear_pen();
     }
 
-    update_color() {
+    update_color(optional_color) {
+        // if not toggling, do nothing
         if (!this.toggling) {
             return;
         }
+
+        // if we have a current move we can check, do the opposite
         if (this.current != null) {
             if (this.board.get(this.current) == 1) {
                 this.color = 2;
@@ -469,6 +472,8 @@ class State {
             return;
         }
 
+        // if we're on the initial move, change to initial color
+        // (black for normal games, white for handicap)
         if (parseInt(this.get_move_number()) == 0) {
             if (this.handicap) {
                 this.color = 2;
@@ -476,6 +481,11 @@ class State {
                 this.color = 1;
             }
             return;
+        }
+
+        // if we have an optional_color thrown in, do the opposite
+        if (optional_color == 1 || optional_color == 2) {
+            this.color = opposite(optional_color);
         }
     }
 
@@ -662,9 +672,9 @@ class State {
         if (frame.explorer != null) {
             this.tree_graphics._update(frame.explorer);
             this.set_move_number(frame.explorer.current.x);
+            this.update_color(frame.explorer.current_color);
         }
 
-        this.update_color();
     }
 
     handle_comments(comments) {
