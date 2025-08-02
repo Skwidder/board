@@ -281,8 +281,10 @@ class TreeGraphics {
         let [x_pos, y_pos] = this.get_xypos(x,y);
         let old_left = this.container.scrollLeft;
         let old_top = this.container.scrollTop;
+
         let x_padding = 5*this.step;
         let y_padding = 2*this.step;
+
         // basically, i want to see if the blue square is already there
         // and only update if not
 
@@ -290,7 +292,11 @@ class TreeGraphics {
         if (old_left > x_pos-x_padding || x_pos + x_padding > old_left + width) {
             this.container.scrollLeft = x_pos - x_padding;
         }
-        if (old_top > y_pos - y_padding || y_pos + y_padding > old_top + this.height) {
+
+        let height = this.container.offsetHeight;
+
+        // if y_pos is out of view, then rescroll
+        if (old_top + height < y_pos || y_pos - y_padding < old_top) {
             this.container.scrollTop = y_pos - y_padding;
         }
 
