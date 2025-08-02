@@ -202,6 +202,8 @@ class TreeGraphics {
         this.clear_svg(id);
         let black_stones = [];
         let white_stones = [];
+
+        let dots = [];
         
         let black_numbers = [];
         let white_numbers = [];
@@ -213,6 +215,8 @@ class TreeGraphics {
             } else if (node.color == WHITE) {
                 white_stones.push([node.coord.x, node.coord.y]);
                 white_numbers.push([node.coord, node.coord.x.toString()]);
+            } else {
+                dots.push([node.coord.x, node.coord.y]);
             }
         }
 
@@ -223,6 +227,9 @@ class TreeGraphics {
         // draw numbers
         this.svg_draw_texts(black_numbers, WHITE, preferred, id);
         this.svg_draw_texts(white_numbers, BLACK, preferred, id);
+
+        // draw dots
+        this.svg_draw_dots(dots, preferred, id);
     }
 
     _draw_lines(edges) {
@@ -257,25 +264,6 @@ class TreeGraphics {
         this.svg_draw_polyline(lines, color, id);
 
     }
-
-    /*
-    update(tree, change_preferred=false, change_stones=false) {
-        // fill grid
-        let [grid, loc] = this.fill_grid(tree);
-        this.grid = grid;
-
-        // set dimensions
-        this.set_dims_all(tree.max_depth, grid.length);
-
-        // draw lines and stones
-        // [x,y] will be the location of the current blue square
-        let [x,y] = this.draw_tree(tree, grid, loc, change_preferred, change_stones);
-
-        // adjust scroll (of the container)
-        // this should be based on the current move
-        this.set_scroll(x, y);
-    }
-    */
 
     set_scroll(x, y) {
         let [x_pos, y_pos] = this.get_xypos(x,y);
@@ -331,99 +319,6 @@ class TreeGraphics {
         }
     }
 
-    /*
-    fill_grid(tree) {
-        // there is a 2d "grid" that every move will exist on
-        let row = new Array(tree.max_depth).fill(0);
-        let grid = [];
-        grid.push(row);
-
-        // we'll also keep track of placements in the grid with a map
-        let loc = new Map();
-
-        // thus we should always be able to calculate your place
-        // in the grid
-
-        let stack = [tree.root];
-        let x = 0;
-        let y = 0;
-        while (stack.length > 0) {
-            let cur = stack.pop();
-            if (typeof cur == "string") {
-                if (cur == "<") {
-                    x--;
-                }
-                continue;
-            }
-            // y is the row
-            // start with the last row
-            y = grid.length - 1;
-
-            if (grid[y][x] != 0) {
-                // if there's something in the last row (in the x coord)
-                // add a new row
-                grid.push(new Array(tree.max_depth).fill(0));
-                y++;
-            } else {
-                while (true) {
-                    if (y == 0) {
-                        break;
-                    }
-
-                    // look at the parent
-                    let p = cur.up;
-                    if (p != null) {
-                        let [x1, y1] = loc.get(p.index);
-                        // actually, don't go any farther than the 
-                        // diagonal connecting the parent
-                        if (x-y >= x1-y1) {
-                            break;
-                        }
-                        // don't go any farther than the parent row
-                        if (y == y1) {
-                            break;
-                        }
-
-                    }
-
-                    // i want to find the earliest row
-                    // (before going past the parent)
-                    // that is empty
-                    if (grid[y][x] == 0 && grid[y-1][x] != 0) {
-                        break;
-                    }
-                    y--;
-                }
-            }
-
-            grid[y][x] = cur;
-            loc.set(cur.index, [x,y]);
-
-            // if the parent is a diagonal away, we have to take up
-            // another node
-            // (this is for all the "angled" edges)
-            let p = cur.up;
-            if (p != null) {
-                let [x1, y1] = loc.get(p.index);
-                if (y - y1 > 1) {
-                    if (grid[y-1][x-1] == 0) {
-                        grid[y-1][x-1] = 1;
-                    }
-                }
-            }
-
-            x ++;
-
-            // push on children in reverse order
-            for (let i=cur.down.length-1; i >=0; i--) {
-                stack.push("<")
-                stack.push(cur.down[i]);
-            }
-        }
-        return [grid, loc];
-    }
-    */
-
     get_xpos(x) {
         return this.x_offset + x*this.step;
     }
@@ -436,197 +331,6 @@ class TreeGraphics {
         return [this.get_xpos(x), this.get_ypos(y)];
     }
 
-    /*
-    draw_lines(grid, loc) {
-        let lines = [];
-
-        for (let row of grid) {
-            for (let cur of row) {
-                if (cur == 0 || cur == 1) {
-                    continue;
-                }
-                if (cur.up == null) {
-                    continue;
-                }
-                lines.push(...this.get_connecting_line(cur, loc));
-            }
-        }
-        this.svg_draw_polyline(lines, "#BBBBBB", "lines");
-    }
-    */
-
-
-    /*
-    draw_preferred_line(tree, loc) {
-        let cur = tree.root;
-        let lines = [];
-
-        while (true) {
-            if (cur.down.length == 0) {
-                break;
-            }
-
-            cur = cur.down[cur.preferred_child];
-            lines.push(...this.get_connecting_line(cur, loc));
-        }
-        this.svg_draw_polyline(lines, "#8d42eb", "preferred-lines");
-    }
-    */
-
-    /*
-    draw_preferred_stones(tree, loc) {
-        let cur = tree.root;
-
-        let white_stones = [];
-        let black_stones = [];
-        let xs = [];
-        let black_numbers = [];
-        let white_numbers = [];
-        let circles = new Map();
-
-        while (true) {
-            if (cur.down.length == 0) {
-                break;
-            }
-            cur = cur.down[cur.preferred_child];
-            // collect stones
-            let coord = loc.get(cur.index);
-            let cols = cur.colors();
-            if (!cols.has(1) && !cols.has(2)){
-                xs.push(coord);
-            } else if (cols.has(2)) {
-                let [x,y] = coord;
-                let circle_id = "preferred-stones" + ":" + x + ":" + y + ":" + 2;
-                let text_id = "preferred-texts" + ":" + x + ":" + y + ":text";
-                circles.set(circle_id, 1);
-                if (this.shapes.get("preferred-circles").has(circle_id)) {
-                    this.shapes.get("preferred-circles").delete(circle_id);
-                    //this.shapes.get("preferred-texts").delete(text_id);
-                } else {
-                    white_stones.push(coord);
-                    black_numbers.push([coord, cur.depth.toString()]);
-                }
-            } else {
-                let [x,y] = coord;
-                let circle_id = "preferred-stones" + ":" + x + ":" + y + ":" + 1;
-                let text_id = "preferred-texts" + ":" + x + ":" + y + ":text";
-                circles.set(circle_id, 1);
-                if (this.shapes.get("preferred-circles").has(circle_id)) {
-                    this.shapes.get("preferred-circles").delete(circle_id);
-                    //this.shapes.get("preferred-texts").delete(text_id);
-                } else {
-                    black_stones.push(coord);
-                    white_numbers.push([coord, cur.depth.toString()]);
-                }
-            }
-        }
-
-        // clear all the circles that we don't want anymore
-        for (let [id,v] of this.shapes.get("preferred-circles").entries()) {
-            document.getElementById(id).remove();
-            let spl = id.split(":");
-            let text_id = spl.slice(0, 3).join(":") + ":text";
-            document.getElementById(text_id).remove();
-        }
-
-        //for (let [id,v] of this.shapes.get("preferred-texts").entries()) {
-        //    document.getElementById(id).remove();
-        //}
-
-
-        // draw the new circles
-        this.svg_draw_xs(xs, true);
-        this.svg_draw_circles(black_stones, 1, true, "preferred-stones");
-        this.svg_draw_circles(white_stones, 2, true, "preferred-stones");
-
-        this.shapes.set("preferred-circles", circles);
-
-        this.svg_draw_texts(black_numbers, 1, true, "preferred-stones");
-        this.svg_draw_texts(white_numbers, 2, true, "preferred-stones");
-
-    }
-    */
-
-    /*
-    draw_stones(tree, grid, loc) {
-        // get indexes of tree's preferred nodes
-        let preferred = tree.preferred();
-
-        let white_stones = [];
-        let black_stones = [];
-        let xs = [];
-        let black_numbers = [];
-        let white_numbers = [];
-        let circles = new Map();
-        for (let row of grid) {
-            for (let cur of row) {
-                if (cur == 0 || cur == 1) {
-                    continue;
-                }
-                if (cur.index == 0) {
-                    continue;
-                }
-
-                // collect stones
-                let coord = loc.get(cur.index);
-                let cols = cur.colors();
-                if (!cols.has(1) && !cols.has(2)){
-                    xs.push(coord);
-                } else if (cols.has(2)) {
-                    let [x,y] = coord;
-                    let circle_id = "stones" + ":" + x + ":" + y + ":" + 2;
-                    let text_id = "stones" + ":" + x + ":" + y + ":text";
-                    circles.set(circle_id, 1);
-                    if (this.shapes.get("circles").has(circle_id)) {
-                        this.shapes.get("circles").delete(circle_id);
-                        //this.shapes.get("texts").delete(text_id);
-                    } else {
-                        // only add new stones that aren't already in the map
-                        white_stones.push(coord);
-                        black_numbers.push([coord, cur.depth.toString()]);
-                    }
-                } else {
-                    let [x,y] = coord;
-                    let circle_id = "stones" + ":" + x + ":" + y + ":" + 1;
-                    let text_id = "stones" + ":" + x + ":" + y + ":text";
-                    circles.set(circle_id, 1);
-                    if (this.shapes.get("circles").has(circle_id)) {
-                        this.shapes.get("circles").delete(circle_id);
-                        //this.shapes.get("texts").delete(text_id);
-                    } else {
-                        // only add new stones that aren't already in the map
-                        black_stones.push(coord);
-                        white_numbers.push([coord, cur.depth.toString()]);
-                    }
-                }
-            }
-        }
-
-        this.svg_draw_xs(xs, false);
-
-        // clear all the circles that we don't want anymore
-        for (let [id,v] of this.shapes.get("circles").entries()) {
-            document.getElementById(id).remove();
-            let spl = id.split(":");
-            let text_id = spl.slice(0, 3).join(":") + ":text";
-            document.getElementById(text_id).remove();
-        }
-
-        //for (let [id,v] of this.shapes.get("texts").entries()) {
-        //    document.getElementById(id).remove();
-        //}
-
-        // draw all the circles that weren't already there
-        this.svg_draw_circles(black_stones, 1, false, "stones");
-        this.svg_draw_circles(white_stones, 2, false, "stones");
-
-        this.shapes.set("circles", circles);
-
-        // and the text
-        this.svg_draw_texts(black_numbers, 1, false, "stones");
-        this.svg_draw_texts(white_numbers, 2, false, "stones");
-    }
-    */
 
     draw_current(x, y) {
         this.clear_svg("current");
@@ -635,52 +339,6 @@ class TreeGraphics {
         this.svg_draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current");
         this.current = [x,y];
     }
-
-    /*
-    draw_tree(tree, grid, loc, change_preferred, change_stones) {
-        if (change_preferred) {
-            this.clear_svg("preferred-lines");
-            this.clear_svg("preferred-xs");
-            //this.clear_svg("preferred-stones");
-        }
-        if (change_stones) {
-            this.clear_svg("lines");
-            this.clear_svg("xs");
-            //this.clear_svg("stones");
-        }
-
-        // draw "current" blue square
-        let w = this.step/2;
-        let [x,y] = loc.get(tree.current.index);
-        this.clear_svg("current");
-        this.draw_current(x, y);
-
-        let [pos_x, pos_y] = this.get_xypos(x,y);
-
-        // draw lines
-        // only if there's new stones
-        if (change_stones) {
-            this.draw_lines(grid, loc);
-        }
-
-        // draw preferred line
-        // only if there's a change in preferred line
-        if (change_preferred) {
-            this.draw_preferred_line(tree, loc);
-        }
-
-        // draw stones
-        // we only need to redraw stones if there are new ones to draw
-        if (change_stones) {
-            this.draw_stones(tree, grid, loc);
-        }
-
-        if (change_preferred) {
-            this.draw_preferred_stones(tree, loc);
-        }
-        return [pos_x, pos_y];
-    }
-    */
 
     svg_draw_texts(values, color, preferred, id) {
         let hex_color = "#000000";
@@ -725,25 +383,6 @@ class TreeGraphics {
             svg.appendChild(text);
         }
     }
-
-    /*
-    get_connecting_line(cur, loc) {
-        let lines = [];
-
-        let [x,y] = loc.get(cur.index);
-
-        let par = cur.up;
-        let [x1, y1] = loc.get(par.index);
-
-        if (y == y1) {
-            lines.push([[x,y], [x1, y1]]);
-        } else {
-            lines.push([[x,y], [x-1, y-1]]);
-            lines.push([[x-1, y-1], [x1, y1]]);
-        }
-        return lines;
-    }
-    */
 
     svg_draw_polyline(coord_pairs, hexColor, id) {
         let svg = this.svgs.get(id);
@@ -876,6 +515,28 @@ class TreeGraphics {
             circle.style.stroke = stroke_style;
             circle.style.strokeWidth = 1.5;
             circle.setAttributeNS(null, "id", circle_id);
+            svg.appendChild(circle);
+        }
+    }
+
+    svg_draw_dots(coords, preferred, id) {
+        let hex_color = "#BBBBBB";
+        if (preferred) {
+            hex_color = "#8d42eb";
+        }
+ 
+
+        let svg = this.svgs.get(id);
+        for (let[x,y] of coords) {
+            let [pos_x, pos_y] = this.get_xypos(x, y);
+
+            let circle = document.createElementNS(this.svgns, "circle");
+            circle.setAttributeNS(null, 'cx', pos_x);
+            circle.setAttributeNS(null, 'cy', pos_y);
+            circle.setAttributeNS(null, 'r', 2);
+            circle.style.fill = hex_color;
+            //circle.style.stroke = stroke_style;
+            circle.style.strokeWidth = 1.5;
             svg.appendChild(circle);
         }
     }
