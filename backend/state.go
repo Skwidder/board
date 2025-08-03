@@ -823,18 +823,15 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 
 func (s *State) ToSGF(indexes bool) string {
     result := "("
-    //stack := []*StackTreeNode{&StackTreeNode{"node", s.Root, ""}};
 	stack := []interface{}{s.Root}
     for len(stack) > 0 {
         i := len(stack) - 1
         cur := stack[i]
         stack = stack[:i]
-        //if cur.Type == "string" {
 		if str, ok := cur.(string); ok {
             result += str
             continue
         }
-        //node := cur.NodeValue
         node := cur.(*TreeNode)
         result += ";"
         if node.Color > 0 {

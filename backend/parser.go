@@ -12,6 +12,7 @@ package main
 
 import (
     "fmt"
+	"strings"
 )
 
 func IsWhitespace(c byte) bool {
@@ -19,10 +20,6 @@ func IsWhitespace(c byte) bool {
 }
 
 type SGFNode struct {
-	/*
-    Value *Coord
-    Color int
-	*/
     Fields map[string][]string
     Down []*SGFNode
     Index int
@@ -70,6 +67,34 @@ func (n *SGFNode) Coord() *Coord {
 		}
 	}
 	return nil
+}
+
+func (n *SGFNode) ToSGF(root bool) string {
+	result := ""
+	if root {
+		result += "("
+	}
+	result += ";"
+	for field, values := range n.Fields {
+		result += field
+		for _, value := range values {
+			result += "["
+			result += strings.ReplaceAll(value, "]", "\\]")
+			result += "]"
+		}
+	}
+
+	for _, d := range n.Down {
+		if len(n.Down) > 1 {
+			result += "(" + d.ToSGF(false) + ")"
+		} else {
+			result += d.ToSGF(false)
+		}
+	}
+	if root {
+		result += ")"
+	}
+	return result
 }
 
 func NewSGFNode(fields map[string][]string, index int) *SGFNode {
@@ -161,10 +186,6 @@ func (p *Parser) ParseNodes() ([]*SGFNode, error) {
 
 func (p *Parser) ParseNode() (*SGFNode, error) {
     fields := make(map[string][]string)
-	/*
-    color := 0
-    move := ""
-	*/
     index := 0
     for {
         p.SkipWhitespace()
@@ -206,20 +227,8 @@ func (p *Parser) ParseNode() (*SGFNode, error) {
 
         p.SkipWhitespace()
         fields[key] = multifield
-		/*
-        switch key {
-        case "B":
-            color = 1
-            move = multifield[0]
-        case "W":
-            color = 2
-            move = multifield[0]
-        default:
-			*/
     }
 
-    //v := LettersToCoord(move)
-    //n := NewSGFNode(v, color, fields, index)
     n := NewSGFNode(fields, index)
     return n, nil
 }
@@ -278,4 +287,71 @@ func (p *Parser) peek(n int) byte {
         return 0
     }
     return p.Text[p.Index+n]
+}
+
+func Merge(files [][]byte) string {
+	if len(files) == 0 {
+		return ""
+	} else if len(files) == 1 {
+		return string(files[0])
+	}
+
+	size := ""
+	fields := make(map[string][]string)
+	fields["GM"] = []string{"1"}
+	fields["FF"] = []string{"4"}
+	fields["CA"] = []string{"UTF-8"}
+	fields["PB"] = []string{"Black"}
+	fields["PW"] = []string{"White"}
+	fields["RU"] = []string{"Japanese"}
+	fields["KM"] = []string{"6.5"}
+
+	newRoot := NewSGFNode(fields, 0)
+
+	for _,sgf := range files {
+		p := NewParser(string(sgf))
+		root, err := p.Parse()
+		if err != nil {
+			// on error, just continue
+			continue
+		}
+		eachSize := ""
+		if sizes, ok := root.Fields["SZ"]; ok {
+			eachSize = sizes[0]
+		} else {
+			// if size is not provided, assume 19
+			eachSize = "19"
+		}
+
+		// if we haven't set the (assumed) same size yet, set it
+		if size == "" {
+			size = eachSize
+		}
+
+		// if not all the sgfs are the same size, just return the first one?
+		if size != eachSize {
+			return string(files[0])
+		}
+
+		_, hasB := root.Fields["B"]
+		_, hasW := root.Fields["W"]
+		_, hasAB := root.Fields["AB"]
+		_, hasAW := root.Fields["AW"]
+
+		if hasB || hasW || hasAB || hasAW {
+			// strip fields and save the node
+			for _, key := range []string{"RU", "SZ", "KM", "TM", "OT"} {
+				delete(root.Fields, key)
+			}
+			newRoot.Down = append(newRoot.Down, root)
+		} else {
+			// otherwise save all the children
+			for _, d := range root.Down {
+				newRoot.Down = append(newRoot.Down, d)
+			}
+		}
+	}
+
+	newRoot.Fields["SZ"] = []string{size}
+	return newRoot.ToSGF(true)
 }

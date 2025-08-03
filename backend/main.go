@@ -708,7 +708,17 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		        log.Println(err)
 		        continue
 		    }
-			evt = room.UploadSGF(string(decoded))
+			if IsZipFile(decoded) {
+				files, err := Decompress(decoded)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				merged := Merge(files)
+				evt = room.UploadSGF(merged)
+			} else {
+				evt = room.UploadSGF(string(decoded))
+			}
 		} else if evt.Event == "request_sgf" {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
@@ -766,21 +776,6 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 			evt = room.UploadSGF(string(data))
 
-			/*
-			state, err := FromSGF(string(data))
-            if err != nil {
-                log.Println(err)
-				newEvent := ErrorJSON("Error parsing SGF")
-				data, _ := json.Marshal(newEvent)
-				// broadcast error message
-				for _, conn := range room.conns {
-					conn.Write(data)
-				}
-                continue
-			}
-			room.State = state
-			evt = room.State.InitData("upload_sgf")
-			*/
         } else if evt.Event == "trash" {
             // reset room
 			oldBuffer := room.State.InputBuffer
