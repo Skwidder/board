@@ -356,7 +356,7 @@ func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, ind
 				node.Color == Color(col) {
 				s.Current.PreferredChild = i
 				s.Right()
-				return nil
+				return s.Current.Diff
 			}
 		}
 	}
