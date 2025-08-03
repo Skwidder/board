@@ -703,22 +703,46 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				room.OGSLink.End()
 			}
 
-		    decoded, err := base64.StdEncoding.DecodeString(evt.Value.(string))
-		    if err != nil {
-		        log.Println(err)
-		        continue
-		    }
-			if IsZipFile(decoded) {
-				files, err := Decompress(decoded)
+			// it might be a string
+			if s, ok := evt.Value.(string); ok {
+
+				decoded, err := base64.StdEncoding.DecodeString(s)
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				merged := Merge(files)
-				evt = room.UploadSGF(merged)
-			} else {
-				evt = room.UploadSGF(string(decoded))
+				if IsZipFile(decoded) {
+					filesBytes, err := Decompress(decoded)
+					if err != nil {
+						evt = ErrorJSON(fmt.Sprintf("%s", err))
+					} else {
+						files := []string{}
+						for _, file := range filesBytes {
+							files = append(files, string(file))
+						}
+						merged := Merge(files)
+						evt = room.UploadSGF(merged)
+					}
+				} else {
+					evt = room.UploadSGF(string(decoded))
+				}
+
+			} else if arr, ok := evt.Value.([]interface{}); ok {
+				// it might be an array of strings
+				sgfs := []string{}
+				for _, ifc := range arr {
+					s := ifc.(string)
+					d, err := base64.StdEncoding.DecodeString(s)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					sgfs = append(sgfs, string(d))
+				}
+				sgf := Merge(sgfs)
+				evt = room.UploadSGF(sgf)
 			}
+
 		} else if evt.Event == "request_sgf" {
 			if room.OGSLink != nil {
 				room.OGSLink.End()

@@ -289,11 +289,11 @@ func (p *Parser) peek(n int) byte {
     return p.Text[p.Index+n]
 }
 
-func Merge(files [][]byte) string {
-	if len(files) == 0 {
+func Merge(sgfs []string) string {
+	if len(sgfs) == 0 {
 		return ""
-	} else if len(files) == 1 {
-		return string(files[0])
+	} else if len(sgfs) == 1 {
+		return sgfs[0]
 	}
 
 	size := ""
@@ -308,8 +308,8 @@ func Merge(files [][]byte) string {
 
 	newRoot := NewSGFNode(fields, 0)
 
-	for _,sgf := range files {
-		p := NewParser(string(sgf))
+	for _,sgf := range sgfs {
+		p := NewParser(sgf)
 		root, err := p.Parse()
 		if err != nil {
 			// on error, just continue
@@ -330,7 +330,7 @@ func Merge(files [][]byte) string {
 
 		// if not all the sgfs are the same size, just return the first one?
 		if size != eachSize {
-			return string(files[0])
+			return sgfs[0]
 		}
 
 		_, hasB := root.Fields["B"]
@@ -347,6 +347,14 @@ func Merge(files [][]byte) string {
 		} else {
 			// otherwise save all the children
 			for _, d := range root.Down {
+				d.Fields["C"] = []string{}
+				for _, key := range []string{"PB", "PW", "RE", "KM", "DT"} {
+					if len(root.Fields[key]) == 0 {
+						continue
+					}
+					value := root.Fields[key][0]
+					d.Fields["C"] = append(d.Fields["C"], fmt.Sprintf("%s: %s", key, value))
+				}
 				newRoot.Down = append(newRoot.Down, d)
 			}
 		}

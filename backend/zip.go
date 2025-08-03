@@ -14,7 +14,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"io/ioutil"
-	"log"
 )
 
 func IsZipFile(data []byte) bool {
@@ -28,7 +27,6 @@ func Decompress(data []byte) ([][]byte, error) {
 	// open the archive with a zip reader
 	zipReader, err := zip.NewReader(r, int64(len(data)))
 	if err != nil {
-		log.Println("here", err)
 		return nil, err
 	}
 
