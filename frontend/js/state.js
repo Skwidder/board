@@ -31,6 +31,16 @@ const FrameType = {
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+function b64_encode_arraybuffer(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
 function b64_encode_unicode(str) {
     const text_encoder = new TextEncoder('utf-8');
     const encoded_data = text_encoder.encode(str);
@@ -522,13 +532,14 @@ class State {
                 // if 1 file, it's easy
                 let f = inp.files[0];
                 let reader = new FileReader();
-                reader.readAsText(f);
+                //reader.readAsText(f);
+                reader.readAsArrayBuffer(f);
 
                 reader.addEventListener(
                     "load",
                     () => {
                         // encode unicode, and encode with base64
-                        this.network_handler.prepare_upload(b64_encode_unicode(reader.result));
+                        this.network_handler.prepare_upload(b64_encode_arraybuffer(reader.result));
                     },
                     false,
                 );
@@ -546,7 +557,7 @@ class State {
                     promises.push(
                         new Promise((resolve, reject) => {
                             let reader = new FileReader();
-                            reader.readAsText(f);
+                            reader.readAsArrayBuffer(f);
                             reader.addEventListener(
                                 "load",
                                 () => resolve(reader.result),
@@ -559,9 +570,14 @@ class State {
                 // turn list of promises into 1 promise
                 Promise.all(promises)
                     .then((values) => {
-                        let sgf = merge(values);
+                        let payload = [];
+                        for (let v of values) {
+                            payload.push(b64_encode_arraybuffer(v));
+                        }
+
                         // encode unicode, and encode with base64
-                        this.network_handler.prepare_upload(b64_encode_unicode(sgf));
+                        //this.network_handler.prepare_upload(b64_encode_unicode(sgf));
+                        this.network_handler.prepare_upload(payload);
                     }
                     );
             }
