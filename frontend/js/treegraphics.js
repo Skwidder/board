@@ -72,7 +72,9 @@ class TreeGraphics {
         this.height = container.offsetHeight;
         this.current = [0,0];
 
+        // draw initial shapes for blank board
         this.draw_root();
+        this.draw_current(0, 0);
     }
 
     new_svg(id, z_index) {
@@ -525,9 +527,12 @@ class TreeGraphics {
             hex_color = "#8d42eb";
         }
  
-
         let svg = this.svgs.get(id);
         for (let[x,y] of coords) {
+            // skip the dot on the root node
+            if (x == 0) {
+                continue;
+            }
             let [pos_x, pos_y] = this.get_xypos(x, y);
 
             let circle = document.createElementNS(this.svgns, "circle");
