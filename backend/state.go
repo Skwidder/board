@@ -585,8 +585,8 @@ func (s *State) GenerateFullFrame(init bool) *Frame {
 	frame.Marks = s.GenerateMarks()
 	frame.Explorer = s.Root.FillGrid(s.Current.Index)
 	if (!init) {
-		frame.Explorer.Nodes = []*GridNode{}
-		frame.Explorer.Edges = []*GridEdge{}
+		frame.Explorer.Nodes = nil
+		frame.Explorer.Edges = nil
 	}
 
 	frame.Metadata = s.GenerateMetadata()
@@ -732,8 +732,12 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Left()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = []*GridNode{}
-		explorer.Edges = []*GridEdge{}
+
+		// left doesn't change the preferred nodes and edges
+		explorer.Nodes = nil
+		explorer.Edges = nil
+		explorer.PreferredNodes = nil
+		explorer.PreferredEdges = nil
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 
@@ -741,24 +745,28 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		diff := s.Right()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = []*GridNode{}
-		explorer.Edges = []*GridEdge{}
+
+		// right doesn't change the preferred nodes and edges
+		explorer.Nodes = nil
+		explorer.Edges = nil
+		explorer.PreferredNodes = nil
+		explorer.PreferredEdges = nil
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 	
 	case "up":
         s.Up()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = []*GridNode{}
-		explorer.Edges = []*GridEdge{}
+		explorer.Nodes = nil
+		explorer.Edges = nil
 
 		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 	
 	case "down":
         s.Down()
 		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = []*GridNode{}
-		explorer.Edges = []*GridEdge{}
+		explorer.Nodes = nil
+		explorer.Edges = nil
 
 		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
 

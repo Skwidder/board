@@ -159,24 +159,26 @@ class TreeGraphics {
         let max_y = 0;
         let grid = new Map();
 
-        for (let node of explorer.nodes) {
-
-            let coord = node.coord;
-            if (coord.x > max_x) {
-                max_x = coord.x;
+        if (explorer.nodes != null) {
+            for (let node of explorer.nodes) {
+    
+                let coord = node.coord;
+                if (coord.x > max_x) {
+                    max_x = coord.x;
+                }
+                if (coord.y > max_y) {
+                    max_y = coord.y;
+                }
+    
+                if (!grid.has(coord.y)) {
+                    grid.set(coord.y, new Map());
+                }
+                grid.get(coord.y).set(coord.x, node.index);
             }
-            if (coord.y > max_y) {
-                max_y = coord.y;
-            }
-
-            if (!grid.has(coord.y)) {
-                grid.set(coord.y, new Map());
-            }
-            grid.get(coord.y).set(coord.x, node.index);
         }
 
 
-        if (explorer.nodes.length > 0) {
+        if (explorer.nodes != null) {
             this.grid = grid;
             this.set_dims_all(max_x+1, max_y+1);
             this._draw_stones(explorer.nodes);
@@ -186,8 +188,12 @@ class TreeGraphics {
         let current = explorer.current;
         this.draw_current(current.x, current.y);
 
-        this._draw_preferred_stones(explorer.preferred_nodes);
-        this._draw_preferred_lines(explorer.preferred_edges);
+        if (explorer.preferred_nodes != null) {
+            this._draw_preferred_stones(explorer.preferred_nodes);
+        }
+        if (explorer.preferred_edges != null) {
+            this._draw_preferred_lines(explorer.preferred_edges);
+        }
 
         this.set_scroll(current.x, current.y);
     }
