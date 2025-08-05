@@ -392,7 +392,7 @@ class NetworkHandler {
 
 
     onmessage(event) {
-        console.log("receiving:", event.data);
+        //console.log("receiving:", event.data);
         let payload = JSON.parse(event.data);
         this.fromserver(payload);
     }
