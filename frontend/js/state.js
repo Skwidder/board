@@ -669,11 +669,13 @@ class State {
         // essentially, we only handle metadata on a full frame
         // so there are things that are done on a full frame that AREN'T
         // done on a diff (for example, updating color)
-        this.handle_metadata(frame.metadata);
+        if (frame.metadata != null) {
+            this.handle_metadata(frame.metadata);
+        }
 
-        if (frame.type == FrameType.DIFF) {
+        if (frame.type == FrameType.DIFF && frame.diff != null) {
             this.apply_diff(frame.diff);
-        } else if (frame.type == FrameType.FULL) {
+        } else if (frame.type == FrameType.FULL && frame.diff != null) {
             this.full_frame(frame.diff);
         }
 
@@ -752,9 +754,6 @@ class State {
     }
 
     full_frame(frame) {
-        if (frame == null) {
-            return;
-        }
 
         this.board.clear();
         this.board_graphics.clear_and_remove();
@@ -768,23 +767,18 @@ class State {
     }
 
     handle_metadata(metadata) {
-        if (metadata == null) {
-            return;
-        }
-        if (metadata.size != null) {
+        if (metadata.size != null && metadata.size != this.size) {
             let review = document.getElementById("review");
             review.setAttribute("size", metadata.size);
             this.recompute_consts();
             this.board_graphics.reset_board();
             this.reset();
-            this.set_gameinfo(metadata.fields);
         }
+        this.set_gameinfo(metadata.fields);
+        this.modals.update_modals();
     }
 
     apply_diff(diff) {
-        if (diff == null) {
-            return;
-        }
         for (let a of diff.add) {
             let col = a["color"];
             let coords = a["coords"];
