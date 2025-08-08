@@ -11,22 +11,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 type TreeNode struct {
-    XY *Coord
-    Color Color
-    Down []*TreeNode
-    Up *TreeNode
-    Index int
-    PreferredChild int
-	Fields map[string][]string
-	Diff *Diff
+	XY             *Coord
+	Color          Color
+	Down           []*TreeNode
+	Up             *TreeNode
+	Index          int
+	PreferredChild int
+	Fields         map[string][]string
+	Diff           *Diff
 }
 
 func NewTreeNode(coord *Coord, col Color, index int, up *TreeNode, fields map[string][]string) *TreeNode {
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
-    down := []*TreeNode{}
-    return &TreeNode{coord, col, down, up, index, 0, fields, nil}
+	down := []*TreeNode{}
+	return &TreeNode{coord, col, down, up, index, 0, fields, nil}
 }
 
 func (n *TreeNode) AddField(key, value string) {
@@ -46,7 +46,7 @@ func (n *TreeNode) RemoveField(key, value string) {
 			index = i
 		}
 	}
-	if index == - 1 {
+	if index == -1 {
 		return
 	}
 	n.Fields[key] = append(n.Fields[key][:index], n.Fields[key][index+1:]...)
@@ -117,14 +117,14 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 				// i want to find the earliest row
 				// (before going past the parent)
 				// that is empty
-				if grid[[2]int{y,x}] == 0 && grid[[2]int{y-1, x}] != 0 {
+				if grid[[2]int{y, x}] == 0 && grid[[2]int{y - 1, x}] != 0 {
 					break
 				}
 				y--
 			}
 		}
 		grid[[2]int{y, x}] = node.Index
-		loc[node.Index] = [2]int{x,y}
+		loc[node.Index] = [2]int{x, y}
 
 		if node.Index == currentIndex {
 			currentCoord = &Coord{x, y}
@@ -139,15 +139,15 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 			a := loc[p.Index]
 			y1 := a[1]
 			if y-y1 > 1 {
-				if grid[[2]int{y-1, x-1}] == 0 {
-					grid[[2]int{y-1, x-1}] = -1
+				if grid[[2]int{y - 1, x - 1}] == 0 {
+					grid[[2]int{y - 1, x - 1}] = -1
 				}
 			}
 		}
 		x++
 
 		// push on children in reverse order
-		for i:=len(node.Down)-1; i >= 0; i-- {
+		for i := len(node.Down) - 1; i >= 0; i-- {
 			stack = append(stack, "")
 			stack = append(stack, node.Down[i])
 		}
@@ -159,11 +159,11 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 		// gather all the nodes with their color attached
 		x := l[0]
 		y := l[1]
-		gridNode := &GridNode{&Coord{x,y}, colors[i], i}
+		gridNode := &GridNode{&Coord{x, y}, colors[i], i}
 		nodes = append(nodes, gridNode)
 
 		// gather all the edges
-		p,ok := parents[i]
+		p, ok := parents[i]
 		if !ok {
 			continue
 		}
@@ -177,10 +177,10 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 	preferredNodes := []*GridNode{}
 	index := 0
 	for {
-		if l,ok := loc[index]; ok {
+		if l, ok := loc[index]; ok {
 			x := l[0]
 			y := l[1]
-			gridNode := &GridNode{&Coord{x,y}, colors[index], index}
+			gridNode := &GridNode{&Coord{x, y}, colors[index], index}
 			preferredNodes = append(preferredNodes, gridNode)
 
 			if index, ok = prefs[index]; !ok {
@@ -192,7 +192,7 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 		}
 	}
 
-	return &Explorer {
+	return &Explorer{
 		nodes,
 		edges,
 		preferredNodes,
@@ -209,13 +209,13 @@ type GridNode struct {
 
 type GridEdge struct {
 	Start *Coord `json:"start"`
-	End *Coord `json:"end"`
+	End   *Coord `json:"end"`
 }
 
 type Explorer struct {
-	Nodes []*GridNode `json:"nodes"`
-	Edges []*GridEdge `json:"edges"`
+	Nodes          []*GridNode `json:"nodes"`
+	Edges          []*GridEdge `json:"edges"`
 	PreferredNodes []*GridNode `json:"preferred_nodes"`
-	Current *Coord `json:"current"`
-	CurrentColor Color `json:"current_color"`
+	Current        *Coord      `json:"current"`
+	CurrentColor   Color       `json:"current_color"`
 }

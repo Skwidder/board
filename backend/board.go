@@ -26,6 +26,7 @@ import (
 )
 
 type Color int
+
 const (
 	NoColor Color = iota
 	Black
@@ -33,46 +34,46 @@ const (
 )
 
 type FrameType int
+
 const (
 	DiffFrame = iota
 	FullFrame
 )
 
 type Frame struct {
-	Type FrameType `json:"type"`
-	Diff *Diff `json:"diff"`
-	Marks *Marks `json:"marks"`
+	Type     FrameType `json:"type"`
+	Diff     *Diff     `json:"diff"`
+	Marks    *Marks    `json:"marks"`
 	Explorer *Explorer `json:"explorer"`
-	Comments []string `json:"comments"`
+	Comments []string  `json:"comments"`
 	Metadata *Metadata `json:"metadata"`
 }
 
 type Marks struct {
-	Current *Coord `json:"current"`
-	Squares []*Coord `json:"squares"`
+	Current   *Coord   `json:"current"`
+	Squares   []*Coord `json:"squares"`
 	Triangles []*Coord `json:"triangles"`
-	Labels []*Label `json:"labels"`
-	Pens []*Pen `json:"pens"`
+	Labels    []*Label `json:"labels"`
+	Pens      []*Pen   `json:"pens"`
 }
 
 type Label struct {
 	Coord *Coord `json:"coord"`
-	Text string `json:"text"`
+	Text  string `json:"text"`
 }
 
 type Pen struct {
-	X0 float64 `json:"x0"`
-	Y0 float64 `json:"y0"`
-	X1 float64 `json:"x1"`
-	Y1 float64 `json:"y1"`
-	Color string `json:"color"`
+	X0    float64 `json:"x0"`
+	Y0    float64 `json:"y0"`
+	X1    float64 `json:"x1"`
+	Y1    float64 `json:"y1"`
+	Color string  `json:"color"`
 }
 
 type Metadata struct {
-	Size int `json:"size"`
+	Size   int                 `json:"size"`
 	Fields map[string][]string `json:"fields"`
 }
-
 
 func Opposite(c Color) Color {
 	if c == Black {
@@ -97,7 +98,7 @@ func (c Color) String() string {
 type CoordSet map[string]*Coord
 
 func (cs CoordSet) Has(c *Coord) bool {
-	_,ok := cs[c.ToLetters()]
+	_, ok := cs[c.ToLetters()]
 	return ok
 }
 
@@ -107,7 +108,7 @@ func (cs CoordSet) Add(c *Coord) {
 
 func (cs CoordSet) String() string {
 	s := "["
-	for k,_ := range cs {
+	for k, _ := range cs {
 		s += k
 		s += " "
 	}
@@ -117,7 +118,7 @@ func (cs CoordSet) String() string {
 
 func (cs CoordSet) List() []*Coord {
 	l := []*Coord{}
-	for _,c := range cs {
+	for _, c := range cs {
 		l = append(l, c)
 	}
 	return l
@@ -129,7 +130,7 @@ func NewCoordSet() CoordSet {
 
 type StoneSet struct {
 	Coords []*Coord `json:"coords"`
-	Color `json:"color"`
+	Color  `json:"color"`
 }
 
 func (s *StoneSet) String() string {
@@ -141,13 +142,13 @@ func NewStoneSet(s CoordSet, c Color) *StoneSet {
 }
 
 type Diff struct {
-	Add []*StoneSet `json:"add"`
+	Add    []*StoneSet `json:"add"`
 	Remove []*StoneSet `json:"remove"`
 }
 
 func NewDiff(add, remove []*StoneSet) *Diff {
-	return &Diff {
-		Add: add,
+	return &Diff{
+		Add:    add,
 		Remove: remove,
 	}
 }
@@ -161,8 +162,8 @@ func (d *Diff) Invert() *Diff {
 
 type Group struct {
 	Coords CoordSet
-	Libs CoordSet
-	Color Color
+	Libs   CoordSet
+	Color  Color
 }
 
 func (g *Group) String() string {
@@ -176,34 +177,34 @@ func NewGroup(coords CoordSet, libs CoordSet, col Color) *Group {
 	if libs == nil {
 		libs = NewCoordSet()
 	}
-	return &Group {
+	return &Group{
 		Coords: coords,
-		Libs: libs,
-		Color: col,
+		Libs:   libs,
+		Color:  col,
 	}
 }
 
 type Board struct {
-	Size int
+	Size   int
 	Points [][]Color
 }
 
 func NewBoard(size int) *Board {
 	points := [][]Color{}
-	for i:=0; i<size; i++ {
+	for i := 0; i < size; i++ {
 		row := make([]Color, size)
 		points = append(points, row)
 	}
-	return &Board {
-		Size: size,
+	return &Board{
+		Size:   size,
 		Points: points,
 	}
 }
 
 func (b *Board) String() string {
 	result := ""
-	for _,row := range b.Points {
-		for _,c := range row {
+	for _, row := range b.Points {
+		for _, c := range row {
 			result += fmt.Sprintf("%v ", c)
 		}
 		result += "\n"
@@ -212,8 +213,8 @@ func (b *Board) String() string {
 }
 
 func (b *Board) Clear() {
-	for i:=0; i<b.Size; i++ {
-		for j := 0; j<b.Size; j++ {
+	for i := 0; i < b.Size; i++ {
+		for j := 0; j < b.Size; j++ {
 			b.Points[i][j] = NoColor
 		}
 	}
@@ -221,8 +222,8 @@ func (b *Board) Clear() {
 
 func (b *Board) Copy() *Board {
 	c := NewBoard(b.Size)
-	for i:=0; i<b.Size; i++ {
-		for j:=0; j<b.Size; j++ {
+	for i := 0; i < b.Size; i++ {
+		for j := 0; j < b.Size; j++ {
 			c.Points[i][j] = b.Points[i][j]
 		}
 	}
@@ -245,8 +246,8 @@ func (b *Board) SetMany(cs []*Coord, col Color) {
 
 func (b *Board) Neighbors(c *Coord) CoordSet {
 	nbs := NewCoordSet()
-	for x:=-1; x<=1; x++ {
-		for y:=-1; y<=1; y++ {
+	for x := -1; x <= 1; x++ {
+		for y := -1; y <= 1; y++ {
 			if (x != 0 && y != 0) || (x == 0 && y == 0) {
 				continue
 			}
@@ -294,11 +295,11 @@ func (b *Board) FindGroup(start *Coord) *Group {
 
 		// compute neighbors
 		nbs := b.Neighbors(point)
-		for _,nb := range nbs {
+		for _, nb := range nbs {
 			// if it's the right color
 			// and we haven't visited it yet
 			// add to the stack
-			if b.Get(nb) == col && !elts.Has(nb){
+			if b.Get(nb) == col && !elts.Has(nb) {
 				stack = append(stack, nb)
 			} else if b.Get(nb) == NoColor {
 				libs.Add(nb)
@@ -315,13 +316,13 @@ func (b *Board) Groups() []*Group {
 	groups := []*Group{}
 
 	// go through the whole board
-	for i:=0; i<b.Size; i++ {
-		for j:=0; j<b.Size; j++ {
+	for i := 0; i < b.Size; i++ {
+		for j := 0; j < b.Size; j++ {
 			// if we haven't checked it yet and there's a stone here
 			if !check[[2]int{i, j}] && b.Points[i][j] != NoColor {
 				// find the group it's part of
 				gp := b.FindGroup(&Coord{i, j})
-				for _,c := range gp.Coords {
+				for _, c := range gp.Coords {
 					// check off everything in the group
 					check[[2]int{c.X, c.Y}] = true
 				}
@@ -353,7 +354,7 @@ func (b *Board) Legal(start *Coord, col Color) bool {
 	// check for any groups of opposite color with 0 libs
 	// only check neighboring area for optimization
 	nbs := b.Neighbors(start)
-	for _,nb := range nbs {
+	for _, nb := range nbs {
 		if b.Get(nb) == NoColor {
 			continue
 		}
@@ -423,10 +424,10 @@ func (b *Board) ApplyDiff(d *Diff) {
 	if d == nil {
 		return
 	}
-	for _,add := range d.Add {
+	for _, add := range d.Add {
 		b.SetMany(add.Coords, add.Color)
 	}
-	for _,remove := range d.Remove {
+	for _, remove := range d.Remove {
 		b.SetMany(remove.Coords, NoColor)
 	}
 }
@@ -434,8 +435,8 @@ func (b *Board) ApplyDiff(d *Diff) {
 func (b *Board) CurrentFrame() *Frame {
 	black := NewCoordSet()
 	white := NewCoordSet()
-	for j,row := range b.Points {
-		for i,c := range row {
+	for j, row := range b.Points {
+		for i, c := range row {
 			if c == Black {
 				black.Add(&Coord{i, j})
 			} else if c == White {

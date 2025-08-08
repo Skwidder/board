@@ -11,17 +11,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-    "fmt"
-    "strings"
+	"encoding/base64"
+	"fmt"
 	"strconv"
-    "encoding/base64"
+	"strings"
 )
 
 const Letters = "ABCDEFGHIJKLNMOPQRSTUVWXYZ"
 
 type Settings struct {
-	Buffer int64
-	Size int
+	Buffer   int64
+	Size     int
 	Password string
 }
 
@@ -35,184 +35,183 @@ func (c *Coord) String() string {
 }
 
 func (c *Coord) ToLetters() string {
-    alphabet := "abcdefghijklmnopqrs"
-    return string([]byte{alphabet[c.X], alphabet[c.Y]})
+	alphabet := "abcdefghijklmnopqrs"
+	return string([]byte{alphabet[c.X], alphabet[c.Y]})
 }
 
 func LettersToCoord(s string) *Coord {
-    if len(s) != 2 {
-        return nil
-    }
-    t := strings.ToLower(s)
-    return &Coord{int(t[0]-97), int(t[1]-97)}
+	if len(s) != 2 {
+		return nil
+	}
+	t := strings.ToLower(s)
+	return &Coord{int(t[0] - 97), int(t[1] - 97)}
 }
 
 func InterfaceToCoord(ifc interface{}) (*Coord, error) {
-    coords := make([]int, 0)
+	coords := make([]int, 0)
 
-    // coerce the value to an array
-    val, ok := ifc.([]interface{})
+	// coerce the value to an array
+	val, ok := ifc.([]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("error coercing to coord")
 	}
 
-    for _,v := range val {
-        i := int(v.(float64))
-        coords = append(coords, i)
-    }
-    x := coords[0]
-    y := coords[1]
+	for _, v := range val {
+		i := int(v.(float64))
+		coords = append(coords, i)
+	}
+	x := coords[0]
+	y := coords[1]
 	return &Coord{x, y}, nil
 }
 
 // as a rule, anything that would need to get sent to new connections
 // should be stored here and not in the Room struct
 type State struct {
-    Root *TreeNode
-    Current *TreeNode
-	Head *TreeNode
-    Nodes map[int]*TreeNode
-    NextIndex int
+	Root        *TreeNode
+	Current     *TreeNode
+	Head        *TreeNode
+	Nodes       map[int]*TreeNode
+	NextIndex   int
 	InputBuffer int64
-	Timeout float64
-	Size int
-	Board *Board
+	Timeout     float64
+	Size        int
+	Board       *Board
 }
 
 func (s *State) Prefs() string {
-    result := "{"
-    first := true
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	result := "{"
+	first := true
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
-        c := cur.PreferredChild
-        if first {
-            result = fmt.Sprintf("%s\"%d\":%d", result, cur.Index, c)
-            first = false
-        } else {
-            result = fmt.Sprintf("%s,\"%d\":%d", result, cur.Index, c)
-        }
+		c := cur.PreferredChild
+		if first {
+			result = fmt.Sprintf("%s\"%d\":%d", result, cur.Index, c)
+			first = false
+		} else {
+			result = fmt.Sprintf("%s,\"%d\":%d", result, cur.Index, c)
+		}
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
-    }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
+	}
 
-    result += "}"
-    return result
+	result += "}"
+	return result
 }
 
 func (s *State) SetPreferred(index int) error {
-    n := s.Nodes[index]
-    cur := n
-    for {
+	n := s.Nodes[index]
+	cur := n
+	for {
 		if cur == nil {
 			return fmt.Errorf("Error in indexing")
 		}
-        if cur.Up == nil {
-            break;
-        }
-        oldIndex := cur.Index
-        cur = cur.Up
-        for i,d := range(cur.Down) {
-            if d.Index == oldIndex {
-                cur.PreferredChild = i
-            }
-        }
-    }
+		if cur.Up == nil {
+			break
+		}
+		oldIndex := cur.Index
+		cur = cur.Up
+		for i, d := range cur.Down {
+			if d.Index == oldIndex {
+				cur.PreferredChild = i
+			}
+		}
+	}
 	return nil
 }
 
 func (s *State) ResetPrefs() {
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
 		cur.PreferredChild = 0
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
 	}
 }
 
 func (s *State) SetPrefs(prefs map[string]int) {
-    stack := []*TreeNode{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	stack := []*TreeNode{s.Root}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 
 		key := fmt.Sprintf("%d", cur.Index)
 		p := prefs[key]
 
 		cur.PreferredChild = p
 
-        if len(cur.Down) == 1 {
-            stack = append(stack, cur.Down[0])
-        } else if len(cur.Down) > 1 {
-            // go backward through array
-            for i:=len(cur.Down)-1; i >= 0; i-- {
-                n := cur.Down[i]
-                stack = append(stack, n)
-            }
-        }
+		if len(cur.Down) == 1 {
+			stack = append(stack, cur.Down[0])
+		} else if len(cur.Down) > 1 {
+			// go backward through array
+			for i := len(cur.Down) - 1; i >= 0; i-- {
+				n := cur.Down[i]
+				stack = append(stack, n)
+			}
+		}
 	}
 }
 
-
 func (s *State) Locate() string {
-    dirs := []int{}
-    c := s.Current
-    for {
-        myIndex := c.Index
-        if c.Up == nil {
-            break
-        }
-        u := c.Up
-        for i:=0; i < len(u.Down); i++ {
-            if u.Down[i].Index == myIndex {
-                dirs = append(dirs, i)
-            }
-        }
-        c = u
-    }
-    result := ""
-    firstComma := false
-    for i:=len(dirs)-1; i>=0; i-- {
-        d := dirs[i]
-        if !firstComma {
-            result = fmt.Sprintf("%d", d)
-            firstComma = true
-        } else {
-            result = fmt.Sprintf("%s,%d", result, d)
-        }
-    }
-    return result
+	dirs := []int{}
+	c := s.Current
+	for {
+		myIndex := c.Index
+		if c.Up == nil {
+			break
+		}
+		u := c.Up
+		for i := 0; i < len(u.Down); i++ {
+			if u.Down[i].Index == myIndex {
+				dirs = append(dirs, i)
+			}
+		}
+		c = u
+	}
+	result := ""
+	firstComma := false
+	for i := len(dirs) - 1; i >= 0; i-- {
+		d := dirs[i]
+		if !firstComma {
+			result = fmt.Sprintf("%d", d)
+			firstComma = true
+		} else {
+			result = fmt.Sprintf("%s,%d", result, d)
+		}
+	}
+	return result
 }
 
 func (s *State) GetNextIndex() int {
-    i := s.NextIndex
-    s.NextIndex++
-    return i
+	i := s.NextIndex
+	s.NextIndex++
+	return i
 }
 
 func (s *State) AddFieldNode(fields map[string][]string, index int) *Diff {
@@ -234,7 +233,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) *Diff {
 	diffAdd := []*StoneSet{}
 	if val, ok := fields["AB"]; ok {
 		add := NewCoordSet()
-		for _,v := range val {
+		for _, v := range val {
 			add.Add(LettersToCoord(v))
 		}
 		stoneSet := NewStoneSet(add, Black)
@@ -243,7 +242,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) *Diff {
 
 	if val, ok := fields["AW"]; ok {
 		add := NewCoordSet()
-		for _,v := range val {
+		for _, v := range val {
 			add.Add(LettersToCoord(v))
 		}
 		stoneSet := NewStoneSet(add, White)
@@ -254,7 +253,7 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) *Diff {
 	if val, ok := fields["AE"]; ok {
 		csBlack := NewCoordSet()
 		csWhite := NewCoordSet()
-		for _,v := range val {
+		for _, v := range val {
 			coord := LettersToCoord(v)
 			col := s.Board.Get(coord)
 			if col == Black {
@@ -278,15 +277,15 @@ func (s *State) AddFieldNode(fields map[string][]string, index int) *Diff {
 func (s *State) AddPassNode(col Color, fields map[string][]string, index int) {
 	tmp := s.GetNextIndex()
 	if index == -1 {
-    	index = tmp
+		index = tmp
 	}
-    n := NewTreeNode(nil, col, index, s.Current, fields)
-    s.Nodes[index] = n
+	n := NewTreeNode(nil, col, index, s.Current, fields)
+	s.Nodes[index] = n
 	if s.Root == nil {
 		s.Root = n
 	} else {
-	    s.Current.Down = append(s.Current.Down, n)
-	    s.Current.PreferredChild = len(s.Current.Down) - 1
+		s.Current.Down = append(s.Current.Down, n)
+		s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
 	// no need to add a diff
@@ -298,7 +297,7 @@ func (s *State) PushHead(x, y, col int) {
 		coord = nil
 	}
 	index := s.GetNextIndex()
-    n := NewTreeNode(coord, Color(col), index, s.Head, nil)
+	n := NewTreeNode(coord, Color(col), index, s.Head, nil)
 	s.Nodes[index] = n
 	if len(s.Head.Down) > 0 {
 		s.Head.PreferredChild++
@@ -347,7 +346,7 @@ func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, ind
 	}
 	if !force {
 		// check to see if it's already there
-		for i,node := range(s.Current.Down) {
+		for i, node := range s.Current.Down {
 			coordOld := node.XY
 			if coordOld != nil &&
 				coord != nil &&
@@ -363,16 +362,16 @@ func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, ind
 
 	tmp := s.GetNextIndex()
 	if index == -1 {
-	    index = tmp
+		index = tmp
 	}
-    n := NewTreeNode(coord, Color(col), index, s.Current, fields)
+	n := NewTreeNode(coord, Color(col), index, s.Current, fields)
 
-    s.Nodes[index] = n
+	s.Nodes[index] = n
 	if s.Root == nil {
 		s.Root = n
 	} else {
-	    s.Current.Down = append(s.Current.Down, n)
-	    s.Current.PreferredChild = len(s.Current.Down) - 1
+		s.Current.Down = append(s.Current.Down, n)
+		s.Current.PreferredChild = len(s.Current.Down) - 1
 	}
 	s.Current = n
 	diff := s.Board.Move(coord, Color(col))
@@ -384,7 +383,7 @@ func (s *State) Cut() *Diff {
 	index := s.Current.Index
 	diff := s.Left()
 	j := -1
-	for i:=0; i < len(s.Current.Down); i++ {
+	for i := 0; i < len(s.Current.Down); i++ {
 		node := s.Current.Down[i]
 		if node.Index == index {
 			j = i
@@ -398,30 +397,30 @@ func (s *State) Cut() *Diff {
 	s.Current.Down = append(s.Current.Down[:j], s.Current.Down[j+1:]...)
 
 	// adjust prefs
-	if (s.Current.PreferredChild >= len(s.Current.Down)) {
+	if s.Current.PreferredChild >= len(s.Current.Down) {
 		s.Current.PreferredChild = 0
 	}
 	return diff
 }
 
 func (s *State) Left() *Diff {
-    if s.Current.Up != nil {
+	if s.Current.Up != nil {
 		d := s.Current.Diff.Invert()
 		s.Board.ApplyDiff(d)
-        s.Current = s.Current.Up
+		s.Current = s.Current.Up
 		return d
-    }
+	}
 	return nil
 }
 
 func (s *State) Right() *Diff {
-    if len(s.Current.Down) > 0 {
-        index := s.Current.PreferredChild
-        s.Current = s.Current.Down[index]
+	if len(s.Current.Down) > 0 {
+		index := s.Current.PreferredChild
+		s.Current = s.Current.Down[index]
 		d := s.Current.Diff
 		s.Board.ApplyDiff(d)
 		return d
-    }
+	}
 	return nil
 }
 
@@ -437,7 +436,7 @@ func (s *State) GotoIndex(index int) error {
 		}
 		s.Right()
 	}
-    //s.Current = s.Nodes[index]
+	//s.Current = s.Nodes[index]
 	return nil
 }
 
@@ -449,40 +448,40 @@ func (s *State) Rewind() {
 
 func (s *State) FastForward() {
 	for {
-	    if len(s.Current.Down) == 0 {
-	        break
-	    }
+		if len(s.Current.Down) == 0 {
+			break
+		}
 		s.Right()
 		/*
-	    index := s.Current.PreferredChild
-	    s.Current = s.Current.Down[index]
+		   index := s.Current.PreferredChild
+		   s.Current = s.Current.Down[index]
 		*/
 	}
 }
 
 func (s *State) Up() {
-    if len(s.Current.Down) == 0 {
-        return
-    }
-    c := s.Current.PreferredChild
-    mod := len(s.Current.Down)
-    s.Current.PreferredChild = (((c-1) % mod) + mod) % mod
+	if len(s.Current.Down) == 0 {
+		return
+	}
+	c := s.Current.PreferredChild
+	mod := len(s.Current.Down)
+	s.Current.PreferredChild = (((c - 1) % mod) + mod) % mod
 }
 
 func (s *State) Down() {
-    if len(s.Current.Down) == 0 {
-        return
-    }
-    c := s.Current.PreferredChild
-    mod := len(s.Current.Down)
-    s.Current.PreferredChild = (((c+1) % mod) + mod) % mod
+	if len(s.Current.Down) == 0 {
+		return
+	}
+	c := s.Current.PreferredChild
+	mod := len(s.Current.Down)
+	s.Current.PreferredChild = (((c + 1) % mod) + mod) % mod
 }
 
 func (s *State) GotoCoord(x, y int) {
 	cur := s.Current
 	// look forward
 	for {
-		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
+		if cur.XY != nil && cur.XY.X == x && cur.XY.Y == y {
 			s.GotoIndex(cur.Index)
 			return
 		}
@@ -495,7 +494,7 @@ func (s *State) GotoCoord(x, y int) {
 	cur = s.Current
 	// look backward
 	for {
-		if (cur.XY != nil && cur.XY.X == x && cur.XY.Y == y) {
+		if cur.XY != nil && cur.XY.X == x && cur.XY.Y == y {
 			s.GotoIndex(cur.Index)
 			return
 		}
@@ -511,12 +510,12 @@ func (s *State) GotoCoord(x, y int) {
 
 func (s *State) GenerateMarks() *Marks {
 	marks := &Marks{}
-	if (s.Current.XY != nil) {
+	if s.Current.XY != nil {
 		marks.Current = s.Current.XY
 	}
 	if trs, ok := s.Current.Fields["TR"]; ok {
 		cs := NewCoordSet()
-		for _,tr := range trs {
+		for _, tr := range trs {
 			c := LettersToCoord(tr)
 			cs.Add(c)
 		}
@@ -524,7 +523,7 @@ func (s *State) GenerateMarks() *Marks {
 	}
 	if sqs, ok := s.Current.Fields["SQ"]; ok {
 		cs := NewCoordSet()
-		for _,sq := range sqs {
+		for _, sq := range sqs {
 			c := LettersToCoord(sq)
 			cs.Add(c)
 		}
@@ -532,7 +531,7 @@ func (s *State) GenerateMarks() *Marks {
 	}
 	if lbs, ok := s.Current.Fields["LB"]; ok {
 		labels := []*Label{}
-		for _,lb := range lbs {
+		for _, lb := range lbs {
 			spl := strings.Split(lb, ":")
 			c := LettersToCoord(spl[0])
 			text := spl[1]
@@ -544,7 +543,7 @@ func (s *State) GenerateMarks() *Marks {
 
 	if pxs, ok := s.Current.Fields["PX"]; ok {
 		pens := []*Pen{}
-		for _,px := range pxs {
+		for _, px := range pxs {
 			spl := strings.Split(px, ":")
 			if len(spl) != 5 {
 				continue
@@ -565,8 +564,8 @@ func (s *State) GenerateMarks() *Marks {
 }
 
 func (s *State) GenerateMetadata() *Metadata {
-	m := &Metadata {
-		Size: s.Size,
+	m := &Metadata{
+		Size:   s.Size,
 		Fields: s.Root.Fields,
 	}
 	return m
@@ -584,7 +583,7 @@ func (s *State) GenerateFullFrame(init bool) *Frame {
 	frame := s.Board.CurrentFrame()
 	frame.Marks = s.GenerateMarks()
 	frame.Explorer = s.Root.FillGrid(s.Current.Index)
-	if (!init) {
+	if !init {
 		frame.Explorer.Nodes = nil
 		frame.Explorer.Edges = nil
 	}
@@ -602,11 +601,11 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		if err != nil {
 			return nil, err
 		}
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 
 		diff := s.AddNode(c, Color(evt.Color), nil, -1, false)
 
@@ -626,11 +625,11 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, err
 		}
 
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 
 		fields := make(map[string][]string)
 		fields["AE"] = []string{c.ToLetters()}
@@ -644,11 +643,11 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, err
 		}
 
-        x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 		l := c.ToLetters()
 		s.Current.AddField("TR", l)
 
@@ -658,11 +657,11 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 		l := c.ToLetters()
 		s.Current.AddField("SQ", l)
 
@@ -673,11 +672,11 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 
 		l := c.ToLetters()
 		letter := val["letter"].(string)
@@ -691,17 +690,17 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, err
 		}
 
-	    x := c.X
-        y := c.Y
-        if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-            return nil, nil
-        }
+		x := c.X
+		y := c.Y
+		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
+			return nil, nil
+		}
 
 		l := c.ToLetters()
 		number := int(val["number"].(float64))
 		lb := fmt.Sprintf("%s:%d", l, number)
 		s.Current.AddField("LB", lb)
-	
+
 	case "remove_mark":
 		c, err := InterfaceToCoord(evt.Value)
 		if err != nil {
@@ -720,14 +719,14 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 				}
 			}
 		}
-	
+
 	case "scissors":
 		diff := s.Cut()
 		marks := s.GenerateMarks()
 		explorer := s.Root.FillGrid(s.Current.Index)
 		comments := s.GenerateComments()
 		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-	
+
 	case "left":
 		diff := s.Left()
 		marks := s.GenerateMarks()
@@ -738,7 +737,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Edges = nil
 		explorer.PreferredNodes = nil
 		comments := s.GenerateComments()
-        return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
+		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 
 	case "right":
 		diff := s.Right()
@@ -750,10 +749,10 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Edges = nil
 		explorer.PreferredNodes = nil
 		comments := s.GenerateComments()
-        return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-	
+		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
+
 	case "up":
-        s.Up()
+		s.Up()
 		explorer := s.Root.FillGrid(s.Current.Index)
 		explorer.Nodes = nil
 		explorer.Edges = nil
@@ -762,9 +761,9 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		marks := s.GenerateMarks()
 
 		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
-	
+
 	case "down":
-        s.Down()
+		s.Down()
 		explorer := s.Root.FillGrid(s.Current.Index)
 		explorer.Nodes = nil
 		explorer.Edges = nil
@@ -773,38 +772,37 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		marks := s.GenerateMarks()
 
 		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
-
 
 	case "button":
-        val := evt.Value.(string)
-        if val == "Rewind" {
+		val := evt.Value.(string)
+		if val == "Rewind" {
 			s.Rewind()
 			return s.GenerateFullFrame(false), nil
-        } else if val == "FastForward" {
+		} else if val == "FastForward" {
 			s.FastForward()
 			return s.GenerateFullFrame(false), nil
-        }
+		}
 
 	case "goto_grid":
-        index := int(evt.Value.(float64))
+		index := int(evt.Value.(float64))
 		s.GotoIndex(index)
 
 		return s.GenerateFullFrame(false), nil
 	case "goto_coord":
-        coords := make([]int, 0)
-        // coerce the value to an array
-        val := evt.Value.([]interface{})
-        for _,v := range val {
-            i := int(v.(float64))
-            coords = append(coords, i)
-        }
-        x := coords[0]
-        y := coords[1]
+		coords := make([]int, 0)
+		// coerce the value to an array
+		val := evt.Value.([]interface{})
+		for _, v := range val {
+			i := int(v.(float64))
+			coords = append(coords, i)
+		}
+		x := coords[0]
+		y := coords[1]
 		s.GotoCoord(x, y)
 		return s.GenerateFullFrame(false), nil
 	case "comment":
 		val := evt.Value.(string)
-		s.Current.AddField("C", val + "\n")
+		s.Current.AddField("C", val+"\n")
 	case "draw":
 		vals := evt.Value.([]interface{})
 		var x0 float64
@@ -814,7 +812,7 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		} else {
 			x0 = vals[0].(float64)
 		}
-	
+
 		if vals[1] == nil {
 			y0 = -1.0
 		} else {
@@ -834,36 +832,36 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 }
 
 func (s *State) ToSGF(indexes bool) string {
-    result := "("
+	result := "("
 	stack := []interface{}{s.Root}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
 		if str, ok := cur.(string); ok {
-            result += str
-            continue
-        }
-        node := cur.(*TreeNode)
-        result += ";"
-        if node.Color > 0 {
+			result += str
+			continue
+		}
+		node := cur.(*TreeNode)
+		result += ";"
+		if node.Color > 0 {
 			color := "B"
-            if node.Color == 2 {
+			if node.Color == 2 {
 				color = "W"
-            }
+			}
 			if node.XY != nil {
 				result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
 			} else {
 				result += fmt.Sprintf("%s[]", color)
 			}
-        }
+		}
 		// throw in other fields
-		for key, multifield := range(node.Fields) {
+		for key, multifield := range node.Fields {
 			if key == "IX" {
 				continue
 			}
 			result += fmt.Sprintf("%s", key)
-			for _,fieldValue := range(multifield) {
+			for _, fieldValue := range multifield {
 				m := strings.ReplaceAll(fieldValue, "]", "\\]")
 				result += fmt.Sprintf("[%s]", m)
 			}
@@ -871,35 +869,35 @@ func (s *State) ToSGF(indexes bool) string {
 		}
 
 		if indexes {
-        	result += fmt.Sprintf("IX[%d]", node.Index)
+			result += fmt.Sprintf("IX[%d]", node.Index)
 		}
 
-        if len(node.Down) == 1 {
-            stack = append(stack, node.Down[0])
-        } else if len(node.Down) > 1 {
-            // go backward through array
-            for i:=len(node.Down)-1; i >= 0; i-- {
-                n := node.Down[i]
-                stack = append(stack, ")")
-                stack = append(stack, n)
-                stack = append(stack, "(")
-            }
-        }
-    }
+		if len(node.Down) == 1 {
+			stack = append(stack, node.Down[0])
+		} else if len(node.Down) > 1 {
+			// go backward through array
+			for i := len(node.Down) - 1; i >= 0; i-- {
+				n := node.Down[i]
+				stack = append(stack, ")")
+				stack = append(stack, n)
+				stack = append(stack, "(")
+			}
+		}
+	}
 
-    result += ")"
+	result += ")"
 	return result
 }
 
 func FromSGF(data string) (*State, error) {
-    p := NewParser(data)
-    root, err := p.Parse()
-    if err != nil {
-        return nil, err
-    }
+	p := NewParser(data)
+	root, err := p.Parse()
+	if err != nil {
+		return nil, err
+	}
 
 	var size int64 = 19
-	if _,ok := root.Fields["SZ"]; ok {
+	if _, ok := root.Fields["SZ"]; ok {
 		size_field := root.Fields["SZ"]
 		if len(size_field) != 1 {
 			return nil, fmt.Errorf("SZ cannot be a multifield")
@@ -910,21 +908,21 @@ func FromSGF(data string) (*State, error) {
 		}
 	}
 
-    state := NewState(int(size), false)
+	state := NewState(int(size), false)
 	stack := []interface{}{root}
-    //stack := []*StackSGFNode{&StackSGFNode{"node", root, ""}}
-    for len(stack) > 0 {
-        i := len(stack) - 1
-        cur := stack[i]
-        stack = stack[:i]
-		if _,ok := cur.(string); ok {
+	//stack := []*StackSGFNode{&StackSGFNode{"node", root, ""}}
+	for len(stack) > 0 {
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
+		if _, ok := cur.(string); ok {
 			state.Left()
-        //if cur.Type == "string" {
-            //if cur.StringValue == "<" {
-            //    state.Left()
-            //}
-        } else {
-            //node := cur.NodeValue
+			//if cur.Type == "string" {
+			//if cur.StringValue == "<" {
+			//    state.Left()
+			//}
+		} else {
+			//node := cur.NodeValue
 			node := cur.(*SGFNode)
 
 			index := -1
@@ -941,37 +939,37 @@ func FromSGF(data string) (*State, error) {
 			if node.IsPass() {
 				state.AddPassNode(node.Color(), node.Fields, index)
 			} else if node.IsMove() {
-                state.AddNode(node.Coord(), node.Color(), node.Fields, index, true)
+				state.AddNode(node.Coord(), node.Color(), node.Fields, index, true)
 			} else {
 				state.AddFieldNode(node.Fields, index)
 			}
-            for i:=len(node.Down)-1; i>=0; i-- {
-                stack = append(stack, "<")
-                stack = append(stack, node.Down[i])
-            }
+			for i := len(node.Down) - 1; i >= 0; i-- {
+				stack = append(stack, "<")
+				stack = append(stack, node.Down[i])
+			}
 			state.Head = state.Current
-        }
-    }
+		}
+	}
 	state.Rewind()
 	state.ResetPrefs()
-    return state, nil
+	return state, nil
 }
 
 func (s *State) InitData(event string) *EventJSON {
-    sgf := s.ToSGF(true)
+	sgf := s.ToSGF(true)
 	encoded := base64.StdEncoding.EncodeToString([]byte(sgf))
-    loc := s.Locate()
-    prefs := s.Prefs()
+	loc := s.Locate()
+	prefs := s.Prefs()
 	value := fmt.Sprintf("{\"sgf\":\"%s\", \"loc\":\"%s\", \"prefs\":%s, \"buffer\":%d, \"next_index\":%d}", encoded, loc, prefs, s.InputBuffer, s.NextIndex)
 	evt := &EventJSON{event, value, 0, ""}
 	return evt
-    
-    //return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))
- 
+
+	//return []byte(fmt.Sprintf("{\"event\":\"%s\",\"value\":%s}", event, value))
+
 }
 
 func NewState(size int, initRoot bool) *State {
-    nodes := make(map[int]*TreeNode)
+	nodes := make(map[int]*TreeNode)
 	var root *TreeNode
 	root = nil
 	index := 0
@@ -985,16 +983,14 @@ func NewState(size int, initRoot bool) *State {
 		fields["PW"] = []string{"White"}
 		fields["RU"] = []string{"Japanese"}
 		fields["KM"] = []string{"6.5"}
-	
-	    // coord, color, index, up, fields
-	    root = NewTreeNode(nil, 0, 0, nil, fields)
-    	nodes[0] = root
+
+		// coord, color, index, up, fields
+		root = NewTreeNode(nil, 0, 0, nil, fields)
+		nodes[0] = root
 		index = 1
 	}
 	board := NewBoard(size)
 	// default input buffer of 250
 	// default room timeout of 86400
-    return &State{root, root, root, nodes, index, 250, 86400, size, board}
+	return &State{root, root, root, nodes, index, 250, 86400, size, board}
 }
-
-

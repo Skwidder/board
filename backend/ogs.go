@@ -34,13 +34,13 @@ func GetUser(id int) (string, error) {
 }
 
 type User struct {
-	ID int `json:"id"`
+	ID       int    `json:"id"`
 	Username string `json:"username"`
 }
 
 type Creds struct {
-	User *User `json:"user"`
-	JWT string `json:"user_jwt"`
+	User *User  `json:"user"`
+	JWT  string `json:"user_jwt"`
 }
 
 func GetCreds() (*Creds, error) {
@@ -59,11 +59,11 @@ func GetCreds() (*Creds, error) {
 }
 
 type OGSConnector struct {
-	Creds *Creds
+	Creds  *Creds
 	Socket *websocket.Conn
-	Room *Room
-	First int
-	Exit bool
+	Room   *Room
+	First  int
+	Exit   bool
 }
 
 func NewOGSConnector(room *Room) (*OGSConnector, error) {
@@ -114,7 +114,7 @@ func ReadFrame(socketchan chan byte) ([]byte, error) {
 	depth := 0
 	for {
 		select {
-		case b, ok := <- socketchan:
+		case b, ok := <-socketchan:
 			if !ok {
 				return nil, nil
 			}
@@ -145,7 +145,7 @@ func (o *OGSConnector) ReadSocketToChan(socketchan chan byte) error {
 	for {
 		data := make([]byte, 256)
 		n, _ := o.Socket.Read(data)
-		for _,b := range(data[:n]) {
+		for _, b := range data[:n] {
 			socketchan <- b
 		}
 		if o.Exit {
@@ -164,7 +164,7 @@ func (o *OGSConnector) Ping() {
 		if o.Exit {
 			break
 		}
-		time.Sleep(30*time.Second)
+		time.Sleep(30 * time.Second)
 		payload := make(map[string]interface{})
 		payload["client"] = time.Now().UnixMilli()
 		o.Send("net/ping", payload)
@@ -215,7 +215,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 
 		} else if topic == fmt.Sprintf("game/%d/gamedata", gameID) {
 			payload := arr[1].(map[string]interface{})
-			if _,ok := payload["winner"]; ok {
+			if _, ok := payload["winner"]; ok {
 				// the game is over
 				break
 			}
@@ -262,25 +262,25 @@ func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 
 	if len(bstate) > 0 {
 		sgf += "AB"
-		for i:=0; i < len(bstate)/2; i++ {
+		for i := 0; i < len(bstate)/2; i++ {
 			sgf += fmt.Sprintf("[%s]", bstate[2*i:2*i+2])
 		}
 	}
 
 	if len(wstate) > 0 {
 		sgf += "AW"
-		for i:=0; i < len(wstate)/2; i++ {
+		for i := 0; i < len(wstate)/2; i++ {
 			sgf += fmt.Sprintf("AW[%s]", wstate[2*i:2*i+2])
 		}
 	}
 
-	for index,m := range(gamedata["moves"].([]interface{})) {
+	for index, m := range gamedata["moves"].([]interface{}) {
 		arr := m.([]interface{})
 		c := &Coord{X: int(arr[0].(float64)), Y: int(arr[1].(float64))}
 
 		col := "B"
 
-		if (index % 2 == 1 && ip == "black") || (index % 2 == 0 && ip == "white") {
+		if (index%2 == 1 && ip == "black") || (index%2 == 0 && ip == "white") {
 			col = "W"
 		}
 

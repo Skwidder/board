@@ -5,14 +5,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"log"
-	"net/http"
-	"strings"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"golang.org/x/net/websocket"
+	"html/template"
+	"log"
+	"net/http"
+	"strings"
 )
 
 // constants
@@ -21,7 +21,7 @@ const WSHOST = "localhost"
 
 func sanitize(s string) string {
 	ok := []rune{}
-	for _,c := range s {
+	for _, c := range s {
 		if (c >= '0' && c <= '9') ||
 			(c >= 'A' && c <= 'Z') ||
 			(c >= 'a' && c <= 'z') {
@@ -42,7 +42,7 @@ func uuid4() string {
 
 func renderTemplate(fnames ...string) *template.Template {
 	paths := []string{}
-	for _,fname := range fnames {
+	for _, fname := range fnames {
 		path := fmt.Sprintf("%s/%s", "html", fname)
 		paths = append(paths, path)
 	}
@@ -165,7 +165,7 @@ func page404(w http.ResponseWriter, r *http.Request) {
 //static
 
 func serveStatic(w http.ResponseWriter, r *http.Request, fname string) {
-	path := fmt.Sprintf("%s/%s", "static", fname)	
+	path := fmt.Sprintf("%s/%s", "static", fname)
 	http.ServeFile(w, r, path)
 }
 
@@ -223,14 +223,14 @@ func readBytes(ws *websocket.Conn, size int) ([]byte, error) {
 }
 
 func requestSGF(boardID, url string) {
-	e := &EventJSON {
+	e := &EventJSON{
 		Event: "request_sgf",
 		Value: url}
 	websocketSend(e, boardID)
 }
 
 func uploadSGF(boardID, sgf string) {
-	e := &EventJSON {
+	e := &EventJSON{
 		Event: "upload_sgf",
 		Value: sgf,
 	}

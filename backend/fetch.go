@@ -13,9 +13,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"io"
 	"strings"
 )
 
@@ -28,8 +28,9 @@ func OGSCheckEnded(ogsUrl string) (bool, error) {
 	}
 
 	resp := struct {
-		Ended string `json:"ended"`
-		Source string `json:"source"`}{}
+		Ended  string `json:"ended"`
+		Source string `json:"source"`
+	}{}
 	err = json.Unmarshal([]byte(s), &resp)
 	if err != nil {
 		return false, err
@@ -84,7 +85,7 @@ func ApprovedFetch(urlStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _,ok := okList[u.Hostname()]; !ok {
+	if _, ok := okList[u.Hostname()]; !ok {
 		return "", fmt.Errorf("Unapproved URL. Contact us to add %s", u.Hostname())
 	}
 	if u.Hostname() == "online-go.com" {

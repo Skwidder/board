@@ -11,9 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-    "encoding/json"
-    "encoding/binary"
-    "encoding/base64"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,14 +21,14 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/net/websocket"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/websocket"
 )
 
 func Hash(input string) string {
@@ -91,19 +91,19 @@ func Setup() {
 }
 
 type LoadJSON struct {
-	SGF string `json:"sgf"`
-	Loc string `json:"loc"`
-	Prefs map[string]int `json:"prefs"`
-	Buffer int64 `json:"buffer"`
-	NextIndex int `json:"next_index"`
-	Password string `json:"password"`
+	SGF       string         `json:"sgf"`
+	Loc       string         `json:"loc"`
+	Prefs     map[string]int `json:"prefs"`
+	Buffer    int64          `json:"buffer"`
+	NextIndex int            `json:"next_index"`
+	Password  string         `json:"password"`
 }
 
 type EventJSON struct {
-    Event string `json:"event"`
-    Value interface{} `json:"value"`
-    Color int `json:"color"`
-	UserID string `json:"userid"`
+	Event  string      `json:"event"`
+	Value  interface{} `json:"value"`
+	Color  int         `json:"color"`
+	UserID string      `json:"userid"`
 }
 
 func ErrorJSON(msg string) *EventJSON {
@@ -115,26 +115,26 @@ func FrameJSON(frame *Frame) *EventJSON {
 }
 
 type Room struct {
-    conns map[string]*websocket.Conn
-    State *State
+	conns         map[string]*websocket.Conn
+	State         *State
 	timeLastEvent *time.Time
-	lastUser string
-	lastMessages map[string]*time.Time
-	open bool
-	OGSLink *OGSConnector
-	password string
-	auth map[string]bool
-	nicks map[string]string
+	lastUser      string
+	lastMessages  map[string]*time.Time
+	open          bool
+	OGSLink       *OGSConnector
+	password      string
+	auth          map[string]bool
+	nicks         map[string]string
 }
 
 func NewRoom() *Room {
-    conns := make(map[string]*websocket.Conn)
-    state := NewState(19, true)
+	conns := make(map[string]*websocket.Conn)
+	state := NewState(19, true)
 	now := time.Now()
 	msgs := make(map[string]*time.Time)
 	auth := make(map[string]bool)
 	nicks := make(map[string]string)
-    return &Room{conns, state, &now, "", msgs, true, nil, "", auth, nicks}
+	return &Room{conns, state, &now, "", msgs, true, nil, "", auth, nicks}
 }
 
 func (r *Room) HasPassword() bool {
@@ -147,7 +147,7 @@ func SendEvent(conn *websocket.Conn, evt *EventJSON) {
 	if err != nil {
 		log.Println(err)
 		return
-    }
+	}
 	conn.Write(data)
 }
 
@@ -160,7 +160,7 @@ func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
 	if err != nil {
 		log.Println(id, err)
 		return
-    }
+	}
 
 	// rebroadcast message
 	for _, conn := range r.conns {
@@ -178,22 +178,22 @@ func (r *Room) Broadcast(evt *EventJSON, id string, setTime bool) {
 func (r *Room) PushHead(x, y, col int) *EventJSON {
 	r.State.PushHead(x, y, col)
 	evt := &EventJSON{
-		Event: "push_head",
-		Value: []int{x, y},
-		Color: col,
+		Event:  "push_head",
+		Value:  []int{x, y},
+		Color:  col,
 		UserID: "",
 	}
 	return evt
 }
 
 func (r *Room) UploadSGF(sgf string) *EventJSON {
-    state, err := FromSGF(sgf)
-    if err != nil {
-        log.Println(err)
+	state, err := FromSGF(sgf)
+	if err != nil {
+		log.Println(err)
 		return ErrorJSON("Error parsing SGF")
-    }
-    r.State = state
-	
+	}
+	r.State = state
+
 	// replace evt with initdata
 	frame := r.State.GenerateFullFrame(true)
 	return FrameJSON(frame)
@@ -201,7 +201,7 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
 
 func (r *Room) SendUserList() {
 	// send list of currently connected users
-	evt := &EventJSON {
+	evt := &EventJSON{
 		"connected_users",
 		r.nicks,
 		0,
@@ -212,7 +212,7 @@ func (r *Room) SendUserList() {
 }
 
 type Server struct {
-    rooms map[string]*Room
+	rooms    map[string]*Room
 	messages []*Message
 }
 
@@ -224,15 +224,15 @@ func NewServer() *Server {
 }
 
 func (s *Server) Save() {
-	for id,room := range s.rooms {
+	for id, room := range s.rooms {
 		path := filepath.Join(RoomPath(), id)
 		log.Printf("Saving %s", path)
 
 		// TODO: the term "handshake" has become obsolete
 		// as this is not the same process for client handshakes anymore
-        evt := room.State.InitData("handshake")
+		evt := room.State.InitData("handshake")
 		dataStruct := &LoadJSON{}
-		s,_ := evt.Value.(string)
+		s, _ := evt.Value.(string)
 		err := json.Unmarshal([]byte(s), dataStruct)
 		if err != nil {
 			continue
@@ -257,7 +257,7 @@ func (s *Server) Load() {
 	if err != nil {
 		return
 	}
-	for _,e := range sgfs {
+	for _, e := range sgfs {
 		log.Println(e)
 		id := e.Name()
 		path := filepath.Join(dir, id)
@@ -290,7 +290,7 @@ func (s *Server) Load() {
 		loc := load.Loc
 		if loc != "" {
 			dirs := strings.Split(loc, ",")
-			for _ = range(dirs) {
+			for _ = range dirs {
 				state.Right()
 			}
 		}
@@ -306,7 +306,7 @@ func (s *Server) Load() {
 }
 
 func (s *Server) Heartbeat(roomID string) {
-    room,ok := s.rooms[roomID]
+	room, ok := s.rooms[roomID]
 	if !ok {
 		return
 	}
@@ -318,17 +318,17 @@ func (s *Server) Heartbeat(roomID string) {
 			room.open = false
 			break
 		}
-		time.Sleep(3600*time.Second)
+		time.Sleep(3600 * time.Second)
 	}
-    log.Println("Cleaning up board due to inactivity:", roomID)
+	log.Println("Cleaning up board due to inactivity:", roomID)
 
 	// close all the client connections
-	for _,conn := range room.conns {
+	for _, conn := range room.conns {
 		conn.Close()
 	}
 
 	// delete the room from the server map
-    delete(s.rooms, roomID)
+	delete(s.rooms, roomID)
 
 	// delete the saved file (if it exists)
 	path := filepath.Join(RoomPath(), roomID)
@@ -339,13 +339,13 @@ func (s *Server) Heartbeat(roomID string) {
 
 type MessageJSON struct {
 	Text string `json:"message"`
-	TTL int `json:"ttl"`
+	TTL  int    `json:"ttl"`
 }
 
 type Message struct {
-	Text string
+	Text      string
 	ExpiresAt *time.Time
-	Notified map[string]bool
+	Notified  map[string]bool
 }
 
 func (s *Server) ReadMessages() {
@@ -434,7 +434,7 @@ func (s *Server) SendMessages() {
 func (s *Server) MessageLoop() {
 	for {
 		// wait 5 seconds
-		time.Sleep(5*time.Second)
+		time.Sleep(5 * time.Second)
 
 		s.ReadMessages()
 		s.SendMessages()
@@ -442,25 +442,25 @@ func (s *Server) MessageLoop() {
 }
 
 func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
-    chunkSize := 64
-    message := []byte{}
-    for {
-        if len(message) >= size {
-            break
-        }
-        l := size - len(message)
-        if l > chunkSize {
-            l = chunkSize
-        }
-        temp := make([]byte, l)
-        n, err := ws.Read(temp)
-        if err != nil {
-            return nil, err
-        }
-        message = append(message, temp[:n]...)
-    }
+	chunkSize := 64
+	message := []byte{}
+	for {
+		if len(message) >= size {
+			break
+		}
+		l := size - len(message)
+		if l > chunkSize {
+			l = chunkSize
+		}
+		temp := make([]byte, l)
+		n, err := ws.Read(temp)
+		if err != nil {
+			return nil, err
+		}
+		message = append(message, temp[:n]...)
+	}
 
-    return message, nil
+	return message, nil
 
 }
 
@@ -491,9 +491,9 @@ func EncodeSend(ws *websocket.Conn, data string) {
 
 // Echo the data received on the WebSocket.
 func (s *Server) Handler(ws *websocket.Conn) {
-    // new connection
+	// new connection
 
-    // first find the url they want
+	// first find the url they want
 	url := ws.Request().URL.String()
 
 	// currently not using the prefix, but i may someday
@@ -519,45 +519,45 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		// send debug info
 		data := ""
 		if room, ok := s.rooms[roomID]; ok {
-	        evt := room.State.InitData("handshake")
-			data,_ = evt.Value.(string)
+			evt := room.State.InitData("handshake")
+			data, _ = evt.Value.(string)
 		}
 		EncodeSend(ws, data)
 
 		return
 	}
 
-    // assign the new connection a new id
+	// assign the new connection a new id
 	id := uuid.New().String()
-    log.Println(url, "Connecting:", id)
+	log.Println(url, "Connecting:", id)
 
-    // if the room they want doesn't exist, create it
-    first := false
+	// if the room they want doesn't exist, create it
+	first := false
 	if _, ok := s.rooms[roomID]; !ok {
-        first = true
+		first = true
 		log.Println("New room:", roomID)
 		r := NewRoom()
 		r.lastUser = id
 		s.rooms[roomID] = r
 		go s.Heartbeat(roomID)
 	}
-    room := s.rooms[roomID]
+	room := s.rooms[roomID]
 	room.conns[id] = ws
-    // defer removing the client
+	// defer removing the client
 	defer delete(room.conns, id)
 
-    // send initial state
-    if !first {
+	// send initial state
+	if !first {
 		frame := room.State.GenerateFullFrame(true)
 		evt := FrameJSON(frame)
-		
-        if initData, err := json.Marshal(evt); err != nil {
-            log.Println(id, err)
+
+		if initData, err := json.Marshal(evt); err != nil {
+			log.Println(id, err)
 			return
-        } else {
-	        ws.Write(initData)
+		} else {
+			ws.Write(initData)
 		}
-    }
+	}
 
 	// send messages
 	for _, m := range s.messages {
@@ -584,42 +584,42 @@ func (s *Server) Handler(ws *websocket.Conn) {
 	// send list of currently connected users
 	room.SendUserList()
 
-    // main loop
+	// main loop
 	for {
 		// read in 4 bytes (length of rest of message)
-        length_array := make([]byte, 4)
-        _, err := ws.Read(length_array)
-        if err != nil {
-            log.Println(id, err)
-            break
-        }
-        length := binary.LittleEndian.Uint32(length_array)
+		length_array := make([]byte, 4)
+		_, err := ws.Read(length_array)
+		if err != nil {
+			log.Println(id, err)
+			break
+		}
+		length := binary.LittleEndian.Uint32(length_array)
 
 		// read in the rest of the data
-        var data []byte
+		var data []byte
 
-        if length > 1024 {
-            data, err = ReadBytes(ws, int(length))
-            if err != nil {
-                log.Println(id, err)
-                break
-            }
-        } else {
-    		data = make([]byte, length)
-    		_, err := ws.Read(data)
-    
-    		if err != nil {
-    			log.Println(id, err)
-                break
-    		}
-        }
+		if length > 1024 {
+			data, err = ReadBytes(ws, int(length))
+			if err != nil {
+				log.Println(id, err)
+				break
+			}
+		} else {
+			data = make([]byte, length)
+			_, err := ws.Read(data)
+
+			if err != nil {
+				log.Println(id, err)
+				break
+			}
+		}
 
 		// turn data into json
-        evt := &EventJSON{}
-        if err := json.Unmarshal(data, evt); err != nil {
-            log.Println(id, err)
-            continue
-        }
+		evt := &EventJSON{}
+		if err := json.Unmarshal(data, evt); err != nil {
+			log.Println(id, err)
+			continue
+		}
 
 		// first check auth
 		if evt.Event == "isprotected" {
@@ -633,9 +633,9 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			continue
 		}
 
-		if (evt.Event == "checkpassword") {
+		if evt.Event == "checkpassword" {
 			p := evt.Value.(string)
-			
+
 			if !Authorized(p, room.password) {
 				evt.Value = ""
 			} else {
@@ -650,7 +650,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 		// if the connection id isn't in the auth dictionary
 		// don't accept input
-		if _,ok := room.auth[id]; !ok {
+		if _, ok := room.auth[id]; !ok {
 			if room.password != "" {
 				continue
 			}
@@ -686,7 +686,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		// handle fast users
 		if evt.Event == "add_stone" {
 			now := time.Now()
-			if last,ok := room.lastMessages[id]; !ok {
+			if last, ok := room.lastMessages[id]; !ok {
 				room.lastMessages[id] = &now
 			} else {
 				diff := now.Sub(*last)
@@ -698,7 +698,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 
 		// handle event
-		if (evt.Event == "upload_sgf") {
+		if evt.Event == "upload_sgf" {
 			if room.OGSLink != nil {
 				room.OGSLink.End()
 			}
@@ -764,14 +764,14 @@ func (s *Server) Handler(ws *websocket.Conn) {
 						continue
 					}
 					id := int(id64)
-	
+
 					o, err := NewOGSConnector(room)
 					if err != nil {
 						continue
 					}
 					go o.GameLoop(id)
 					room.OGSLink = o
-	
+
 					// no need to broadcast this
 					continue
 				}
@@ -783,7 +783,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				newEvent := ErrorJSON(err.Error())
 				data, _ := json.Marshal(newEvent)
 				// broadcaste error message
-				for _,conn := range room.conns {
+				for _, conn := range room.conns {
 					conn.Write(data)
 				}
 				continue
@@ -792,7 +792,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				newEvent := ErrorJSON("Error fetching SGF. Is it a private OGS game?")
 				data, _ := json.Marshal(newEvent)
 				// broadcast error message
-				for _,conn := range room.conns {
+				for _, conn := range room.conns {
 					conn.Write(data)
 				}
 				continue
@@ -800,10 +800,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 			evt = room.UploadSGF(string(data))
 
-        } else if evt.Event == "trash" {
-            // reset room
+		} else if evt.Event == "trash" {
+			// reset room
 			oldBuffer := room.State.InputBuffer
-            room.State = NewState(room.State.Size, true)
+			room.State = NewState(room.State.Size, true)
 
 			// reuse old inputbuffer
 			room.State.InputBuffer = oldBuffer
@@ -817,7 +817,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		} else if evt.Event == "update_nickname" {
 			nickname := evt.Value.(string)
 			room.nicks[id] = nickname
-			userEvt := &EventJSON {
+			userEvt := &EventJSON{
 				"connected_users",
 				room.nicks,
 				0,
@@ -831,7 +831,7 @@ func (s *Server) Handler(ws *websocket.Conn) {
 			nickname := sMap["nickname"].(string)
 
 			room.nicks[id] = nickname
-			userEvt := &EventJSON {
+			userEvt := &EventJSON{
 				"connected_users",
 				room.nicks,
 				0,
@@ -874,12 +874,12 @@ func (s *Server) Handler(ws *websocket.Conn) {
 				for _, conn := range room.conns {
 					conn.Write(data)
 				}
-                continue
+				continue
 			}
 			if frame != nil {
 				evt = FrameJSON(frame)
 			}
-        }
+		}
 		room.Broadcast(evt, id, true)
 	}
 }
@@ -909,8 +909,8 @@ func main() {
 	// get ready to catch signals
 	cancelChan := make(chan os.Signal, 1)
 
-    // catch SIGETRM or SIGINTERRUPT
-    signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
+	// catch SIGETRM or SIGINTERRUPT
+	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
 
 	go s.MessageLoop()
 	go http.ListenAndServe(url, nil)
@@ -920,9 +920,8 @@ func main() {
 	log.Println("Shutting down gracefully")
 
 	/*
-	if err != nil {
-		panic("ListenAndServe: " + err.Error())
-	}
+		if err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
 	*/
 }
-
