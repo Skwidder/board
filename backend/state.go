@@ -737,7 +737,6 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Nodes = nil
 		explorer.Edges = nil
 		explorer.PreferredNodes = nil
-		explorer.PreferredEdges = nil
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 
@@ -750,7 +749,6 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Nodes = nil
 		explorer.Edges = nil
 		explorer.PreferredNodes = nil
-		explorer.PreferredEdges = nil
 		comments := s.GenerateComments()
         return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
 	

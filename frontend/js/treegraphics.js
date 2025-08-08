@@ -190,12 +190,22 @@ class TreeGraphics {
 
         if (explorer.preferred_nodes != null) {
             this._draw_preferred_stones(explorer.preferred_nodes);
-        }
-        if (explorer.preferred_edges != null) {
-            this._draw_preferred_lines(explorer.preferred_edges);
+            let edges = this.derive_edges(explorer.preferred_nodes);
+            this._draw_preferred_lines(edges);
         }
 
         this.set_scroll(current.x, current.y);
+    }
+
+    derive_edges(nodes) {
+        let edges = [];
+        for (let i=0; i < nodes.length-1; i++) {
+            let start = nodes[i].coord;
+            let end = nodes[i+1].coord;
+            let edge = {start: start, end: end};
+            edges.push(edge);
+        }
+        return edges;
     }
 
     _draw_stones(nodes) {
