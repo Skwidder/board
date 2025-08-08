@@ -107,6 +107,7 @@ class NetworkHandler {
         document.addEventListener("pointermove", (event) => this.pointermove(event));
         document.addEventListener("pointerdown", (event) => this.pointerdown(event));
         document.addEventListener("pointerup", (event) => this.pointerup(event));
+        document.addEventListener("mouseout", (event) => this.mouseout(event));
 
         document.addEventListener("touchstart", (event) => this.touchstart(event));
         document.addEventListener("touchend", (event) => this.touchend(event));
@@ -512,6 +513,10 @@ class NetworkHandler {
             //let payload = {"event": "pointerup"};
             //this.prepare(payload);
         }
+    }
+
+    mouseout(event) {
+        this.state.board_graphics.clear_ghosts();
     }
 
     pointermove(event) {

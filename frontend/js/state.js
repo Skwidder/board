@@ -660,6 +660,7 @@ class State {
         this.marks = new Map();
         this.current = null;
         this.board_graphics.clear_current();
+        this.board_graphics.clear_ghosts();
         this.pen = new Array();
         this.numbers = new Map();
         this.letters = new Array(26).fill(0);
