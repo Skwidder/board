@@ -344,6 +344,7 @@ func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, ind
 	if fields == nil {
 		fields = make(map[string][]string)
 	}
+
 	if !force {
 		// check to see if it's already there
 		for i, node := range s.Current.Down {
@@ -607,7 +608,14 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, nil
 		}
 
-		diff := s.AddNode(c, Color(evt.Color), nil, -1, false)
+		col := Color(evt.Color)
+
+		// do nothing on a suicide move
+		if !s.Board.Legal(c, col) {
+			return nil, nil
+		}
+
+		diff := s.AddNode(c, col, nil, -1, false)
 
 		marks := s.GenerateMarks()
 
@@ -910,19 +918,13 @@ func FromSGF(data string) (*State, error) {
 
 	state := NewState(int(size), false)
 	stack := []interface{}{root}
-	//stack := []*StackSGFNode{&StackSGFNode{"node", root, ""}}
 	for len(stack) > 0 {
 		i := len(stack) - 1
 		cur := stack[i]
 		stack = stack[:i]
 		if _, ok := cur.(string); ok {
 			state.Left()
-			//if cur.Type == "string" {
-			//if cur.StringValue == "<" {
-			//    state.Left()
-			//}
 		} else {
-			//node := cur.NodeValue
 			node := cur.(*SGFNode)
 
 			index := -1
@@ -934,6 +936,11 @@ func FromSGF(data string) (*State, error) {
 						index = -1
 					}
 				}
+			}
+
+			// refuse to process sgfs with a suicide move
+			if node.Coord() != nil && !state.Board.Legal(node.Coord(), node.Color()) {
+				return nil, fmt.Errorf("suicide moves are not currently supported")
 			}
 
 			if node.IsPass() {

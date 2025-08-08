@@ -190,7 +190,8 @@ func (r *Room) UploadSGF(sgf string) *EventJSON {
 	state, err := FromSGF(sgf)
 	if err != nil {
 		log.Println(err)
-		return ErrorJSON("Error parsing SGF")
+		msg := fmt.Sprintf("Error parsing SGF: %s", err)
+		return ErrorJSON(msg)
 	}
 	r.State = state
 
