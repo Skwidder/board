@@ -760,7 +760,10 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Nodes = nil
 		explorer.Edges = nil
 
-		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
+		// for the current mark
+		marks := s.GenerateMarks()
+
+		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
 	
 	case "down":
         s.Down()
@@ -768,7 +771,10 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		explorer.Nodes = nil
 		explorer.Edges = nil
 
-		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
+		// for the current mark
+		marks := s.GenerateMarks()
+
+		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
 
 
 	case "button":

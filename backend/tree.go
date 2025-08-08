@@ -176,19 +176,34 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 
 	preferredNodes := []*GridNode{}
 	preferredEdges := []*GridEdge{}
+	hingeNodes := []*GridNode{}
+	var lastNode *GridNode
 	index := 0
 	for {
 		if l,ok := loc[index]; ok {
 			x := l[0]
 			y := l[1]
 			gridNode := &GridNode{&Coord{x,y}, colors[index], index}
+			lastNode = gridNode
 			preferredNodes = append(preferredNodes, gridNode)
-			if len(preferredNodes) > 1 {
-				i := len(preferredNodes)
-				a := preferredNodes[i-2]
-				b := preferredNodes[i-1]
-				edge := &GridEdge{a.Coord, b.Coord}
-				preferredEdges = append(preferredEdges, edge)
+
+			if len(hingeNodes) == 0 {
+				hingeNodes = append(hingeNodes, gridNode)
+			} else {
+				// should be guaranteed that len(preferredNodes) > 1
+				b := preferredNodes[len(preferredNodes)-2]
+				if gridNode.Coord.Y != b.Coord.Y {
+					lastHinge := hingeNodes[len(hingeNodes)-1]
+
+					hingeNodes = append(hingeNodes, b)
+					hingeNodes = append(hingeNodes, gridNode)
+
+					edge := &GridEdge{lastHinge.Coord, b.Coord}
+					preferredEdges = append(preferredEdges, edge)
+
+					edge = &GridEdge{b.Coord, gridNode.Coord}
+					preferredEdges = append(preferredEdges, edge)
+				}
 			}
 
 			if index, ok = prefs[index]; !ok {
@@ -199,6 +214,11 @@ func (n *TreeNode) FillGrid(currentIndex int) *Explorer {
 			break
 		}
 	}
+
+	lastHinge := hingeNodes[len(hingeNodes)-1]
+	edge := &GridEdge{lastHinge.Coord, lastNode.Coord}
+	preferredEdges = append(preferredEdges, edge)
+
 
 	return &Explorer {
 		nodes,
