@@ -619,7 +619,14 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 			return nil, nil
 		}
 
-		diff := s.AddNode(c, col, nil, -1, false)
+		fields := make(map[string][]string)
+		key := "B"
+		if col == White {
+			key = "W"
+		}
+		fields[key] = []string{c.ToLetters()}
+
+		diff := s.AddNode(c, col, fields, -1, false)
 
 		marks := s.GenerateMarks()
 
@@ -627,6 +634,12 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		return &Frame{DiffFrame, diff, marks, explorer, nil, nil}, nil
 	case "pass":
 		fields := make(map[string][]string)
+		col := Color(evt.Color)
+		key := "B"
+		if col == White {
+			key = "W"
+		}
+		fields[key] = []string{""}
 		s.AddPassNode(Color(evt.Color), fields, -1)
 
 		explorer := s.Root.FillGrid(s.Current.Index)
