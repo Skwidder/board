@@ -39,6 +39,10 @@ func (c *Coord) ToLetters() string {
 	return string([]byte{alphabet[c.X], alphabet[c.Y]})
 }
 
+func (c *Coord) Equal(other *Coord) bool {
+	return c.X == other.X && c.Y == other.Y
+}
+
 func LettersToCoord(s string) *Coord {
 	if len(s) != 2 {
 		return nil
@@ -852,6 +856,7 @@ func (s *State) ToSGF(indexes bool) string {
 		}
 		node := cur.(*TreeNode)
 		result += ";"
+		/*
 		if node.Color > 0 {
 			color := "B"
 			if node.Color == 2 {
@@ -863,6 +868,7 @@ func (s *State) ToSGF(indexes bool) string {
 				result += fmt.Sprintf("%s[]", color)
 			}
 		}
+		*/
 		// throw in other fields
 		for key, multifield := range node.Fields {
 			if key == "IX" {

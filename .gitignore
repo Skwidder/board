@@ -1,5 +1,5 @@
 env/
-run.sh
 notes.txt
 scratch/
-__pycache__/
+
+build/

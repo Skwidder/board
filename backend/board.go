@@ -124,6 +124,19 @@ func (cs CoordSet) List() []*Coord {
 	return l
 }
 
+func (cs CoordSet) IsSubsetOf(other CoordSet) bool {
+	for _, v := range cs {
+		if !other.Has(v) {
+			return false
+		}
+	}
+	return true
+}
+
+func (cs CoordSet) Equal(other CoordSet) bool {
+	return cs.IsSubsetOf(other) && other.IsSubsetOf(cs)
+}
+
 func NewCoordSet() CoordSet {
 	return CoordSet(make(map[string]*Coord))
 }
@@ -318,10 +331,11 @@ func (b *Board) Groups() []*Group {
 	// go through the whole board
 	for i := 0; i < b.Size; i++ {
 		for j := 0; j < b.Size; j++ {
+			coord := &Coord{i, j}
 			// if we haven't checked it yet and there's a stone here
-			if !check[[2]int{i, j}] && b.Points[i][j] != NoColor {
+			if !check[[2]int{i, j}] && b.Get(coord) != NoColor {
 				// find the group it's part of
-				gp := b.FindGroup(&Coord{i, j})
+				gp := b.FindGroup(coord)
 				for _, c := range gp.Coords {
 					// check off everything in the group
 					check[[2]int{c.X, c.Y}] = true

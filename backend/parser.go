@@ -347,13 +347,18 @@ func Merge(sgfs []string) string {
 		} else {
 			// otherwise save all the children
 			for _, d := range root.Down {
-				d.Fields["C"] = []string{}
+				if _,ok := d.Fields["C"]; !ok {
+					d.Fields["C"] = []string{}
+				}
 				for _, key := range []string{"PB", "PW", "RE", "KM", "DT"} {
 					if len(root.Fields[key]) == 0 {
 						continue
 					}
 					value := root.Fields[key][0]
 					d.Fields["C"] = append(d.Fields["C"], fmt.Sprintf("%s: %s", key, value))
+				}
+				if len(d.Fields["C"]) == 0 {
+					delete(d.Fields, "C")
 				}
 				newRoot.Down = append(newRoot.Down, d)
 			}
