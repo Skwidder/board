@@ -19,6 +19,17 @@ import (
 	"strings"
 )
 
+var okList = map[string]bool {
+	"files.gokgs.com": true,
+	"ayd.yunguseng.com": true,
+	"eyd.yunguseng.com": true,
+	"online-go.com": true,
+	"gokifu.com": true,
+	"board.tripleko.com": true,
+	"board-test.tripleko.com": true,
+	"raw.githubusercontent.com": true,
+}
+
 func OGSCheckEnded(ogsUrl string) (bool, error) {
 	ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
 	ogsUrl = strings.Replace(ogsUrl, "game", "games", 1)
@@ -72,15 +83,6 @@ func IsOGS(urlStr string) bool {
 }
 
 func ApprovedFetch(urlStr string) (string, error) {
-	okList := make(map[string]bool)
-	okList["files.gokgs.com"] = true
-	okList["ayd.yunguseng.com"] = true
-	okList["eyd.yunguseng.com"] = true
-	okList["online-go.com"] = true
-	okList["gokifu.com"] = true
-	okList["board.tripleko.com"] = true
-	okList["board-test.tripleko.com"] = true
-	okList["raw.githubusercontent.com"] = true
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
