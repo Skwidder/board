@@ -248,6 +248,9 @@ func (b *Board) Set(c *Coord, col Color) {
 }
 
 func (b *Board) Get(c *Coord) Color {
+	if c.Y >= 19 || c.X >= 19 {
+		fmt.Println(c)
+	}
 	return b.Points[c.Y][c.X]
 }
 

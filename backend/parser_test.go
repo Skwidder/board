@@ -92,3 +92,16 @@ func TestMerge(t *testing.T) {
 		})
 	}
 }
+
+func TestPass(t *testing.T) {
+	sgf := "(;GM[1];B[aa];W[bb];B[tt];W[ss])"
+	p := backend.NewParser(sgf)
+	root, err := p.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	output := root.ToSGF(true)
+	if output != "(;GM[1];B[aa];W[bb];B[];W[ss])" {
+		t.Errorf("error in reading [tt] pass")
+	}
+}

@@ -114,7 +114,11 @@ func (p *Parser) Parse() (*SGFNode, error) {
 	p.SkipWhitespace()
 	c := p.read()
 	if c == '(' {
-		return p.ParseBranch()
+		root, err := p.ParseBranch()
+		if err != nil {
+			return nil, err
+		}
+		return Validate(root)
 	} else {
 		return nil, fmt.Errorf("unexpected %c", c)
 	}
@@ -367,4 +371,32 @@ func Merge(sgfs []string) string {
 
 	newRoot.Fields["SZ"] = []string{size}
 	return newRoot.ToSGF(true)
+}
+
+func Validate(node *SGFNode) (*SGFNode, error) {
+	fields := make(map[string][]string)
+	for key, value := range node.Fields {
+		if (key == "B" || key == "W") && len(value) == 1 && value[0] == "tt"  {
+			fields[key] = []string{""}
+		} else {
+			fields[key] = value
+		}
+	}
+
+	down := []*SGFNode{}
+	for _, d := range node.Down {
+		e, err := Validate(d)
+		if err != nil {
+			return nil, err
+		}
+		down = append(down, e)
+	}
+
+	n := &SGFNode {
+		Fields: fields,
+		Down: down,
+		Index: node.Index,
+	}
+
+	return n, nil
 }
