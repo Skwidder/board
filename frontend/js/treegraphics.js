@@ -56,11 +56,11 @@ class TreeGraphics {
         this.new_svg("preferred-lines", 30);
         this.new_svg("root", 40);
         this.new_svg("stones", 50);
-        this.new_svg("xs", 50);
+        //this.new_svg("xs", 50);
         this.new_svg("preferred-stones", 60);
-        this.new_svg("preferred-xs", 60);
+        //this.new_svg("preferred-xs", 60);
 
-        this.grid = [];
+        this.grid = new Map();
         this.index = 0;
 
         this.r = 12;
@@ -85,6 +85,7 @@ class TreeGraphics {
         svg.style.width = this.width + "px";
         svg.style.height = this.height + "px";
         svg.style.zIndex = z_index;
+        svg.id = id;
 
         this.svgs.set(id, svg);
 
@@ -175,14 +176,11 @@ class TreeGraphics {
                 }
                 grid.get(coord.y).set(coord.x, node.index);
             }
-        }
 
-
-        if (explorer.nodes != null) {
             this.grid = grid;
             this.set_dims_all(max_x+1, max_y+1);
-            this._draw_stones(explorer.nodes);
-            this._draw_lines(explorer.edges);
+            setTimeout(() => this._draw_stones(explorer.nodes), 1);
+            setTimeout(() => this._draw_lines(explorer.edges), 1);
         }
 
         let current = explorer.current;
