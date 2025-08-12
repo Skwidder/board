@@ -163,7 +163,7 @@ class State {
 
             let row = this.tree_graphics.grid.get(y);
             if (row.has(x)) {
-                return row.get(x);
+                return row.get(x).index;
             }
         }
     }
@@ -179,7 +179,7 @@ class State {
 
             let row = this.tree_graphics.grid.get(y);
             if (row.has(x)) {
-                return row.get(x);
+                return row.get(x).index;
             }
         }
 
@@ -693,6 +693,8 @@ class State {
             this.set_move_number(frame.explorer.current.x);
             this.update_color(frame.explorer.current_color);
         }
+        this.tree_graphics.set_scroll();
+        this.tree_graphics.render();
 
     }
 

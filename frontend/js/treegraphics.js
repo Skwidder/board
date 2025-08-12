@@ -22,6 +22,18 @@ class TreeGraphics {
     constructor() {
         let review = document.getElementById("review");
         let container = document.getElementById("explorer_container");
+        container.addEventListener("scroll", () => this.render());
+
+        // apparently this is idiomatic
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                if (entry.target.id == "explorer_container") {
+                    this.render();
+                }
+            }
+        });
+        resizeObserver.observe(container);
+
         let explorer = document.getElementById("explorer");
         this.container = container;
         this.explorer = explorer;
@@ -68,13 +80,15 @@ class TreeGraphics {
         this.x_offset = 2*this.r;
         this.y_offset = 2*this.r;
 
-        this.resize();
-        this.height = container.offsetHeight;
         this.current = [0,0];
+        this.height = container.offsetHeight;
+        this.edges = [];
 
         // draw initial shapes for blank board
         this.draw_root();
-        this.draw_current(0, 0);
+        this.draw_current();
+
+        this.resize();
     }
 
     new_svg(id, z_index) {
@@ -120,6 +134,7 @@ class TreeGraphics {
         }
 
         this.container.style.width = new_width + "px";
+        this.render();
     }
 
     capture_mouse(x, y) {
@@ -148,21 +163,79 @@ class TreeGraphics {
         if (this.grid.has(grid_y)) {
             let row = this.grid.get(grid_y);
             if (row.has(grid_x)) {
-                return row.get(grid_x);
+                return row.get(grid_x).index;
             }
         }
 
         return -1;
     }
 
+    render() {
+        this.draw_current();
+        // we should only render the section of the explorer that we can see
+        // so i should start by just identifying the boundaries of the
+        // explorer container
+
+        // let's try to compute the x and y coords that will be visible
+
+        let x0 = this.container.scrollLeft;
+        let x1 = x0 + this.container.offsetWidth;
+        let y0 = this.container.scrollTop;
+        let y1 = y0 + this.container.offsetHeight;
+
+        let x_left = Math.floor((x0 - this.x_offset) / this.step - 1);
+        let x_right = Math.ceil((x1 - this.x_offset) / this.step + 1);
+        let y_top = Math.floor((y0 - this.y_offset) / this.step - 1);
+        let y_bottom = Math.ceil((y1 - this.y_offset) / this.step + 1);
+        
+        let render_nodes = [];
+        for (let x = x_left; x <= x_right; x++) {
+            for (let y = y_top; y <= y_bottom; y++) {
+                // check for nodes to render
+                if (this.grid.has(y)) {
+                    let row = this.grid.get(y);
+                    if (row.has(x)) {
+                        render_nodes.push(row.get(x));
+                    }
+                }
+
+                // check for edges to render
+            }
+        }
+
+        let render_edges = [];
+        for (let edge of this.edges) {
+            if ((edge.start.x >= x_left &&
+                edge.start.x <= x_right &&
+                edge.start.y >= y_top &&
+                edge.start.y <= y_bottom) ||
+                (edge.end.x >= x_left &&
+                edge.end.x <= x_right &&
+                edge.end.y >= y_top &&
+                edge.end.y <= y_bottom)) {
+
+                render_edges.push(edge);
+            }
+        }
+
+        this._draw_stones(render_nodes);
+        this._draw_lines(render_edges);
+    }
+
     _update(explorer) {
+
         let max_x = 0;
         let max_y = 0;
         let grid = new Map();
 
+        if (explorer.current != null) {
+            this.current = [explorer.current.x, explorer.current.y];
+        }
+
+        this.set_scroll();
+
         if (explorer.nodes != null) {
             for (let node of explorer.nodes) {
-    
                 let coord = node.coord;
                 if (coord.x > max_x) {
                     max_x = coord.x;
@@ -174,17 +247,13 @@ class TreeGraphics {
                 if (!grid.has(coord.y)) {
                     grid.set(coord.y, new Map());
                 }
-                grid.get(coord.y).set(coord.x, node.index);
+                grid.get(coord.y).set(coord.x, node);
             }
 
             this.grid = grid;
+            this.edges = explorer.edges;
             this.set_dims_all(max_x+1, max_y+1);
-            setTimeout(() => this._draw_stones(explorer.nodes), 1);
-            setTimeout(() => this._draw_lines(explorer.edges), 1);
         }
-
-        let current = explorer.current;
-        this.draw_current(current.x, current.y);
 
         if (explorer.preferred_nodes != null) {
             this._draw_preferred_stones(explorer.preferred_nodes);
@@ -192,7 +261,6 @@ class TreeGraphics {
             this._draw_preferred_lines(edges);
         }
 
-        this.set_scroll(current.x, current.y);
     }
 
     derive_edges(nodes) {
@@ -281,7 +349,8 @@ class TreeGraphics {
 
     }
 
-    set_scroll(x, y) {
+    set_scroll() {
+        let [x,y] = this.current;
         let [x_pos, y_pos] = this.get_xypos(x,y);
         let old_left = this.container.scrollLeft;
         let old_top = this.container.scrollTop;
@@ -348,12 +417,12 @@ class TreeGraphics {
     }
 
 
-    draw_current(x, y) {
+    draw_current() {
+        let [x,y] = this.current;
         this.clear_svg("current");
         let w = this.step/2;
         let [pos_x, pos_y] = this.get_xypos(x,y);
         this.svg_draw_square(pos_x-w, pos_y-w, 2*w, "#81d0eb", "current");
-        this.current = [x,y];
     }
 
     svg_draw_texts(values, color, preferred, id) {
