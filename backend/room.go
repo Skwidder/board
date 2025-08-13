@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"log"
 
-	"time"
 	"golang.org/x/net/websocket"
+	"time"
 )
 
 type Room struct {
@@ -115,5 +115,3 @@ func (r *Room) SendUserList() {
 
 	r.Broadcast(evt, false)
 }
-
-

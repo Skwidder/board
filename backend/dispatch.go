@@ -13,12 +13,12 @@ package main
 import (
 	"encoding/base64"
 	"log"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 )
 
-type EventHandler func (*EventJSON) *EventJSON
+type EventHandler func(*EventJSON) *EventJSON
 
 type Middleware func(EventHandler) EventHandler
 
@@ -249,7 +249,7 @@ func (room *Room) BroadcastConnectedUsersAfter(handler EventHandler) EventHandle
 			0,
 			"",
 		}
-	
+
 		// broadcast connected_users
 		room.Broadcast(userEvt, false)
 		return evt
@@ -279,7 +279,7 @@ func (room *Room) Authorized(handler EventHandler) EventHandler {
 
 // this one is to keep the same user from submitting multiple events too quickly
 func (room *Room) Slow(handler EventHandler) EventHandler {
-	return func (evt *EventJSON) *EventJSON {
+	return func(evt *EventJSON) *EventJSON {
 		id := evt.UserID
 		// check multiple events from the same user in a narrow window (50 ms)
 		now := time.Now()
@@ -313,7 +313,7 @@ func (room *Room) OutsideBuffer(handler EventHandler) EventHandler {
 }
 
 func Chain(h EventHandler, middleware ...Middleware) EventHandler {
-	for i := len(middleware)-1; i >= 0; i-- {
+	for i := len(middleware) - 1; i >= 0; i-- {
 		h = middleware[i](h)
 	}
 	return h

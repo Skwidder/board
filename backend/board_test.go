@@ -12,12 +12,12 @@ package main_test
 
 import (
 	"fmt"
-	"testing"
 	backend "github.com/jarednogo/board/backend"
+	"testing"
 )
 
 var oppTests = []struct {
-	input backend.Color
+	input  backend.Color
 	output backend.Color
 }{
 	{backend.NoColor, backend.NoColor},
@@ -26,7 +26,7 @@ var oppTests = []struct {
 }
 
 func TestOpposite(t *testing.T) {
-	for i,tt := range oppTests {
+	for i, tt := range oppTests {
 		t.Run(fmt.Sprintf("opp%d", i), func(t *testing.T) {
 			opp := backend.Opposite(tt.input)
 			if opp != tt.output {
@@ -38,15 +38,15 @@ func TestOpposite(t *testing.T) {
 
 var coordTests = []struct {
 	input string
-	x int
-	y int
+	x     int
+	y     int
 }{
 	{"ah", 0, 7},
 	{"js", 9, 18},
 }
 
 func TestCoord(t *testing.T) {
-	for i,tt := range coordTests {
+	for i, tt := range coordTests {
 		t.Run(fmt.Sprintf("coord%d", i), func(t *testing.T) {
 			coord := backend.LettersToCoord(tt.input)
 			if coord.X != tt.x || coord.Y != tt.y {
@@ -108,7 +108,7 @@ func TestBoard3(t *testing.T) {
 func TestBoard4(t *testing.T) {
 	b := backend.NewBoard(19)
 	cs := backend.NewCoordSet()
-	for i:=0; i<5; i++ {
+	for i := 0; i < 5; i++ {
 		c := &backend.Coord{10, i}
 		cs.Add(c)
 	}

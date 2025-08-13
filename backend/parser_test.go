@@ -12,13 +12,13 @@ package main_test
 
 import (
 	"fmt"
-	"testing"
 	backend "github.com/jarednogo/board/backend"
+	"testing"
 )
 
 var fieldTests = []struct {
 	input string
-	key string
+	key   string
 	value string
 }{
 	{"(;GM[1])", "GM", "1"},
@@ -52,7 +52,7 @@ func TestParser(t *testing.T) {
 	}
 }
 
-var outputTests = []string {
+var outputTests = []string{
 	"(;GM[1])",
 	"(;GM[1];B[aa];W[bb](;B[cc];W[dd])(;B[ee];W[ff]))",
 	"(;GM[1];C[some comment])",
@@ -61,7 +61,7 @@ var outputTests = []string {
 }
 
 func TestToSGF(t *testing.T) {
-	for _,input := range outputTests {
+	for _, input := range outputTests {
 		t.Run(input, func(t *testing.T) {
 			p := backend.NewParser(input)
 			root, err := p.Parse()
@@ -79,14 +79,14 @@ func TestToSGF(t *testing.T) {
 
 var mergeTests = []struct {
 	input []string
-	num int
+	num   int
 }{
 	{[]string{"(;B[aa])", "(;B[bb])"}, 2},
 	{[]string{"(;AB[dd])", "(;PB[B];B[qq])", "(;GM[1](;B[aa])(;B[bb]))"}, 4},
 }
 
 func TestMerge(t *testing.T) {
-	for i,tt := range mergeTests {
+	for i, tt := range mergeTests {
 		t.Run(fmt.Sprintf("merge%d", i), func(t *testing.T) {
 			merged := backend.Merge(tt.input)
 			p := backend.NewParser(merged)

@@ -11,9 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-	"encoding/json"
-	"encoding/binary"
 	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"log"
 
 	"golang.org/x/net/websocket"
@@ -94,7 +94,6 @@ func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
 
 }
 
-
 func EncodeSend(ws *websocket.Conn, data string) {
 	encoded := base64.StdEncoding.EncodeToString([]byte(data))
 	length := uint32(len(encoded))
@@ -104,5 +103,3 @@ func EncodeSend(ws *websocket.Conn, data string) {
 	ws.Write(buf)
 	ws.Write([]byte(encoded))
 }
-
-

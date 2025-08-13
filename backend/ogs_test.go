@@ -30,10 +30,10 @@ func TestGamedata(t *testing.T) {
 	}
 
 	/*
-	// currently no way to do tests without making network connections
-	o := &backend.OGSConnector{}
-	sgf := o.GamedataToSGF(gamedata)
-	t.Errorf(sgf)
+		// currently no way to do tests without making network connections
+		o := &backend.OGSConnector{}
+		sgf := o.GamedataToSGF(gamedata)
+		t.Errorf(sgf)
 	*/
 
 }

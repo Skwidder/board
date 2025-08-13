@@ -11,8 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main_test
 
 import (
-	"testing"
 	backend "github.com/jarednogo/board/backend"
+	"testing"
 )
 
 func TestTree(t *testing.T) {
@@ -28,8 +28,8 @@ func TestTree(t *testing.T) {
 		key := node.Coord.ToLetters()
 		m[key] = [2]int{node.Coord.X, node.Coord.Y}
 	}
-	
-	check := map[string][2]int {
+
+	check := map[string][2]int{
 		"aa": [2]int{0, 0},
 		"ba": [2]int{1, 0},
 		"ca": [2]int{2, 0},

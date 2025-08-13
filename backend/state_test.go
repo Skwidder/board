@@ -12,10 +12,9 @@ package main_test
 
 import (
 	//"fmt"
-	"testing"
 	backend "github.com/jarednogo/board/backend"
+	"testing"
 )
-
 
 func TestState1(t *testing.T) {
 	s, err := backend.FromSGF("(;PW[White]RU[Japanese]KM[6.5]GM[1]FF[4]CA[UTF-8]SZ[19]PB[Black];B[pd];W[dd];B[pp];W[dp];B[];W[])")

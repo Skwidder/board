@@ -19,14 +19,14 @@ import (
 	"strings"
 )
 
-var okList = map[string]bool {
-	"files.gokgs.com": true,
-	"ayd.yunguseng.com": true,
-	"eyd.yunguseng.com": true,
-	"online-go.com": true,
-	"gokifu.com": true,
-	"board.tripleko.com": true,
-	"board-test.tripleko.com": true,
+var okList = map[string]bool{
+	"files.gokgs.com":           true,
+	"ayd.yunguseng.com":         true,
+	"eyd.yunguseng.com":         true,
+	"online-go.com":             true,
+	"gokifu.com":                true,
+	"board.tripleko.com":        true,
+	"board-test.tripleko.com":   true,
 	"raw.githubusercontent.com": true,
 }
 

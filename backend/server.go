@@ -24,7 +24,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-
 // the url starts with '/'
 func ParseURL(url string) (string, string, string) {
 	tokens := strings.Split(url, "/")
@@ -39,7 +38,6 @@ func ParseURL(url string) (string, string, string) {
 	}
 	return tokens[1], tokens[2], tokens[3]
 }
-
 
 type Server struct {
 	rooms    map[string]*Room
@@ -328,7 +326,7 @@ func (room *Room) NewConnection(ws *websocket.Conn, first bool) string {
 // see frontend/main.go suffixOp for corresponding receiver
 func (s *Server) HandleOp(ws *websocket.Conn, op, roomID string) {
 	data := ""
- 	room, ok := s.rooms[roomID]
+	room, ok := s.rooms[roomID]
 	if !ok {
 		EncodeSend(ws, data)
 		return
@@ -383,11 +381,11 @@ func (s *Server) Handler(ws *websocket.Conn) {
 	defer room.SendUserList()
 	defer delete(room.nicks, id)
 
-	handlers := map[string]EventHandler {
-		"isprotected": room.HandleIsProtected,
+	handlers := map[string]EventHandler{
+		"isprotected":   room.HandleIsProtected,
 		"checkpassword": room.HandleCheckPassword,
-		"debug": HandleDebug,
-		"ping": HandlePing,
+		"debug":         HandleDebug,
+		"ping":          HandlePing,
 
 		"upload_sgf": Chain(
 			room.HandleUploadSGF,
@@ -449,5 +447,3 @@ func (s *Server) Handler(ws *websocket.Conn) {
 		}
 	}
 }
-
-

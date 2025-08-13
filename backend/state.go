@@ -870,17 +870,17 @@ func (s *State) ToSGF(indexes bool) string {
 		node := cur.(*TreeNode)
 		result += ";"
 		/*
-		if node.Color > 0 {
-			color := "B"
-			if node.Color == 2 {
-				color = "W"
+			if node.Color > 0 {
+				color := "B"
+				if node.Color == 2 {
+					color = "W"
+				}
+				if node.XY != nil {
+					result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
+				} else {
+					result += fmt.Sprintf("%s[]", color)
+				}
 			}
-			if node.XY != nil {
-				result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
-			} else {
-				result += fmt.Sprintf("%s[]", color)
-			}
-		}
 		*/
 		// throw in other fields
 		for key, multifield := range node.Fields {

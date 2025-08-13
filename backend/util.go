@@ -11,12 +11,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 package main
 
 import (
-
-	"log"
-	"path/filepath"
-	"os"
 	"golang.org/x/crypto/bcrypt"
+	"log"
+	"os"
+	"path/filepath"
 )
+
 func Hash(input string) string {
 	hashedBytes, _ := bcrypt.GenerateFromPassword(
 		[]byte(input),
@@ -85,7 +85,6 @@ type LoadJSON struct {
 	Password  string         `json:"password"`
 }
 
-
 type EventJSON struct {
 	Event  string      `json:"event"`
 	Value  interface{} `json:"value"`
@@ -104,5 +103,3 @@ func FrameJSON(frame *Frame) *EventJSON {
 func NopJSON() *EventJSON {
 	return &EventJSON{"nop", nil, 0, ""}
 }
-
-

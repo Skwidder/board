@@ -351,7 +351,7 @@ func Merge(sgfs []string) string {
 		} else {
 			// otherwise save all the children
 			for _, d := range root.Down {
-				if _,ok := d.Fields["C"]; !ok {
+				if _, ok := d.Fields["C"]; !ok {
 					d.Fields["C"] = []string{}
 				}
 				for _, key := range []string{"PB", "PW", "RE", "KM", "DT"} {
@@ -376,7 +376,7 @@ func Merge(sgfs []string) string {
 func Validate(node *SGFNode) (*SGFNode, error) {
 	fields := make(map[string][]string)
 	for key, value := range node.Fields {
-		if (key == "B" || key == "W") && len(value) == 1 && value[0] == "tt"  {
+		if (key == "B" || key == "W") && len(value) == 1 && value[0] == "tt" {
 			fields[key] = []string{""}
 		} else {
 			fields[key] = value
@@ -392,10 +392,10 @@ func Validate(node *SGFNode) (*SGFNode, error) {
 		down = append(down, e)
 	}
 
-	n := &SGFNode {
+	n := &SGFNode{
 		Fields: fields,
-		Down: down,
-		Index: node.Index,
+		Down:   down,
+		Index:  node.Index,
 	}
 
 	return n, nil
