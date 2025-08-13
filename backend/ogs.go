@@ -211,7 +211,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 
 			frame := o.Room.State.GenerateFullFrame(true)
 			evt := FrameJSON(frame)
-			o.Room.Broadcast(evt, "", false)
+			o.Room.Broadcast(evt, false)
 
 		} else if topic == fmt.Sprintf("game/%d/gamedata", gameID) {
 			payload := arr[1].(map[string]interface{})
@@ -221,7 +221,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			}
 			sgf := o.GamedataToSGF(payload)
 			evt := o.Room.UploadSGF(sgf)
-			o.Room.Broadcast(evt, "", false)
+			o.Room.Broadcast(evt, false)
 		} else {
 			//log.Println(arr[1])
 		}
