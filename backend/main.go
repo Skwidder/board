@@ -442,6 +442,34 @@ func (s *Server) MessageLoop() {
 	}
 }
 
+func ReadPacket(ws *websocket.Conn) ([]byte, error) {
+	// read in 4 bytes (length of rest of message)
+	length_array := make([]byte, 4)
+	_, err := ws.Read(length_array)
+	if err != nil {
+		return nil, err
+	}
+	length := binary.LittleEndian.Uint32(length_array)
+
+	// read in the rest of the data
+	var data []byte
+
+	if length > 1024 {
+		data, err = ReadBytes(ws, int(length))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		data = make([]byte, length)
+		_, err := ws.Read(data)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
+}
+
 func ReadBytes(ws *websocket.Conn, size int) ([]byte, error) {
 	chunkSize := 64
 	message := []byte{}
@@ -490,6 +518,20 @@ func EncodeSend(ws *websocket.Conn, data string) {
 	ws.Write([]byte(encoded))
 }
 
+func (s *Server) GetOrCreateRoom(roomID string) (*Room, bool) {
+	// if the room they want doesn't exist, create it
+	created := false
+	if _, ok := s.rooms[roomID]; !ok {
+		created = true
+		log.Println("New room:", roomID)
+		r := NewRoom()
+		s.rooms[roomID] = r
+		go s.Heartbeat(roomID)
+	}
+	room := s.rooms[roomID]
+	return room, created
+}
+
 // Echo the data received on the WebSocket.
 func (s *Server) Handler(ws *websocket.Conn) {
 	// new connection
@@ -532,18 +574,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 	id := uuid.New().String()
 	log.Println(url, "Connecting:", id)
 
-	// if the room they want doesn't exist, create it
-	first := false
-	if _, ok := s.rooms[roomID]; !ok {
-		first = true
-		log.Println("New room:", roomID)
-		r := NewRoom()
-		r.lastUser = id
-		s.rooms[roomID] = r
-		go s.Heartbeat(roomID)
-	}
-	room := s.rooms[roomID]
+	room, first := s.GetOrCreateRoom(roomID)
+	room.lastUser = id
 	room.conns[id] = ws
+
 	// defer removing the client
 	defer delete(room.conns, id)
 
@@ -587,32 +621,10 @@ func (s *Server) Handler(ws *websocket.Conn) {
 
 	// main loop
 	for {
-		// read in 4 bytes (length of rest of message)
-		length_array := make([]byte, 4)
-		_, err := ws.Read(length_array)
+		data, err := ReadPacket(ws)
 		if err != nil {
 			log.Println(id, err)
 			break
-		}
-		length := binary.LittleEndian.Uint32(length_array)
-
-		// read in the rest of the data
-		var data []byte
-
-		if length > 1024 {
-			data, err = ReadBytes(ws, int(length))
-			if err != nil {
-				log.Println(id, err)
-				break
-			}
-		} else {
-			data = make([]byte, length)
-			_, err := ws.Read(data)
-
-			if err != nil {
-				log.Println(id, err)
-				break
-			}
 		}
 
 		// turn data into json
