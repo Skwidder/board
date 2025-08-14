@@ -53,26 +53,34 @@ class TreeGraphics {
 
         this.svgns = "http://www.w3.org/2000/svg";
         this.svgs = new Map();
-
-        this.shapes = new Map();
-
-        this.shapes.set("circles", new Map());
-        this.shapes.set("preferred-circles", new Map());
-        this.shapes.set("xs", new Map());
-        this.shapes.set("preferred-xs", new Map());
-        //this.shapes.set("texts", new Map());
-        //this.shapes.set("preferred-texts", new Map());
+        this.shape_pools = new Map();
 
         this.new_svg("current", 10);
         this.new_svg("lines", 20);
         this.new_svg("preferred-lines", 30);
         this.new_svg("root", 40);
         this.new_svg("stones", 50);
+
+        this.new_svg("black-stones", 50);
+        this.new_svg("white-stones", 50);
+        this.new_svg("black-text", 55);
+        this.new_svg("white-text", 55);
+
+        this.new_svg("dots", 50);
+
+        this.new_svg("preferred-black-stones", 60);
+        this.new_svg("preferred-white-stones", 60);
+        this.new_svg("preferred-black-text", 65);
+        this.new_svg("preferred-white-text", 65);
+
+        this.new_svg("preferred-dots", 60);
+
         //this.new_svg("xs", 50);
         this.new_svg("preferred-stones", 60);
         //this.new_svg("preferred-xs", 60);
 
         this.grid = new Map();
+        this.preferred_grid = new Map();
         this.index = 0;
 
         this.r = 12;
@@ -83,6 +91,7 @@ class TreeGraphics {
         this.current = [0,0];
         this.height = container.offsetHeight;
         this.edges = [];
+        this.preferred_edges = [];
 
         // draw initial shapes for blank board
         this.draw_root();
@@ -107,7 +116,15 @@ class TreeGraphics {
     }
 
     clear_svg(id) {
-        this.svgs.get(id).innerHTML = "";
+        // this way may provide a slight performance boost
+        let svg = this.svgs.get(id);
+        while (svg.firstChild) {
+            svg.removeChild(svg.firstChild);
+        }
+
+        // nodes are removed from the dom, but may remain in memory until
+        // gc decides to clean them up
+        //this.svgs.get(id).innerHTML = "";
     }
 
     clear_all() {
@@ -170,6 +187,50 @@ class TreeGraphics {
         return -1;
     }
 
+    visible(grid, edges) {
+        let x0 = this.container.scrollLeft;
+        let x1 = x0 + this.container.offsetWidth;
+        let y0 = this.container.scrollTop;
+        let y1 = y0 + this.container.offsetHeight;
+
+        let x_left = Math.floor((x0 - this.x_offset) / this.step - 1);
+        let x_right = Math.ceil((x1 - this.x_offset) / this.step + 1);
+        let y_top = Math.floor((y0 - this.y_offset) / this.step - 1);
+        let y_bottom = Math.ceil((y1 - this.y_offset) / this.step + 1);
+        
+        let render_nodes = [];
+        for (let x = x_left; x <= x_right; x++) {
+            for (let y = y_top; y <= y_bottom; y++) {
+                // check for nodes to render
+                if (grid.has(y)) {
+                    let row = grid.get(y);
+                    if (row.has(x)) {
+                        render_nodes.push(row.get(x));
+                    }
+                }
+
+                // check for edges to render
+            }
+        }
+
+        let render_edges = [];
+        for (let edge of edges) {
+            if ((edge.start.x >= x_left &&
+                edge.start.x <= x_right &&
+                edge.start.y >= y_top &&
+                edge.start.y <= y_bottom) ||
+                (edge.end.x >= x_left &&
+                edge.end.x <= x_right &&
+                edge.end.y >= y_top &&
+                edge.end.y <= y_bottom)) {
+
+                render_edges.push(edge);
+            }
+        }
+
+        return [render_nodes, render_edges];
+    }
+
     render() {
         this.draw_current();
         // we should only render the section of the explorer that we can see
@@ -178,6 +239,11 @@ class TreeGraphics {
 
         // let's try to compute the x and y coords that will be visible
 
+        let [render_nodes, render_edges] = this.visible(this.grid, this.edges);
+        let [pref_nodes, pref_edges] = this.visible(
+            this.preferred_grid,
+            this.preferred_edges);
+        /*
         let x0 = this.container.scrollLeft;
         let x1 = x0 + this.container.offsetWidth;
         let y0 = this.container.scrollTop;
@@ -217,16 +283,18 @@ class TreeGraphics {
                 render_edges.push(edge);
             }
         }
+        */
 
         this._draw_stones(render_nodes);
         this._draw_lines(render_edges);
+        this._draw_preferred_stones(pref_nodes);
+        this._draw_preferred_lines(pref_edges);
     }
 
     _update(explorer) {
 
         let max_x = 0;
         let max_y = 0;
-        let grid = new Map();
 
         if (explorer.current != null) {
             this.current = [explorer.current.x, explorer.current.y];
@@ -235,6 +303,7 @@ class TreeGraphics {
         this.set_scroll();
 
         if (explorer.nodes != null) {
+            let grid = new Map();
             for (let node of explorer.nodes) {
                 let coord = node.coord;
                 if (coord.x > max_x) {
@@ -256,9 +325,20 @@ class TreeGraphics {
         }
 
         if (explorer.preferred_nodes != null) {
-            this._draw_preferred_stones(explorer.preferred_nodes);
-            let edges = this.derive_edges(explorer.preferred_nodes);
-            this._draw_preferred_lines(edges);
+            let grid = new Map();
+            for (let node of explorer.preferred_nodes) {
+                let coord = node.coord;
+   
+                if (!grid.has(coord.y)) {
+                    grid.set(coord.y, new Map());
+                }
+                grid.get(coord.y).set(coord.x, node);
+            }
+            this.preferred_grid = grid;
+            //this._draw_preferred_stones(explorer.preferred_nodes);
+            //let edges = this.derive_edges(explorer.preferred_nodes);
+            this.preferred_edges = this.derive_edges(explorer.preferred_nodes);
+            //this._draw_preferred_lines(edges);
         }
 
     }
@@ -283,7 +363,7 @@ class TreeGraphics {
     }
 
     _draw_explorer_stones(nodes, id, preferred) {
-        this.clear_svg(id);
+        //this.clear_svg(id);
         let black_stones = [];
         let white_stones = [];
 
@@ -305,15 +385,15 @@ class TreeGraphics {
         }
 
         // draw circles
-        this.svg_draw_circles(black_stones, BLACK, preferred, id);
-        this.svg_draw_circles(white_stones, WHITE, preferred, id);
+        this.svg_draw_circles(black_stones, BLACK, preferred, "black-stones");
+        this.svg_draw_circles(white_stones, WHITE, preferred, "white-stones");
 
         // draw numbers
-        this.svg_draw_texts(black_numbers, WHITE, preferred, id);
-        this.svg_draw_texts(white_numbers, BLACK, preferred, id);
+        this.svg_draw_texts(black_numbers, WHITE, preferred, "black-text");
+        this.svg_draw_texts(white_numbers, BLACK, preferred, "white-text");
 
         // draw dots
-        this.svg_draw_dots(dots, preferred, id);
+        this.svg_draw_dots(dots, preferred, "dots");
     }
 
     _draw_lines(edges) {
@@ -426,6 +506,10 @@ class TreeGraphics {
     }
 
     svg_draw_texts(values, color, preferred, id) {
+        if (preferred) {
+            id = "preferred-" + id;
+        }
+
         let hex_color = "#000000";
         if (color == 2) {
             hex_color = "#FFFFFF";
@@ -434,19 +518,21 @@ class TreeGraphics {
             hex_color += "44";
         }
         let svg = this.svgs.get(id);
-        for (let [coord, text_value] of values) {
+        let pool = this.shape_pools.get(id) || [];
+        for (let i = 0; i < values.length; i++) {
+        //for (let [coord, text_value] of values) {
+            let [coord, text_value] = values[i];
             let x = coord.x;
             let y = coord.y;
-            let text_id = id + ":" + x + ":" + y + ":text";
 
-            //if (preferred) {
-            //    this.shapes.get("preferred-texts").set(text_id, 1);
-            //} else {
-            //    this.shapes.get("texts").set(text_id, 1);
-            //}
+            let text = pool[i];
+            if (!text) {
+                text = document.createElementNS(this.svgns, "text");
+                svg.appendChild(text);
+                pool[i] = text;
+            }
 
             let [pos_x, pos_y] = this.get_xypos(x, y);
-            let text = document.createElementNS(this.svgns, "text");
             let font_size = this.r;
 
             let x_offset = font_size/3;
@@ -457,23 +543,37 @@ class TreeGraphics {
             }
             let y_offset = font_size/3;
 
+            text.setAttribute("display", "inline");
             text.setAttribute("x", pos_x-x_offset);
             text.setAttribute("y", pos_y+y_offset);
             text.style.fontSize = font_size + "px";
             text.style.fill = hex_color;
             text.innerHTML = text_value;
-            text.setAttributeNS(null, "id", text_id);
+            //text.setAttributeNS(null, "id", text_id);
             text.style.cursor = "default";
             text.style.userSelect = "none";
-            svg.appendChild(text);
         }
+
+        // hide unused shapes in the pool
+        for (let i = values.length; i < pool.length; i++) {
+            pool[i].setAttribute("display", "none");
+        }
+
+        this.shape_pools.set(id, pool);
+
     }
 
     svg_draw_polyline(coord_pairs, hexColor, id) {
+
         let svg = this.svgs.get(id);
         let d = "";
 
-        let path = document.createElementNS(this.svgns, "path");
+        let pool = this.shape_pools.get(id) || [];
+        let path = pool[0];
+        if (!path) {
+            path = document.createElementNS(this.svgns, "path");
+            svg.appendChild(path);
+        }
         for (let [[x0, y0], [x1, y1]]  of coord_pairs) {
             let [pos_x0, pos_y0] = this.get_xypos(x0, y0);
             let [pos_x1, pos_y1] = this.get_xypos(x1, y1);
@@ -484,53 +584,13 @@ class TreeGraphics {
             d += pos_x1.toString() + " ";
             d += pos_y1.toString() + " ";
         }
-        //path.style.fill = hexColor;
         path.style.stroke = hexColor;
         path.style.strokeWidth = 2;
 
         path.setAttribute("d", d);
-        
-        svg.appendChild(path);
-    }
+        path.setAttribute("display", "inline");
 
-    svg_draw_xs(coords, preferred) {
-        if (coords.length==0) {
-            return;
-        }
-
-        let hex_color = "#AA0000";
-        let id = "preferred-xs";
-        if (!preferred) {
-            hex_color += "44";
-            id = "xs";
-        }
-        let svg = this.svgs.get(id);
-        let r = this.r;
-        let l = r/2;
-        let path = document.createElementNS(this.svgns, "path");
-        let d = "";
-        for (let [x,y] of coords) {
-            let [pos_x, pos_y] = this.get_xypos(x, y);
-            d += "M ";
-            d += (pos_x-l) + " ";
-            d += (pos_y-l) + " ";
-            d += "L ";
-            d += (pos_x+l) + " ";
-            d += (pos_y+l) + " ";
-
-            d += "M ";
-            d += (pos_x+l) + " ";
-            d += (pos_y-l) + " ";
-            d += "L ";
-            d += (pos_x-l) + " ";
-            d += (pos_y+l) + " ";
-        }
-
-        path.style.stroke = hex_color;
-        path.style.strokeWidth = 3;
-        path.setAttribute("d", d);
- 
-        svg.appendChild(path);
+        this.shape_pools.set(id, pool);
     }
 
     svg_draw_semicircle(x, y, r, sweep, hexColor, id) {
@@ -571,6 +631,10 @@ class TreeGraphics {
     }
 
     svg_draw_circles(coords, color, preferred, id)  {
+        if (preferred) {
+            id = "preferred-" + id;
+        }
+
         let stroke_style = "#000000";
         let hex_color = "#000000";
         if (color == 2) {
@@ -582,51 +646,86 @@ class TreeGraphics {
             stroke_style += "44";
         }
         let svg = this.svgs.get(id);
-        for (let[x,y] of coords) {
-            let circle_id = id + ":" + x + ":" + y + ":" + color;
-            if (preferred) {
-                this.shapes.get("preferred-circles").set(circle_id, 1);
-            } else {
-                this.shapes.get("circles").set(circle_id, 1);
+
+        // new pool implementation, create or reuse shapes
+        let pool = this.shape_pools.get(id) || [];
+        for (let i = 0; i < coords.length; i++) {
+        //for (let [x,y] of coords) {
+
+            let [x,y] = coords[i];
+            let circle = pool[i];
+            if (!circle) {
+                circle = document.createElementNS(this.svgns, "circle");
+                svg.appendChild(circle);
+                pool[i] = circle;
             }
 
             let [pos_x, pos_y] = this.get_xypos(x, y);
 
-            let circle = document.createElementNS(this.svgns, "circle");
+            //let circle = document.createElementNS(this.svgns, "circle");
+            circle.removeAttribute("display");
             circle.setAttributeNS(null, 'cx', pos_x);
             circle.setAttributeNS(null, 'cy', pos_y);
             circle.setAttributeNS(null, 'r', this.r);
             circle.style.fill = hex_color;
             circle.style.stroke = stroke_style;
             circle.style.strokeWidth = 1.5;
-            circle.setAttributeNS(null, "id", circle_id);
-            svg.appendChild(circle);
+            //circle.setAttributeNS(null, "id", circle_id);
+            //svg.appendChild(circle);
         }
+
+        // hide unused shapes in the pool
+        for (let i = coords.length; i < pool.length; i++) {
+            pool[i].setAttribute("display", "none");
+        }
+
+        this.shape_pools.set(id, pool);
     }
 
     svg_draw_dots(coords, preferred, id) {
+        if (preferred) {
+            id = "preferred-" + id;
+        }
+
         let hex_color = "#BBBBBB";
         if (preferred) {
             hex_color = "#8d42eb";
         }
  
         let svg = this.svgs.get(id);
-        for (let[x,y] of coords) {
+        let pool = this.shape_pools.get(id) || [];
+        //for (let[x,y] of coords) {
+        for (let i = 0; i < coords.length; i++) {
+            let [x,y] = coords[i];
             // skip the dot on the root node
             if (x == 0) {
                 continue;
             }
+
+            let circle = pool[i];
+            if (!circle) {
+                circle = document.createElementNS(this.svgns, "circle");
+                svg.appendChild(circle);
+                pool[i] = circle;
+            }
+
             let [pos_x, pos_y] = this.get_xypos(x, y);
 
-            let circle = document.createElementNS(this.svgns, "circle");
+            circle.setAttribute("display", "inline");
             circle.setAttributeNS(null, 'cx', pos_x);
             circle.setAttributeNS(null, 'cy', pos_y);
             circle.setAttributeNS(null, 'r', 2);
             circle.style.fill = hex_color;
-            //circle.style.stroke = stroke_style;
             circle.style.strokeWidth = 1.5;
-            svg.appendChild(circle);
         }
+
+        // hide unused shapes in the pool
+        for (let i = coords.length; i < pool.length; i++) {
+            pool[i].setAttribute("display", "none");
+        }
+
+        this.shape_pools.set(id, pool);
+
     }
 
     svg_draw_square(x, y, w, hexColor, id) {
