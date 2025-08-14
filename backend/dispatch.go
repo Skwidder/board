@@ -212,7 +212,7 @@ func (room *Room) HandleEvent(evt *EventJSON) *EventJSON {
 	if frame != nil {
 		bcast = FrameJSON(frame)
 	} else {
-		bcast = NopJSON()
+		bcast = evt
 	}
 	bcast.UserID = evt.UserID
 	return bcast
