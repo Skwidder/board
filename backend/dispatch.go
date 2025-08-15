@@ -125,8 +125,8 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			go o.GameLoop(id)
 			room.OGSLink = o
 
-			// no need to broadcast this
-			bcast = NopJSON()
+			// finish here
+			return NopJSON()
 		}
 	}
 
