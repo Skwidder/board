@@ -697,10 +697,6 @@ class TreeGraphics {
         //for (let[x,y] of coords) {
         for (let i = 0; i < coords.length; i++) {
             let [x,y] = coords[i];
-            // skip the dot on the root node
-            if (x == 0) {
-                continue;
-            }
 
             let circle = pool[i];
             if (!circle) {
@@ -710,13 +706,18 @@ class TreeGraphics {
             }
 
             let [pos_x, pos_y] = this.get_xypos(x, y);
-
             circle.setAttribute("display", "inline");
             circle.setAttributeNS(null, 'cx', pos_x);
             circle.setAttributeNS(null, 'cy', pos_y);
             circle.setAttributeNS(null, 'r', 2);
             circle.style.fill = hex_color;
             circle.style.strokeWidth = 1.5;
+
+            // hide the dot on the root node
+            if (x == 0) {
+                circle.setAttribute("display", "none");
+            }
+
         }
 
         // hide unused shapes in the pool
