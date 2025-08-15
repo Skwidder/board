@@ -105,22 +105,22 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 	if IsOGS(url) {
 		ended, err := OGSCheckEnded(url)
 		if err != nil {
-			bcast = ErrorJSON(err.Error())
+			return ErrorJSON(err.Error())
 		} else if !ended {
 			spl := strings.Split(url, "/")
 			if len(spl) < 2 {
-				bcast = ErrorJSON("url parsing error")
+				return ErrorJSON("url parsing error")
 			}
 			idStr := spl[len(spl)-1]
 			id64, err := strconv.ParseInt(idStr, 10, 64)
 			if err != nil {
-				bcast = ErrorJSON("int parsing error")
+				return ErrorJSON("int parsing error")
 			}
 			id := int(id64)
 
 			o, err := NewOGSConnector(room)
 			if err != nil {
-				bcast = ErrorJSON("ogs connector error")
+				return ErrorJSON("ogs connector error")
 			}
 			go o.GameLoop(id)
 			room.OGSLink = o
