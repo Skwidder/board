@@ -342,8 +342,13 @@ func (s *State) PushHead(x, y, col int) {
 		// go back to saved index
 		s.GotoIndex(save)
 	} else {
-		// if we are tracking, just compute the diff
-		diff = s.Board.Move(coord, Color(col))
+		// do nothing if it's a pass
+
+		// otherwise
+		if x != -1 {
+			// if we are tracking, just compute the diff
+			diff = s.Board.Move(coord, Color(col))
+		}
 
 		// and follow along
 		s.Current = n
