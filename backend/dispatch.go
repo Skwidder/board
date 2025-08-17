@@ -113,7 +113,7 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 		}
 
 		ogsType := spl[len(spl)-2]
-		log.Println(ogsType)
+		//log.Println(ogsType)
 
 		if ogsType == "game" {
 			ended, err := OGSCheckEnded(url)
@@ -123,7 +123,7 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			connectToOGS = !ended
 		}else if ogsType == "review" { connectToOGS = true}
 
-		log.Println(connectToOGS)
+		//log.Println(connectToOGS)
 		if connectToOGS {
 
 			idStr := spl[len(spl)-1]

@@ -20,14 +20,12 @@ If you make a pull request, please use `test` as the target branch. The test dom
 
 2. Run the frontend
 ```bash
-$ cd frontend/
-$ go run *.go
+$ bash run.sh frontend
 ```
 
 3. Run the backend
 ```bash
-$ cd backend/
-$ go run *.go
+$ bash run.sh backend
 ```
 
 4. Visit `http://localhost:8080` in your browser.
