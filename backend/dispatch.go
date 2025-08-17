@@ -143,7 +143,7 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			// no need to broadcast this
 			bcast = NopJSON()
 		}
-	} else {
+	}// else {
 
 		data, err := ApprovedFetch(evt.Value.(string))
 		if err != nil {
@@ -153,7 +153,7 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 		} else {
 			bcast = room.UploadSGF(string(data))
 		}
-	}
+	//}
 
 	bcast.UserID = evt.UserID
 	return bcast

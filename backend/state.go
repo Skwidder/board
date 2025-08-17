@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"log"
 )
 
 const Letters = "ABCDEFGHIJKLNMOPQRSTUVWXYZ"
@@ -410,9 +409,6 @@ func (s *State) AddPatternNodes(moves []*PatternMove) {
 		}
 
 		if !found{
-			log.Println("AddNode")
-			log.Println(move.Color)
-
 			s.GotoIndex(node.Index)
 
 			fields := make(map[string][]string)

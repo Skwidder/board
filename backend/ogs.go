@@ -174,6 +174,7 @@ func (o *OGSConnector) Ping() {
 		time.Sleep(30 * time.Second)
 		payload := make(map[string]interface{})
 		payload["client"] = time.Now().UnixMilli()
+		log.Println("ping")
 		o.Send("net/ping", payload)
 	}
 }
@@ -195,8 +196,6 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 		}
 		data, _ := ReadFrame(socketchan)
 
-		//TODO: Do it 
-		
 		arr := make([]interface{}, 2)
 		err := json.Unmarshal(data, &arr)
 		if err != nil {
@@ -204,7 +203,6 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			continue
 		}
 		topic := arr[0].(string)
-		log.Println(arr[0])
 
 		if topic == fmt.Sprintf("game/%d/move", gameID) {
 			payload := arr[1].(map[string]interface{})
@@ -233,19 +231,12 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			sgf := o.GamedataToSGF(payload)
 			evt := o.Room.UploadSGF(sgf)
 			o.Room.Broadcast(evt, false)
-		} else if topic == fmt.Sprintf("review/%d/full_state",gameID) { //fmt.Sprintf("reivew/%d/full_state", gameID){
-			log.Println("got Full state")
-			log.Println(arr[1])
-			// payload := arr[1].([]interface{})
-			// sgf := o.ReviewGamedataToSGF(payload)
-			// evt := o.Room.UploadSGF(sgf)
-			// o.Room.Broadcast(evt, false)
+		} else if topic == fmt.Sprintf("review/%d/full_state",gameID) { 
+			//Think we can just ignore this
 		} else if topic == fmt.Sprintf("review/%d/r",gameID) {
 			log.Println("/r")
 			payload := arr[1].(map[string]interface{})
 			moves := payload["m"].(string)
-			// skipNextTurn := false
-			log.Println(payload["m"])
 
 			movesArr := []*PatternMove{}
 			currentColor := Black
@@ -253,18 +244,9 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 				currentColor = White
 			}
 
-			log.Println(currentColor)
-			
-
 			for i := 0; i < len(moves); i += 2 {
 				if i+1 < len(moves) {
 					coordStr := moves[i:i+2]
-					log.Println(coordStr)
-					log.Println(currentColor)
-
-					// if skipNextTurn == true{
-					// 	currentColor = Opposite(currentColor)
-					// }
 
 					if coordStr == "!1"{
 						//Force next move black
@@ -296,28 +278,21 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 	return nil
 }
 
-func (o *OGSConnector) ReviewGamedataToSGF(gamedata []interface{}) string {
-	log.Println(gamedata)
-	log.Println(gamedata[0])
+//Unused for now Might want to add it back in
+// func (o *OGSConnector) ReviewGamedataToSGF(gamedata []interface{}) string {
+// 	log.Println(gamedata)
+// 	log.Println(gamedata[0])
 
-	metaGameData := gamedata[0].(map[string]interface{})["gamedata"].(map[string]interface{})
-	sgf := o.GameInfoToSGF(metaGameData,"review")
-	sgf += o.initStateToSGF(metaGameData)
+// 	metaGameData := gamedata[0].(map[string]interface{})["gamedata"].(map[string]interface{})
+// 	sgf := o.GameInfoToSGF(metaGameData,"review")
+// 	sgf += o.initStateToSGF(metaGameData)
 
-	log.Println(sgf)
-	// for index, m := range gamedata {
-	// 	if(index == 0){
-	// 		log.Println("FIRST ONE")
-	// 		continue
-	// 	}
-
-	// 	//TODO: get this out but only add new ones to SGF
-
-	// }
+// 	log.Println(sgf)
+// 	// Still needs to put all the stones into the SGF
 
 
-	return sgf
-}
+// 	return sgf
+// }
 
 func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 	sgf := o.GameInfoToSGF(gamedata,"game")

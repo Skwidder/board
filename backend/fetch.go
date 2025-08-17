@@ -50,9 +50,19 @@ func OGSCheckEnded(ogsUrl string) (bool, error) {
 }
 
 func FetchOGS(ogsUrl string) (string, error) {
-	ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
-	ogsUrl = strings.Replace(ogsUrl, "game", "games", 1)
-	ogsUrl += "/sgf"
+	spl := strings.Split(ogsUrl, "/")
+	ogsType := spl[len(spl)-2]
+
+	
+	if ogsType == "game"{
+		ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
+		ogsUrl = strings.Replace(ogsUrl, "game", "games", 1)
+		ogsUrl += "/sgf"
+	}else {
+		ogsUrl = strings.Replace(ogsUrl, ".com", ".com/api/v1", 1)
+		ogsUrl = strings.Replace(ogsUrl, "review", "reviews", 1)
+		ogsUrl += "/sgf"
+	}
 	return Fetch(ogsUrl)
 }
 
