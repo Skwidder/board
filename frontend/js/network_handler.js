@@ -97,6 +97,7 @@ class NetworkHandler {
 
     // evidently necessary because unfocused tabs don't hide modals
     focus() {
+        this.state.keys_down = new Map();
         if (this.ready_state() == WebSocket.OPEN) {
             this.state.modals.hide_modal("info-modal");
         }
