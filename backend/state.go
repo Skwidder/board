@@ -301,7 +301,19 @@ func (s *State) PushHead(x, y, col int) {
 		coord = nil
 	}
 	index := s.GetNextIndex()
-	n := NewTreeNode(coord, Color(col), index, s.Head, nil)
+	fields := make(map[string][]string)
+	var key string
+	if Color(col) == Black {
+		key = "B"
+	} else {
+		key = "W"
+	}
+	value := ""
+	if x != -1 {
+		value = coord.ToLetters()
+	}
+	fields[key] = []string{value}
+	n := NewTreeNode(coord, Color(col), index, s.Head, fields)
 	s.Nodes[index] = n
 	if len(s.Head.Down) > 0 {
 		s.Head.PreferredChild++
@@ -330,8 +342,13 @@ func (s *State) PushHead(x, y, col int) {
 		// go back to saved index
 		s.GotoIndex(save)
 	} else {
-		// if we are tracking, just compute the diff
-		diff = s.Board.Move(coord, Color(col))
+		// do nothing if it's a pass
+
+		// otherwise
+		if x != -1 {
+			// if we are tracking, just compute the diff
+			diff = s.Board.Move(coord, Color(col))
+		}
 
 		// and follow along
 		s.Current = n
