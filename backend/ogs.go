@@ -43,6 +43,7 @@ type Creds struct {
 	JWT  string `json:"user_jwt"`
 }
 
+
 func GetCreds() (*Creds, error) {
 	url := "https://online-go.com/api/v1/ui/config"
 	data, err := Fetch(url)
@@ -92,12 +93,18 @@ func (o *OGSConnector) Send(topic string, payload map[string]interface{}) error 
 	return nil
 }
 
-func (o *OGSConnector) GameConnect(gameID int) error {
+func (o *OGSConnector) GameConnect(gameID int, ogsType string) error {
 	payload := make(map[string]interface{})
 	payload["player_id"] = o.Creds.User.ID
 	payload["chat"] = false
-	payload["game_id"] = gameID
-	return o.Send("game/connect", payload)
+	if(ogsType == "game"){
+		payload["game_id"] = gameID
+		return o.Send("game/connect", payload)
+	}else{
+		payload["review_id"] = gameID
+		return o.Send("review/connect", payload)
+	}
+
 }
 
 func (o *OGSConnector) ChatConnect() error {
@@ -171,9 +178,9 @@ func (o *OGSConnector) Ping() {
 	}
 }
 
-func (o *OGSConnector) GameLoop(gameID int) error {
+func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 	o.ChatConnect()
-	o.GameConnect(gameID)
+	o.GameConnect(gameID, ogsType)
 
 	socketchan := make(chan byte)
 
@@ -187,6 +194,9 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			break
 		}
 		data, _ := ReadFrame(socketchan)
+
+		//TODO: Do it 
+		
 		arr := make([]interface{}, 2)
 		err := json.Unmarshal(data, &arr)
 		if err != nil {
@@ -194,6 +204,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			continue
 		}
 		topic := arr[0].(string)
+		log.Println(arr[0])
 
 		if topic == fmt.Sprintf("game/%d/move", gameID) {
 			payload := arr[1].(map[string]interface{})
@@ -209,7 +220,7 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			}
 			o.Room.State.PushHead(x, y, col)
 
-			frame := o.Room.State.GenerateFullFrame(true)
+			frame := o.Room.State.GenerateFullFrame(false)
 			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, false)
 
@@ -222,29 +233,152 @@ func (o *OGSConnector) GameLoop(gameID int) error {
 			sgf := o.GamedataToSGF(payload)
 			evt := o.Room.UploadSGF(sgf)
 			o.Room.Broadcast(evt, false)
-		} else {
-			//log.Println(arr[1])
+		} else if topic == fmt.Sprintf("review/%d/full_state",gameID) { //fmt.Sprintf("reivew/%d/full_state", gameID){
+			log.Println("got Full state")
+			log.Println(arr[1])
+			// payload := arr[1].([]interface{})
+			// sgf := o.ReviewGamedataToSGF(payload)
+			// evt := o.Room.UploadSGF(sgf)
+			// o.Room.Broadcast(evt, false)
+		} else if topic == fmt.Sprintf("review/%d/r",gameID) {
+			log.Println("/r")
+			payload := arr[1].(map[string]interface{})
+			moves := payload["m"].(string)
+			// skipNextTurn := false
+			log.Println(payload["m"])
+
+			movesArr := []*PatternMove{}
+			currentColor := Black
+			if(o.First == 1){
+				currentColor = White
+			}
+
+			log.Println(currentColor)
+			
+
+			for i := 0; i < len(moves); i += 2 {
+				if i+1 < len(moves) {
+					coordStr := moves[i:i+2]
+					log.Println(coordStr)
+					log.Println(currentColor)
+
+					// if skipNextTurn == true{
+					// 	currentColor = Opposite(currentColor)
+					// }
+
+					if coordStr == "!1"{
+						//Force next move black
+						currentColor = Black
+					} else if coordStr == "!2" {
+						//Force next move white
+						currentColor = White
+					} else if coordStr == ".."{
+						//Pass
+						movesArr = append(movesArr, &PatternMove{nil,currentColor})
+						currentColor = Opposite(currentColor)
+					}else{
+						coord := LettersToCoord(coordStr)
+						movesArr = append(movesArr, &PatternMove{coord,currentColor})
+						currentColor = Opposite(currentColor)
+					}
+				}
+			}
+			o.Room.State.AddPatternNodes(movesArr)
+
+			// Send full board update after adding pattern
+			frame := o.Room.State.GenerateFullFrame(false)
+			evt := FrameJSON(frame)
+			o.Room.Broadcast(evt, false)
+		}else {
+			log.Println(topic)
 		}
 	}
 	return nil
 }
 
+func (o *OGSConnector) ReviewGamedataToSGF(gamedata []interface{}) string {
+	log.Println(gamedata)
+	log.Println(gamedata[0])
+
+	metaGameData := gamedata[0].(map[string]interface{})["gamedata"].(map[string]interface{})
+	sgf := o.GameInfoToSGF(metaGameData,"review")
+	sgf += o.initStateToSGF(metaGameData)
+
+	log.Println(sgf)
+	// for index, m := range gamedata {
+	// 	if(index == 0){
+	// 		log.Println("FIRST ONE")
+	// 		continue
+	// 	}
+
+	// 	//TODO: get this out but only add new ones to SGF
+
+	// }
+
+
+	return sgf
+}
+
 func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
+	sgf := o.GameInfoToSGF(gamedata,"game")
+	sgf += o.initStateToSGF(gamedata)
+
+	for index, m := range gamedata["moves"].([]interface{}) {
+		arr := m.([]interface{})
+		c := &Coord{X: int(arr[0].(float64)), Y: int(arr[1].(float64))}
+
+		col := "B"
+
+		if (index%2 == 1 && o.First == 0) || (index%2 == 0 && o.First == 1) {
+			col = "W"
+		}
+
+		sgf += fmt.Sprintf(";%s[%s]", col, c.ToLetters())
+	}
+	sgf += ")"
+
+	return sgf
+}
+
+func (o *OGSConnector) GameInfoToSGF(gamedata map[string]interface{}, ogsType string) string {
+	sgf := ""
+	
 	size := int(gamedata["width"].(float64))
 	komi := gamedata["komi"].(float64)
 	name := gamedata["game_name"].(string)
 	rules := gamedata["rules"].(string)
+
+	if(ogsType == "game"){
+		black_id := int(gamedata["black_player_id"].(float64))
+		white_id := int(gamedata["white_player_id"].(float64))
+		black, err := GetUser(black_id)
+		if err != nil {
+			black = "Black"
+		}
+		white, err := GetUser(white_id)
+		if err != nil {
+			white = "White"
+		}
+		sgf = fmt.Sprintf(
+			"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[%s]PW[%s]RU[%s]KM[%f]GN[%s]",
+			size, black, white, rules, komi, name)
+	}else{
+		players := gamedata["players"].(map[string]interface{})
+		blackPlayer := players["black"].(map[string]interface{})
+		whitePlayer := players["white"].(map[string]interface{})
+		black := blackPlayer["name"].(string)
+		white := whitePlayer["name"].(string)
+		sgf = fmt.Sprintf(
+			"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[%s]PW[%s]RU[%s]KM[%f]GN[%s]",
+			size, black, white, rules, komi, name)
+	}
+	return sgf
+}
+
+func (o *OGSConnector) initStateToSGF(gamedata map[string]interface{}) string {
+	sgf := ""
+
 	ip := gamedata["initial_player"].(string)
-	black_id := int(gamedata["black_player_id"].(float64))
-	white_id := int(gamedata["white_player_id"].(float64))
-	black, err := GetUser(black_id)
-	if err != nil {
-		black = "Black"
-	}
-	white, err := GetUser(white_id)
-	if err != nil {
-		white = "White"
-	}
 
 	if ip == "black" {
 		o.First = 0
@@ -252,10 +386,6 @@ func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 		o.First = 1
 	}
 	initState := gamedata["initial_state"].(map[string]interface{})
-
-	sgf := fmt.Sprintf(
-		"(;GM[1]FF[4]CA[UTF-8]SZ[%d]PB[%s]PW[%s]RU[%s]KM[%f]GN[%s]",
-		size, black, white, rules, komi, name)
 
 	bstate := initState["black"].(string)
 	wstate := initState["white"].(string)
@@ -273,20 +403,5 @@ func (o *OGSConnector) GamedataToSGF(gamedata map[string]interface{}) string {
 			sgf += fmt.Sprintf("AW[%s]", wstate[2*i:2*i+2])
 		}
 	}
-
-	for index, m := range gamedata["moves"].([]interface{}) {
-		arr := m.([]interface{})
-		c := &Coord{X: int(arr[0].(float64)), Y: int(arr[1].(float64))}
-
-		col := "B"
-
-		if (index%2 == 1 && ip == "black") || (index%2 == 0 && ip == "white") {
-			col = "W"
-		}
-
-		sgf += fmt.Sprintf(";%s[%s]", col, c.ToLetters())
-	}
-	sgf += ")"
-
 	return sgf
 }
