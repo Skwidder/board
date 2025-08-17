@@ -401,6 +401,55 @@ func (s *State) AddNode(coord *Coord, col Color, fields map[string][]string, ind
 	return diff
 }
 
+type PatternMove struct {
+    Coord *Coord  // nil for passes
+    Color Color
+}
+
+
+func (s *State) AddPatternNodes(moves []*PatternMove) {
+	node := s.Root
+	locationSave := s.Current.Index
+
+	for _, move := range moves {
+		found := false
+
+		for _, child := range node.Down{
+			if (child.XY == nil && move.Coord == nil) || 
+               (child.XY != nil && move.Coord != nil && 
+                child.XY.X == move.Coord.X && child.XY.Y == move.Coord.Y &&
+                child.Color == move.Color) {
+				node = child
+				found = true
+				break
+			}
+		}
+
+		if !found{
+			s.GotoIndex(node.Index)
+
+			fields := make(map[string][]string)
+			key := "B"
+			if move.Color == White {
+				key = "W"
+			}
+			
+
+			if( move.Coord == nil){
+				fields[key] = []string{""}
+				s.AddPassNode(move.Color, fields, -1)
+			}else{
+				fields[key] = []string{move.Coord.ToLetters()} 
+				s.AddNode(move.Coord, move.Color, fields, -1, false)
+			}
+			node = s.Current
+		}
+	}
+	s.GotoIndex(locationSave) 
+
+}
+
+
 func (s *State) Cut() *Diff {
 	index := s.Current.Index
 	diff := s.Left()

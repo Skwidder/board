@@ -22,6 +22,7 @@ type EventHandler func(*EventJSON) *EventJSON
 
 type Middleware func(EventHandler) EventHandler
 
+
 // handlers
 
 func (room *Room) HandleIsProtected(evt *EventJSON) *EventJSON {
@@ -100,17 +101,31 @@ func (room *Room) HandleUploadSGF(evt *EventJSON) *EventJSON {
 
 func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 	var bcast *EventJSON
-
 	url := evt.Value.(string)
+	
 	if IsOGS(url) {
-		ended, err := OGSCheckEnded(url)
-		if err != nil {
-			return ErrorJSON(err.Error())
-		} else if !ended {
-			spl := strings.Split(url, "/")
-			if len(spl) < 2 {
-				return ErrorJSON("url parsing error")
+
+		connectToOGS := false
+
+		spl := strings.Split(url, "/")
+		if len(spl) < 2 {
+			bcast = ErrorJSON("url parsing error")
+		}
+
+		ogsType := spl[len(spl)-2]
+		log.Println(ogsType)
+
+		if ogsType == "game" {
+			ended, err := OGSCheckEnded(url)
+			if err != nil {
+				bcast = ErrorJSON(err.Error())
 			}
+			connectToOGS = !ended
+		}else if ogsType == "review" { connectToOGS = true}
+
+		log.Println(connectToOGS)
+		if connectToOGS {
+
 			idStr := spl[len(spl)-1]
 			id64, err := strconv.ParseInt(idStr, 10, 64)
 			if err != nil {
@@ -122,22 +137,23 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			if err != nil {
 				return ErrorJSON("ogs connector error")
 			}
-			go o.GameLoop(id)
+			go o.GameLoop(id,ogsType)
 			room.OGSLink = o
 
 			// finish here
 			return NopJSON()
 		}
-	}
+	}// else {
 
-	data, err := ApprovedFetch(evt.Value.(string))
-	if err != nil {
-		bcast = ErrorJSON(err.Error())
-	} else if data == "Permission denied" {
-		bcast = ErrorJSON("Error fetching SGF. Is it a private OGS game?")
-	} else {
-		bcast = room.UploadSGF(string(data))
-	}
+		data, err := ApprovedFetch(evt.Value.(string))
+		if err != nil {
+			bcast = ErrorJSON(err.Error())
+		} else if data == "Permission denied" {
+			bcast = ErrorJSON("Error fetching SGF. Is it a private OGS game?")
+		} else {
+			bcast = room.UploadSGF(string(data))
+		}
+	//}
 
 	bcast.UserID = evt.UserID
 	return bcast
