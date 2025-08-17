@@ -268,7 +268,7 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			o.Room.State.AddPatternNodes(movesArr)
 
 			// Send full board update after adding pattern
-			frame := o.Room.State.GenerateFullFrame(false)
+			frame := o.Room.State.GenerateFullFrame(true)
 			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, false)
 		}else {
