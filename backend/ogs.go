@@ -171,10 +171,10 @@ func (o *OGSConnector) Ping() {
 		if o.Exit {
 			break
 		}
-		time.Sleep(30 * time.Second)
+		//30 seconds seemed just a little too long was causing connection issues
+		time.Sleep(25 * time.Second) 
 		payload := make(map[string]interface{})
 		payload["client"] = time.Now().UnixMilli()
-		log.Println("ping")
 		o.Send("net/ping", payload)
 	}
 }
@@ -234,7 +234,7 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 		} else if topic == fmt.Sprintf("review/%d/full_state",gameID) { 
 			//Think we can just ignore this
 		} else if topic == fmt.Sprintf("review/%d/r",gameID) {
-			log.Println("/r")
+			log.Println(fmt.Sprintf("review/%d/r",gameID))
 			payload := arr[1].(map[string]interface{})
 			moves := payload["m"].(string)
 
@@ -272,7 +272,7 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, false)
 		}else {
-			log.Println(topic)
+			// log.Println(topic)
 		}
 	}
 	return nil
