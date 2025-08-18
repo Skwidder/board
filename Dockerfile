@@ -15,5 +15,6 @@ RUN sed -i -e 's/localhost/0.0.0.0/g' /root/frontend/main.go
 EXPOSE 8080
 EXPOSE 9000
 
-RUN echo "cd /root/frontend && go run *.go & cd /root/backend && go run *.go" > /root/start.sh
-CMD ["sh", "/root/start.sh"]
+ADD run.sh /root
+WORKDIR /root
+CMD ["bash", "/root/run.sh"]
