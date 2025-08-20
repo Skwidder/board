@@ -43,6 +43,10 @@ func (c *Coord) Equal(other *Coord) bool {
 	return c.X == other.X && c.Y == other.Y
 }
 
+func (c *Coord) Copy() *Coord {
+	return &Coord{c.X, c.Y}
+}
+
 func LettersToCoord(s string) *Coord {
 	if len(s) != 2 {
 		return nil
@@ -82,6 +86,7 @@ type State struct {
 	Timeout     float64
 	Size        int
 	Board       *Board
+	Clipboard	*TreeNode
 }
 
 func (s *State) Prefs() string {
@@ -668,256 +673,47 @@ func (s *State) GenerateFullFrame(init bool) *Frame {
 func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 	switch evt.Event {
 	case "add_stone":
-		c, err := InterfaceToCoord(evt.Value)
-		if err != nil {
-			return nil, err
-		}
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-
-		col := Color(evt.Color)
-
-		// do nothing on a suicide move
-		if !s.Board.Legal(c, col) {
-			return nil, nil
-		}
-
-		fields := make(map[string][]string)
-		key := "B"
-		if col == White {
-			key = "W"
-		}
-		fields[key] = []string{c.ToLetters()}
-
-		diff := s.AddNode(c, col, fields, -1, false)
-
-		marks := s.GenerateMarks()
-
-		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, marks, explorer, nil, nil}, nil
+		return s.HandleAddStone(evt)
 	case "pass":
-		fields := make(map[string][]string)
-		col := Color(evt.Color)
-		key := "B"
-		if col == White {
-			key = "W"
-		}
-		fields[key] = []string{""}
-		s.AddPassNode(Color(evt.Color), fields, -1)
-
-		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, nil, nil, explorer, nil, nil}, nil
+		return s.HandlePass(evt)
 	case "remove_stone":
-		c, err := InterfaceToCoord(evt.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-
-		fields := make(map[string][]string)
-		fields["AE"] = []string{c.ToLetters()}
-		diff := s.AddFieldNode(fields, -1)
-
-		explorer := s.Root.FillGrid(s.Current.Index)
-		return &Frame{DiffFrame, diff, nil, explorer, nil, nil}, nil
+		return s.HandleRemoveStone(evt)
 	case "triangle":
-		c, err := InterfaceToCoord(evt.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-		l := c.ToLetters()
-		s.Current.AddField("TR", l)
-
+		return s.HandleAddTriangle(evt)
 	case "square":
-		c, err := InterfaceToCoord(evt.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-		l := c.ToLetters()
-		s.Current.AddField("SQ", l)
-
+		return s.HandleAddSquare(evt)
 	case "letter":
-		val := evt.Value.(map[string]interface{})
-		c, err := InterfaceToCoord(val["coords"])
-		if err != nil {
-			return nil, err
-		}
-
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-
-		l := c.ToLetters()
-		letter := val["letter"].(string)
-		lb := fmt.Sprintf("%s:%s", l, letter)
-		s.Current.AddField("LB", lb)
-
+		return s.HandleAddLetter(evt)
 	case "number":
-		val := evt.Value.(map[string]interface{})
-		c, err := InterfaceToCoord(val["coords"])
-		if err != nil {
-			return nil, err
-		}
-
-		x := c.X
-		y := c.Y
-		if x >= s.Size || y >= s.Size || x < 0 || y < 0 {
-			return nil, nil
-		}
-
-		l := c.ToLetters()
-		number := int(val["number"].(float64))
-		lb := fmt.Sprintf("%s:%d", l, number)
-		s.Current.AddField("LB", lb)
-
+		return s.HandleAddNumber(evt)
 	case "remove_mark":
-		c, err := InterfaceToCoord(evt.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		l := c.ToLetters()
-		for key, values := range s.Current.Fields {
-			for _, value := range values {
-				if key == "LB" && value[:2] == l {
-					s.Current.RemoveField("LB", value)
-				} else if key == "SQ" && value == l {
-					s.Current.RemoveField("SQ", l)
-				} else if key == "TR" && value == l {
-					s.Current.RemoveField("TR", l)
-				}
-			}
-		}
-
-	case "scissors":
-		diff := s.Cut()
-		marks := s.GenerateMarks()
-		explorer := s.Root.FillGrid(s.Current.Index)
-		comments := s.GenerateComments()
-		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-
+		return s.HandleRemoveMark(evt)
+	case "cut":
+		return s.HandleCut(evt)
 	case "left":
-		diff := s.Left()
-		marks := s.GenerateMarks()
-		explorer := s.Root.FillGrid(s.Current.Index)
-
-		// left doesn't change the preferred nodes and edges
-		explorer.Nodes = nil
-		explorer.Edges = nil
-		explorer.PreferredNodes = nil
-		comments := s.GenerateComments()
-		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-
+		return s.HandleLeft()
 	case "right":
-		diff := s.Right()
-		marks := s.GenerateMarks()
-		explorer := s.Root.FillGrid(s.Current.Index)
-
-		// right doesn't change the preferred nodes and edges
-		explorer.Nodes = nil
-		explorer.Edges = nil
-		explorer.PreferredNodes = nil
-		comments := s.GenerateComments()
-		return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-
+		return s.HandleRight()
 	case "up":
-		s.Up()
-		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = nil
-		explorer.Edges = nil
-
-		// for the current mark
-		marks := s.GenerateMarks()
-
-		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
-
+		return s.HandleUp()
 	case "down":
-		s.Down()
-		explorer := s.Root.FillGrid(s.Current.Index)
-		explorer.Nodes = nil
-		explorer.Edges = nil
-
-		// for the current mark
-		marks := s.GenerateMarks()
-
-		return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
-
-	case "button":
-		val := evt.Value.(string)
-		if val == "Rewind" {
-			s.Rewind()
-			return s.GenerateFullFrame(false), nil
-		} else if val == "FastForward" {
-			s.FastForward()
-			return s.GenerateFullFrame(false), nil
-		}
-
+		return s.HandleDown()
+	case "rewind":
+		return s.HandleRewind()
+	case "fastforward":
+		return s.HandleFastForward()
 	case "goto_grid":
-		index := int(evt.Value.(float64))
-		s.GotoIndex(index)
-
-		return s.GenerateFullFrame(false), nil
+		return s.HandleGotoGrid(evt)
 	case "goto_coord":
-		coords := make([]int, 0)
-		// coerce the value to an array
-		val := evt.Value.([]interface{})
-		for _, v := range val {
-			i := int(v.(float64))
-			coords = append(coords, i)
-		}
-		x := coords[0]
-		y := coords[1]
-		s.GotoCoord(x, y)
-		return s.GenerateFullFrame(false), nil
+		return s.HandleGotoCoord(evt)
 	case "comment":
-		val := evt.Value.(string)
-		s.Current.AddField("C", val+"\n")
+		return s.HandleComment(evt)
 	case "draw":
-		vals := evt.Value.([]interface{})
-		var x0 float64
-		var y0 float64
-		if vals[0] == nil {
-			x0 = -1.0
-		} else {
-			x0 = vals[0].(float64)
-		}
-
-		if vals[1] == nil {
-			y0 = -1.0
-		} else {
-			y0 = vals[1].(float64)
-		}
-
-		x1 := vals[2].(float64)
-		y1 := vals[3].(float64)
-		color := vals[4].(string)
-
-		value := fmt.Sprintf("%.4f:%.4f:%.4f:%.4f:%s", x0, y0, x1, y1, color)
-		s.Current.AddField("PX", value)
+		return s.HandleDraw(evt)
 	case "erase_pen":
-		delete(s.Current.Fields, "PX")
+		return s.HandleErasePen()
+	case "copy":
+		return s.HandleCopy()
 	}
 	return nil, nil
 }
@@ -935,19 +731,6 @@ func (s *State) ToSGF(indexes bool) string {
 		}
 		node := cur.(*TreeNode)
 		result += ";"
-		/*
-			if node.Color > 0 {
-				color := "B"
-				if node.Color == 2 {
-					color = "W"
-				}
-				if node.XY != nil {
-					result += fmt.Sprintf("%s[%s]", color, node.XY.ToLetters())
-				} else {
-					result += fmt.Sprintf("%s[]", color)
-				}
-			}
-		*/
 		// throw in other fields
 		for key, multifield := range node.Fields {
 			if key == "IX" {
@@ -1084,5 +867,5 @@ func NewState(size int, initRoot bool) *State {
 	board := NewBoard(size)
 	// default input buffer of 250
 	// default room timeout of 86400
-	return &State{root, root, root, nodes, index, 250, 86400, size, board}
+	return &State{root, root, root, nodes, index, 250, 86400, size, board, nil}
 }

@@ -29,6 +29,30 @@ func NewTreeNode(coord *Coord, col Color, index int, up *TreeNode, fields map[st
 	return &TreeNode{coord, col, down, up, index, 0, fields, nil}
 }
 
+func (n *TreeNode) Copy() *TreeNode {
+	// copy children
+	down := []*TreeNode{}
+	for _, d := range n.Down {
+		down = append(down, d.Copy())
+	}
+	fields := make(map[string][]string)
+	for key, value := range n.Fields {
+		newValue := make([]string, len(value))
+		copy(newValue, value)
+		fields[key] = newValue
+	}
+
+	// parent will get assigned later
+	m := NewTreeNode(
+		n.XY.Copy(),
+		n.Color,
+		0,
+		nil,
+		fields)
+	m.Down = down
+	return m
+}
+
 func (n *TreeNode) AddField(key, value string) {
 	if _, ok := n.Fields[key]; !ok {
 		n.Fields[key] = []string{}

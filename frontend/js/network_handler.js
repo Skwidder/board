@@ -234,12 +234,12 @@ class NetworkHandler {
     }
 
     prepare_rewind() {
-        let payload = {"event":"button", "value":"Rewind"};
+        let payload = {"event":"rewind"};
         this.prepare(payload);
     }
 
     prepare_fastforward() {
-        let payload = {"event":"button", "value":"FastForward"};
+        let payload = {"event":"fastforward"};
         this.prepare(payload);
     }
 
@@ -285,7 +285,12 @@ class NetworkHandler {
 
     prepare_scissors() {
         //let payload = {"event":"scissors", "value": this.state.board.tree.current.index};
-        let payload = {"event":"scissors"};
+        let payload = {"event": "cut"};
+        this.prepare(payload);
+    }
+
+    prepare_copy() {
+        let payload = {"event": "copy"};
         this.prepare(payload);
     }
 
