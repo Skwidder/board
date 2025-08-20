@@ -666,6 +666,9 @@ class State {
         this.letters = new Array(26).fill(0);
         this.board_graphics.remove_marks();
 
+        // always clear comments
+        this.comments.clear();
+
         // TODO: there's some weirdness to think about here:
         // essentially, we only handle metadata on a full frame
         // so there are things that are done on a full frame that AREN'T
@@ -699,7 +702,6 @@ class State {
     }
 
     handle_comments(comments) {
-        this.comments.clear();
         for (let cmt of comments) {
             cmt = cmt.trim();
             for (let cmt_line of cmt.split("\n")) {
