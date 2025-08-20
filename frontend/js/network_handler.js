@@ -592,6 +592,10 @@ class NetworkHandler {
         let payload = {};
 
         if (this.state.mark != "") {
+            if (this.state.mark == "pen") {
+                return;
+            }
+
             let id = coords[0].toString() + "-" + coords[1].toString();
             if (this.state.marks.has(id)) {
                 payload = {"event": "remove_mark", value: coords};
