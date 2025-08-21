@@ -147,6 +147,14 @@ type StoneSet struct {
 	Color  `json:"color"`
 }
 
+func (s *StoneSet) Copy() *StoneSet {
+	coords := []*Coord{}
+	for _, c := range s.Coords {
+		coords = append(coords, c.Copy())
+	}
+	return &StoneSet{coords, s.Color}
+}
+
 func (s *StoneSet) String() string {
 	return fmt.Sprintf("%v - %v", s.Coords, s.Color)
 }
@@ -165,6 +173,18 @@ func NewDiff(add, remove []*StoneSet) *Diff {
 		Add:    add,
 		Remove: remove,
 	}
+}
+
+func (d *Diff) Copy() *Diff {
+	add := []*StoneSet{}
+	remove := []*StoneSet{}
+	for _, a := range d.Add {
+		add = append(add, a.Copy())
+	}
+	for _, r := range d.Remove {
+		remove = append(remove, r.Copy())
+	}
+	return NewDiff(add, remove)
 }
 
 func (d *Diff) Invert() *Diff {

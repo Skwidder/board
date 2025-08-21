@@ -283,7 +283,7 @@ class NetworkHandler {
         this.prepare(payload);
     }
 
-    prepare_scissors() {
+    prepare_cut() {
         let payload = {"event": "cut"};
         this.prepare(payload);
     }
@@ -494,6 +494,21 @@ class NetworkHandler {
             case "0":
                 if (shift || ctrl || alt || meta) {break;}
                 this.prepare_erase_pen();
+                break;
+            case "x":
+                if (ctrl) {
+                    this.prepare_cut();
+                }
+                break;
+            case "c":
+                if (ctrl) {
+                    this.prepare_copy();
+                }
+                break;
+            case "v":
+                if (ctrl) {
+                    this.prepare_clipboard();
+                }
                 break;
             default:
                 this.state.keys_down.set(event.key, true);

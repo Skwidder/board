@@ -634,7 +634,7 @@ export function create_modals(_state) {
         let title = document.createElement("h5");
         title.innerHTML = "Delete Branch";
 
-        let scissors_modal = add_modal(id, title, paragraph, true, () => state.network_handler.prepare_scissors());
+        let scissors_modal = add_modal(id, title, paragraph, true, () => state.network_handler.prepare_cut());
         scissors_modal.addEventListener('hidden.bs.modal', () => modals_up.delete(id));
         modal_ids.push(id);
 

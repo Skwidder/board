@@ -311,18 +311,21 @@ func (s *State) HandleClipboard() (*Frame, error) {
 		return nil, nil
 	}
 
+	// keep a copy of the clipboard unaltered
+	clipboard := s.Clipboard.Copy()
+
 	// first give the copy indexes
 	Fmap(func(n *TreeNode) {
 		i := s.GetNextIndex()
 		n.Index = i
 		s.Nodes[i] = n
-	}, s.Clipboard)
+	}, clipboard)
 
 	// add the clipboard branch to the children of the current node
-	s.Current.Down = append(s.Current.Down, s.Clipboard)
+	s.Current.Down = append(s.Current.Down, clipboard)
 
 	// set the current node to be the parent of the clipboard branch
-	s.Clipboard.Up = s.Current
+	clipboard.Up = s.Current
 
 	explorer := s.Root.FillGrid(s.Current.Index)
 	marks := s.GenerateMarks()
