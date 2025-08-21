@@ -454,10 +454,14 @@ func (s *State) AddPatternNodes(moves []*PatternMove) {
 
 }
 
-
 func (s *State) Cut() *Diff {
+	// store the current index
 	index := s.Current.Index
+
+	// go left
 	diff := s.Left()
+
+	// find the child that matches the index to cut
 	j := -1
 	for i := 0; i < len(s.Current.Down); i++ {
 		node := s.Current.Down[i]
@@ -466,16 +470,31 @@ func (s *State) Cut() *Diff {
 			break
 		}
 	}
-	delete(s.Nodes, index)
+
+	// if we didn't find anything return (shouldn't really happen)
 	if j == -1 {
 		return nil
 	}
+
+	// store the branch (child index j)
+	branch := s.Current.Down[j]
+
+	// cut the branch out from the children
 	s.Current.Down = append(s.Current.Down[:j], s.Current.Down[j+1:]...)
+
+	// delete all the nodes from the nodes map
+	Fmap(func(n *TreeNode) {
+		delete(s.Nodes, n.Index)
+	}, branch)
 
 	// adjust prefs
 	if s.Current.PreferredChild >= len(s.Current.Down) {
 		s.Current.PreferredChild = 0
 	}
+
+	// save the branch to the clipboard
+	s.Clipboard = branch
+
 	return diff
 }
 
@@ -714,6 +733,8 @@ func (s *State) AddEvent(evt *EventJSON) (*Frame, error) {
 		return s.HandleErasePen()
 	case "copy":
 		return s.HandleCopy()
+	case "clipboard":
+		return s.HandleClipboard()
 	}
 	return nil, nil
 }

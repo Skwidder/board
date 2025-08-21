@@ -10,6 +10,24 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 package main
 
+func Fmap(f func(*TreeNode), root *TreeNode) {
+	stack := []*TreeNode{root}
+	for len(stack) > 0 {
+		// pop
+		i := len(stack) - 1
+		cur := stack[i]
+		stack = stack[:i]
+
+		// apply step
+		f(cur)
+
+		// push on stack in reverse order
+		for i := len(cur.Down) - 1; i >= 0; i-- {
+			stack = append(stack, cur.Down[i])
+		}
+	}
+}
+
 type TreeNode struct {
 	XY             *Coord
 	Color          Color

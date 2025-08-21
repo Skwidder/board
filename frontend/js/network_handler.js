@@ -284,13 +284,17 @@ class NetworkHandler {
     }
 
     prepare_scissors() {
-        //let payload = {"event":"scissors", "value": this.state.board.tree.current.index};
         let payload = {"event": "cut"};
         this.prepare(payload);
     }
 
     prepare_copy() {
         let payload = {"event": "copy"};
+        this.prepare(payload);
+    }
+
+    prepare_clipboard() {
+        let payload = {"event": "clipboard"};
         this.prepare(payload);
     }
 
@@ -351,7 +355,7 @@ class NetworkHandler {
             this.state.modals.modals_up.size > 0 &&
             evt != "trash" &&
             evt != "update_settings" &&
-            evt != "scissors" &&
+            evt != "cut" &&
             evt != "upload_sgf" &&
             evt != "request_sgf" &&
             evt != "link_ogs_game" &&

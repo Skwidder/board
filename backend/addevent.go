@@ -175,14 +175,6 @@ func (s *State) HandleRemoveMark(evt *EventJSON) (*Frame, error) {
 	return nil, nil
 }
 
-func (s *State) HandleCut(evt *EventJSON) (*Frame, error) {
-	diff := s.Cut()
-	marks := s.GenerateMarks()
-	explorer := s.Root.FillGrid(s.Current.Index)
-	comments := s.GenerateComments()
-	return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
-}
-
 func (s *State) HandleLeft() (*Frame, error) {
 	diff := s.Left()
 	marks := s.GenerateMarks()
@@ -236,7 +228,6 @@ func (s *State) HandleDown() (*Frame, error) {
 func (s *State) HandleRewind() (*Frame, error) {
 	s.Rewind()
 	return s.GenerateFullFrame(false), nil
-
 }
 
 func (s *State) HandleFastForward() (*Frame, error) {
@@ -302,6 +293,38 @@ func (s *State) HandleErasePen() (*Frame, error) {
 	return nil, nil
 }
 
+func (s *State) HandleCut(evt *EventJSON) (*Frame, error) {
+	diff := s.Cut()
+	marks := s.GenerateMarks()
+	explorer := s.Root.FillGrid(s.Current.Index)
+	comments := s.GenerateComments()
+	return &Frame{DiffFrame, diff, marks, explorer, comments, nil}, nil
+}
+
 func (s *State) HandleCopy() (*Frame, error) {
+	s.Clipboard = s.Current.Copy()
 	return nil, nil
+}
+
+func (s *State) HandleClipboard() (*Frame, error) {
+	if s.Clipboard == nil {
+		return nil, nil
+	}
+
+	// first give the copy indexes
+	Fmap(func(n *TreeNode) {
+		i := s.GetNextIndex()
+		n.Index = i
+		s.Nodes[i] = n
+	}, s.Clipboard)
+
+	// add the clipboard branch to the children of the current node
+	s.Current.Down = append(s.Current.Down, s.Clipboard)
+
+	// set the current node to be the parent of the clipboard branch
+	s.Clipboard.Up = s.Current
+
+	explorer := s.Root.FillGrid(s.Current.Index)
+	marks := s.GenerateMarks()
+	return &Frame{DiffFrame, nil, marks, explorer, nil, nil}, nil
 }
