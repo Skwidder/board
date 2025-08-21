@@ -109,7 +109,7 @@ export function create_buttons(_state) {
 
     // scissors button
     let scissors_button = new_icon_button("bi-scissors", () => state.modals.show_modal("scissors-modal"));
-    add_tooltip(scissors_button, "Delete branch");
+    add_tooltip(scissors_button, "Cut branch");
     button_row2.appendChild(scissors_button);
 
     // clipboard button
