@@ -148,8 +148,10 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			go o.Loop(id,ogsType)
 			room.OGSLink = o
 
-			// finish here
-			return NopJSON()
+			if(ogsType == "game"){
+				// finish here
+				return NopJSON()
+			}
 		}
 	}
 
