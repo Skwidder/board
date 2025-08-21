@@ -93,7 +93,7 @@ func (o *OGSConnector) Send(topic string, payload map[string]interface{}) error 
 	return nil
 }
 
-func (o *OGSConnector) GameConnect(gameID int, ogsType string) error {
+func (o *OGSConnector) Connect(gameID int, ogsType string) error {
 	payload := make(map[string]interface{})
 	payload["player_id"] = o.Creds.User.ID
 	payload["chat"] = false
@@ -179,9 +179,9 @@ func (o *OGSConnector) Ping() {
 	}
 }
 
-func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
+func (o *OGSConnector) Loop(gameID int, ogsType string) error {
 	o.ChatConnect()
-	o.GameConnect(gameID, ogsType)
+	o.Connect(gameID, ogsType)
 
 	socketchan := make(chan byte)
 
@@ -232,15 +232,25 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			evt := o.Room.UploadSGF(sgf)
 			o.Room.Broadcast(evt, false)
 		} else if topic == fmt.Sprintf("review/%d/full_state",gameID) { 
-			//Think we can just ignore this
+			/*
+			nodes := arr[1].([]interface{})
+			for _, node := range nodes {
+				log.Println(node)
+			}
+			*/
+
+			// eventually we can pull height, game_name, player names, etc
 		} else if topic == fmt.Sprintf("review/%d/r",gameID) {
 			log.Println(fmt.Sprintf("review/%d/r",gameID))
 			payload := arr[1].(map[string]interface{})
+			if _, ok := payload["m"]; !ok {
+				continue
+			}
 			moves := payload["m"].(string)
 
 			movesArr := []*PatternMove{}
 			currentColor := Black
-			if(o.First == 1){
+			if o.First == 1 {
 				currentColor = White
 			}
 
@@ -258,7 +268,7 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 						//Pass
 						movesArr = append(movesArr, &PatternMove{nil,currentColor})
 						currentColor = Opposite(currentColor)
-					}else{
+					} else {
 						coord := LettersToCoord(coordStr)
 						movesArr = append(movesArr, &PatternMove{coord,currentColor})
 						currentColor = Opposite(currentColor)
@@ -271,8 +281,8 @@ func (o *OGSConnector) GameLoop(gameID int, ogsType string) error {
 			frame := o.Room.State.GenerateFullFrame(true)
 			evt := FrameJSON(frame)
 			o.Room.Broadcast(evt, false)
-		}else {
-			// log.Println(topic)
+		} else {
+			//log.Println(topic)
 		}
 	}
 	return nil

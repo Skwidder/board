@@ -101,6 +101,8 @@ func (room *Room) HandleUploadSGF(evt *EventJSON) *EventJSON {
 
 func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 	var bcast *EventJSON
+	defer func(){if bcast != nil {bcast.UserID = evt.UserID}}()
+
 	url := evt.Value.(string)
 	
 	if IsOGS(url) {
@@ -110,6 +112,7 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 		spl := strings.Split(url, "/")
 		if len(spl) < 2 {
 			bcast = ErrorJSON("url parsing error")
+			return bcast
 		}
 
 		ogsType := spl[len(spl)-2]
@@ -119,9 +122,12 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			ended, err := OGSCheckEnded(url)
 			if err != nil {
 				bcast = ErrorJSON(err.Error())
+				return bcast
 			}
 			connectToOGS = !ended
-		}else if ogsType == "review" { connectToOGS = true}
+		} else if ogsType == "review" {
+			connectToOGS = true
+		}
 
 		//log.Println(connectToOGS)
 		if connectToOGS {
@@ -129,33 +135,33 @@ func (room *Room) HandleRequestSGF(evt *EventJSON) *EventJSON {
 			idStr := spl[len(spl)-1]
 			id64, err := strconv.ParseInt(idStr, 10, 64)
 			if err != nil {
-				return ErrorJSON("int parsing error")
+				bcast = ErrorJSON("int parsing error")
+				return bcast
 			}
 			id := int(id64)
 
 			o, err := NewOGSConnector(room)
 			if err != nil {
-				return ErrorJSON("ogs connector error")
+				bcast = ErrorJSON("ogs connector error")
+				return bcast
 			}
-			go o.GameLoop(id,ogsType)
+			go o.Loop(id,ogsType)
 			room.OGSLink = o
 
 			// finish here
 			return NopJSON()
 		}
-	}// else {
+	}
 
-		data, err := ApprovedFetch(evt.Value.(string))
-		if err != nil {
-			bcast = ErrorJSON(err.Error())
-		} else if data == "Permission denied" {
-			bcast = ErrorJSON("Error fetching SGF. Is it a private OGS game?")
-		} else {
-			bcast = room.UploadSGF(string(data))
-		}
-	//}
+	data, err := ApprovedFetch(evt.Value.(string))
+	if err != nil {
+		bcast = ErrorJSON(err.Error())
+	} else if data == "Permission denied" {
+		bcast = ErrorJSON("Error fetching SGF. Is it a private OGS game?")
+	} else {
+		bcast = room.UploadSGF(string(data))
+	}
 
-	bcast.UserID = evt.UserID
 	return bcast
 }
 

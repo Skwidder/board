@@ -439,11 +439,10 @@ func (s *State) AddPatternNodes(moves []*PatternMove) {
 				key = "W"
 			}
 			
-
-			if( move.Coord == nil){
+			if move.Coord == nil {
 				fields[key] = []string{""}
 				s.AddPassNode(move.Color, fields, -1)
-			}else{
+			} else {
 				fields[key] = []string{move.Coord.ToLetters()} 
 				s.AddNode(move.Coord, move.Color, fields, -1, false)
 			}
@@ -451,7 +450,6 @@ func (s *State) AddPatternNodes(moves []*PatternMove) {
 		}
 	}
 	s.GotoIndex(locationSave) 
-
 }
 
 func (s *State) Cut() *Diff {
